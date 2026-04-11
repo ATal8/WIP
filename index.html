@@ -4009,129 +4009,247 @@ async function checkShareMode() {
 
 function showSharedProject(p) {
   document.title = `${p.name} — WIP`;
+  const fmt = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const fdate = ts => { const d = new Date(ts); return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
-  const fmt = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
+
+  // Override body styles for share view
+  document.body.style.overflow = 'hidden';
+  document.body.style.height = '100vh';
 
   document.body.innerHTML = `
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap');
-      body { font-family: 'DM Mono', monospace; background: #0a0a0b; color: #e8e8ea; margin: 0; padding-bottom: 80px; }
-      .sv-wrap { max-width: 720px; margin: 0 auto; padding: 48px 32px 32px; }
-      .sv-badge { font-size: 9px; letter-spacing: 0.24em; color: #c8ff32; text-transform: uppercase; margin-bottom: 32px; }
-      .sv-hero { display: flex; align-items: flex-end; gap: 28px; margin-bottom: 40px; }
-      .sv-cover { width: 140px; height: 140px; border-radius: 6px; background: #18181c; border: 1px solid #222226; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #5a5a62; overflow: hidden; flex-shrink: 0; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
-      .sv-cover img { width: 100%; height: 100%; object-fit: cover; }
-      .sv-info { flex: 1; }
-      .sv-type { font-size: 9px; letter-spacing: 0.2em; color: #5a5a62; text-transform: uppercase; margin-bottom: 8px; }
-      .sv-title { font-size: 30px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 8px; }
-      .sv-artist { font-size: 13px; color: #e8e8ea; margin-bottom: 8px; }
-      .sv-meta { font-size: 10px; color: #5a5a62; letter-spacing: 0.05em; }
-      .sv-shared { font-size: 9px; color: #5a5a62; letter-spacing: 0.08em; margin-top: 12px; }
-      .sv-tracks { border-top: 1px solid #222226; padding-top: 12px; }
-      .sv-track { display: grid; grid-template-columns: 28px 1fr 56px 68px; align-items: center; padding: 9px 6px; border-radius: 5px; border: 1px solid transparent; font-size: 11px; color: #909098; letter-spacing: 0.02em; cursor: pointer; transition: background 0.1s; }
-      .sv-track:hover { background: #111113; }
-      .sv-track.playing { background: rgba(200,255,50,0.06); border-color: rgba(200,255,50,0.12); }
-      .sv-track.playing .sv-tname { color: #c8ff32; }
-      .sv-tnum { font-size: 10px; color: #5a5a62; }
-      .sv-tname { color: #e8e8ea; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .sv-tbpm { font-size: 10px; color: #5a5a62; }
-      .sv-tdur { font-size: 10px; color: #5a5a62; }
-      .sv-status { display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;border:1px solid transparent;flex-shrink:0; }
-      .s-idea { color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08); }
-      .s-demo { color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08); }
-      .s-mixing { color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08); }
-      .s-done { color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08); }
-      .sv-lyrics-btn { font-size:9px;color:#5a5a62;background:none;border:1px solid #222226;border-radius:4px;padding:2px 7px;cursor:pointer;letter-spacing:0.06em;transition:color 0.12s,border-color 0.12s;flex-shrink:0; }
-      .sv-lyrics-btn:hover { color:#c8ff32;border-color:rgba(200,255,50,0.3); }
-      .sv-lyrics-panel { margin: 2px 6px 8px; padding:12px 14px;background:#111113;border:1px solid #222226;border-radius:6px;font-size:12px;color:#909098;line-height:1.85;white-space:pre-wrap;letter-spacing:0.02em;display:none; }
-      .sv-lyrics-panel.open { display:block; }
-      /* Player bar */
-      #sv-player { position:fixed;bottom:0;left:0;right:0;height:64px;background:#111113;border-top:1px solid #222226;display:flex;align-items:center;gap:16px;padding:0 24px;z-index:100; }
-      #sv-pp { width:36px;height:36px;background:#c8ff32;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#0a0a0b;flex-shrink:0;transition:background 0.12s; }
-      #sv-pp:hover { background:#d4ff50; }
-      .sv-pl-info { display:flex;flex-direction:column;gap:2px;min-width:0;width:160px;flex-shrink:0; }
-      .sv-pl-name { font-size:11px;color:#e8e8ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-      .sv-pl-artist { font-size:9px;color:#5a5a62;letter-spacing:0.05em; }
-      .sv-prog-wrap { flex:1;display:flex;align-items:center;gap:10px; }
-      .sv-tc { font-size:9px;color:#5a5a62;width:32px;flex-shrink:0; }
-      .sv-prog { flex:1;height:3px;background:#222226;border-radius:3px;cursor:pointer;position:relative;padding:8px 0;margin:-8px 0;background-clip:content-box;box-sizing:content-box; }
-      .sv-prog-fill { height:100%;background:#c8ff32;border-radius:3px;pointer-events:none;width:0%; }
-      .sv-vol { width:70px;height:3px;background:#222226;border-radius:3px;cursor:pointer;padding:8px 0;margin:-8px 0;background-clip:content-box;box-sizing:content-box;flex-shrink:0; }
-      .sv-vol-fill { height:100%;background:#5a5a62;border-radius:3px;pointer-events:none;width:80%; }
-    </style>
-    <div class="sv-wrap">
-      <div class="sv-badge">◈ WIP — shared project</div>
-      <div class="sv-hero">
-        <div class="sv-cover">${p.cover ? `<img src="${p.cover}">` : '◈'}</div>
-        <div class="sv-info">
-          <div class="sv-type">WIP · ${(p.type||'project').toUpperCase()}</div>
-          <div class="sv-title">${p.name}</div>
-          <div class="sv-artist">${p.artist||'unknown artist'}</div>
-          <div class="sv-meta">${p.year||''} ${p.genre ? '· '+p.genre : ''} · ${p.tracks.length} track${p.tracks.length!==1?'s':''}</div>
-          <div class="sv-shared">shared by ${p.sharedBy||'unknown'}</div>
-        </div>
+  <div id="sv-app" style="display:grid;grid-template-rows:1fr var(--player-h);grid-template-columns:var(--sidebar-w) 1fr;grid-template-areas:'sidebar main' 'player player';height:100vh;">
+
+    <!-- SIDEBAR -->
+    <div style="grid-area:sidebar;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--surface);">
+      <div style="padding:18px 16px 14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:500;letter-spacing:0.28em;color:var(--accent);text-transform:uppercase">WIP</div>
+        <div style="font-size:9px;color:var(--dim);letter-spacing:0.12em;margin-top:2px">shared project</div>
       </div>
-      <div class="sv-tracks" id="sv-tracks">
-        ${p.tracks.map((t,i) => {
-          const s = t.status;
-          const statusHtml = s ? `<span class="sv-status s-${s}">${s}</span>` : '';
-          const hasLyrics = t.lyrics && t.lyrics.some(lyr => lyr.content && lyr.content.trim());
-          const hasAudio = !!t.url;
-          return `<div class="sv-track" id="svt-${t.localId||t.id}" onclick="svPlay(${i})">
-            <div class="sv-tnum" id="svn-${i}">${i+1}</div>
-            <div style="display:flex;align-items:center;gap:8px;min-width:0">
-              <div class="sv-tname">${t.name}</div>
-              ${statusHtml}
-              ${hasLyrics ? `<button class="sv-lyrics-btn" onclick="event.stopPropagation();toggleLyrics(this,'${t.localId||t.id}')">✏ lyrics</button>` : ''}
-            </div>
-            <div class="sv-tbpm">${t.bpm && t.bpm!=='analyzing' ? t.bpm+' bpm' : '—'}</div>
-            <div class="sv-tdur">${fmt(t.dur||0)}</div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent);font-weight:500;flex-shrink:0">${(p.sharedBy||'?')[0].toUpperCase()}</div>
+        <div style="font-size:11px;color:var(--mid);letter-spacing:0.05em">${p.sharedBy||'unknown'}</div>
+      </div>
+      <div style="padding:12px 0;flex:1;overflow-y:auto">
+        <div style="font-size:9px;font-weight:500;letter-spacing:0.2em;color:var(--dim);text-transform:uppercase;padding:0 16px 8px">project</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:5px 16px;background:var(--surface2);position:relative">
+          <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:16px;width:2px;background:var(--accent);border-radius:0 2px 2px 0"></div>
+          <div style="width:36px;height:36px;border-radius:3px;background:var(--surface3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim);border:1px solid rgba(200,255,50,0.3)">
+            ${p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover">` : '◈'}
           </div>
-          ${hasLyrics ? `<div class="sv-lyrics-panel" id="lyr-${t.localId||t.id}">${(t.lyrics.find(l=>l.content)||{content:''}).content.replace(/</g,'&lt;')}</div>` : ''}`;
-        }).join('')}
-      </div>
-    </div>
-    <div id="sv-player">
-      <button id="sv-pp" onclick="svToggle()">▶</button>
-      <div class="sv-pl-info">
-        <div class="sv-pl-name" id="sv-pl-name">—</div>
-        <div class="sv-pl-artist">${p.artist||''}</div>
-      </div>
-      <div class="sv-prog-wrap">
-        <span class="sv-tc" id="sv-tc">0:00</span>
-        <div class="sv-prog" id="sv-prog" onclick="svSeek(event)">
-          <div class="sv-prog-fill" id="sv-prog-fill"></div>
+          <div style="min-width:0;flex:1">
+            <div style="font-size:11px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+            <div style="font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${p.artist||'—'}</div>
+          </div>
+          <span style="font-size:9px;color:var(--dim);flex-shrink:0">${p.tracks.length}</span>
         </div>
-        <span class="sv-tc" id="sv-tt">0:00</span>
       </div>
     </div>
+
+    <!-- MAIN -->
+    <div style="grid-area:main;display:flex;flex-direction:column;overflow:hidden;align-items:center;position:relative" id="sv-main">
+      <div id="sv-ambient" style="position:absolute;inset:0;pointer-events:none;z-index:0;background-size:cover;background-position:center;filter:blur(80px) saturate(1.1) brightness(0.07);transform:scale(1.15);opacity:0;transition:opacity 1s ease;${p.cover ? `background-image:url(${p.cover})` : ''}"></div>
+      <div style="flex:1;overflow-y:auto;overflow-x:hidden;width:100%;max-width:960px;display:flex;flex-direction:column;position:relative;z-index:1" id="sv-content">
+
+        <!-- HERO -->
+        <div style="padding:44px 40px 32px;display:flex;align-items:flex-end;gap:32px;position:relative;flex-shrink:0">
+          <div style="position:absolute;inset:0;pointer-events:none;${p.cover ? `background-image:url(${p.cover});background-size:cover;background-position:center;filter:blur(40px) saturate(1.4) brightness(0.28);transform:scale(1.1);` : ''}opacity:${p.cover?1:0};transition:opacity 0.7s"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,10,11,0.5) 0%,transparent 100%);pointer-events:none"></div>
+          <div style="width:160px;height:160px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:44px;color:var(--dim);overflow:hidden;position:relative;box-shadow:0 18px 56px rgba(0,0,0,0.75);flex-shrink:0;z-index:1">
+            ${p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">` : '◈'}
+          </div>
+          <div style="flex:1;min-width:0;z-index:1">
+            <div style="font-size:9px;font-weight:500;letter-spacing:0.22em;color:var(--dim);text-transform:uppercase;margin-bottom:10px">WIP · ${(p.type||'project').toUpperCase()}</div>
+            <div style="font-size:34px;font-weight:500;line-height:1.1;letter-spacing:-0.02em;color:var(--text);font-family:'DM Mono','Fredoka',monospace">${p.name}</div>
+            <div style="font-size:13px;font-weight:400;color:var(--text);margin-top:10px;letter-spacing:0.03em">${p.artist||'unknown artist'}</div>
+            <div style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:10px;color:var(--dim);letter-spacing:0.05em">
+              <span>${p.year||new Date().getFullYear()}</span>
+              ${p.genre ? `<span style="opacity:0.4">·</span><span>${p.genre}</span>` : ''}
+              <span style="opacity:0.4">·</span>
+              <span>${p.tracks.length} track${p.tracks.length!==1?'s':''}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:24px">
+              <button onclick="svPlayAll()" id="sv-play-btn" style="width:48px;height:48px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,background 0.15s;flex-shrink:0">▶</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRACKS -->
+        <div style="flex:1;padding:0 40px 28px">
+          <hr style="border:none;border-top:1px solid var(--border);margin-bottom:10px">
+          <div style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:5px 10px 5px;border-bottom:1px solid var(--border);margin-bottom:4px">
+            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">#</div>
+            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">title</div>
+            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">bpm</div>
+            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">date added</div>
+            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">duration</div>
+            <div></div>
+          </div>
+          <div id="sv-tracks-area">
+            ${p.tracks.map((t,i) => {
+              const ip = false;
+              const s = t.status;
+              const statusHtml = s ? `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;cursor:default;flex-shrink:0;border:1px solid transparent;${
+                s==='idea'?'color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08)':
+                s==='demo'?'color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08)':
+                s==='mixing'?'color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08)':
+                s==='done'?'color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08)':''
+              }">${s}</span>` : '';
+              const hasLyrics = t.lyrics && t.lyrics.some(l => l.content && l.content.trim());
+              return `<div class="sv-trow" id="sv-row-${i}" data-idx="${i}"
+                style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:background 0.1s;margin-bottom:1px"
+                onclick="svPlay(${i})"
+                onmouseenter="this.style.background='var(--surface2)'"
+                onmouseleave="svRowLeave(this,${i})">
+                <div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:20px">
+                  <span id="sv-num-${i}" style="font-size:10px;color:var(--dim)">${i+1}</span>
+                  <span id="sv-ico-${i}" style="position:absolute;font-size:11px;color:var(--accent);opacity:0">▶</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;min-width:0">
+                  <span id="sv-tname-${i}" style="font-size:12.5px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em">${t.name}</span>
+                  ${statusHtml}
+                </div>
+                <div style="font-size:10px;color:var(--dim);letter-spacing:0.04em">${t.bpm && t.bpm!=='analyzing' ? `<span style="color:var(--accent);opacity:0.75">${t.bpm}</span>` : '—'}</div>
+                <div style="font-size:9px;color:var(--dim);letter-spacing:0.04em">${fdate(t.added||Date.now())}</div>
+                <div style="font-size:10px;color:var(--dim)">${fmt(t.dur||0)}</div>
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;opacity:0;transition:opacity 0.1s" id="sv-acts-${i}">
+                  ${hasLyrics ? `<button onclick="event.stopPropagation();svOpenLyrics(${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:var(--accent);border-radius:4px;font-size:13px;transition:color 0.1s,background 0.1s" onmouseenter="this.style.background='var(--surface3)'" onmouseleave="this.style.background='none'" title="lyrics">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  </button>` : ''}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYER -->
+    <div id="sv-player" style="grid-area:player;height:var(--player-h);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;background:var(--surface);position:relative;z-index:10">
+      <div style="display:flex;align-items:center;gap:10px;width:220px;flex-shrink:0">
+        <div id="sv-pl-thumb" style="width:42px;height:42px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--dim);flex-shrink:0;overflow:hidden">♩</div>
+        <div style="min-width:0;flex:1">
+          <div id="sv-pl-name" style="font-size:12px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em">—</div>
+          <div id="sv-pl-artist" style="font-size:10px;color:var(--dim);letter-spacing:0.04em;margin-top:2px">no track playing</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <button onclick="svSkipPrev()" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;transition:color 0.12s" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--dim)'">⏮</button>
+          <button id="sv-pp" onclick="svToggle()" style="width:36px;height:36px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background 0.15s,transform 0.1s" onmouseenter="this.style.background='#d4ff50'" onmouseleave="this.style.background='var(--accent)'">▶</button>
+          <button onclick="svSkipNext()" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;transition:color 0.12s" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--dim)'">⏭</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:500px" id="sv-prog-wrap">
+          <span id="sv-tc" style="font-size:10px;color:var(--dim);width:32px;text-align:right;flex-shrink:0">0:00</span>
+          <div id="sv-prog" onclick="svSeek(event)" style="flex:1;height:3px;background:var(--border);border-radius:3px;cursor:pointer;position:relative;padding:10px 0;margin:-10px 0;background-clip:content-box;box-sizing:content-box">
+            <div id="sv-prog-fill" style="height:100%;background:var(--accent);border-radius:3px;pointer-events:none;width:0%"></div>
+          </div>
+          <span id="sv-tt" style="font-size:10px;color:var(--dim);width:32px;flex-shrink:0">0:00</span>
+        </div>
+      </div>
+      <div style="width:220px;flex-shrink:0"></div>
+    </div>
+
+  </div>
+
+  <!-- LYRICS PANEL -->
+  <div id="sv-lyrics-panel" style="position:fixed;top:0;right:0;bottom:var(--player-h);width:500px;background:var(--bg);border-left:1px solid var(--border);display:flex;flex-direction:column;z-index:300;transform:translateX(100%);transition:transform 0.22s cubic-bezier(0.4,0,0.2,1);box-shadow:-12px 0 40px rgba(0,0,0,0.4)">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);flex-shrink:0">✏ lyrics</div>
+      <div id="sv-lp-name" style="font-size:11px;font-weight:500;color:var(--text);letter-spacing:0.04em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+      <button onclick="svCloseLyrics()" style="width:26px;height:26px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;transition:color 0.12s,background 0.12s" onmouseenter="this.style.color='var(--text)';this.style.background='var(--surface2)'" onmouseleave="this.style.color='var(--dim)';this.style.background='none'">×</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px 20px">
+      <div id="sv-lp-content" style="font-family:'DM Mono','Fredoka',monospace;font-size:14px;line-height:1.85;color:var(--text);letter-spacing:0.02em;white-space:pre-wrap"></div>
+    </div>
+  </div>
   `;
 
-  // Player logic
+  // Ambient glow
+  if (p.cover) setTimeout(() => {
+    const el = document.getElementById('sv-ambient');
+    if (el) el.style.opacity = '1';
+  }, 100);
+
+  // ── Player logic ──
   const tracks = p.tracks;
   const svAudio = new Audio();
   svAudio.volume = 0.8;
   let svCur = -1, svPlaying = false;
   const fmt2 = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
 
+  function svUpdateRows() {
+    tracks.forEach((t,i) => {
+      const row = document.getElementById(`sv-row-${i}`);
+      const num = document.getElementById(`sv-num-${i}`);
+      const ico = document.getElementById(`sv-ico-${i}`);
+      const name = document.getElementById(`sv-tname-${i}`);
+      const acts = document.getElementById(`sv-acts-${i}`);
+      if (!row) return;
+      const isCur = i === svCur;
+      const isPlay = isCur && svPlaying;
+      row.style.background = isCur ? 'var(--adim)' : '';
+      row.style.borderColor = isCur ? 'rgba(200,255,50,0.14)' : 'transparent';
+      if (num) num.style.opacity = isCur ? '0' : '1';
+      if (ico) { ico.style.opacity = isCur ? '1' : '0'; ico.textContent = isPlay ? '⏸' : '▶'; }
+      if (name) name.style.color = isCur ? 'var(--accent)' : 'var(--text)';
+      if (acts) acts.style.opacity = isCur ? '1' : '0';
+    });
+    const btn = document.getElementById('sv-play-btn');
+    if (btn) btn.textContent = svPlaying ? '⏸' : '▶';
+    const pp = document.getElementById('sv-pp');
+    if (pp) pp.textContent = svPlaying ? '⏸' : '▶';
+  }
+
+  window.svRowLeave = (el, i) => {
+    el.style.background = i === svCur ? 'var(--adim)' : '';
+    document.getElementById(`sv-acts-${i}`).style.opacity = i === svCur ? '1' : '0';
+  };
+
   window.svPlay = (i) => {
-    if (!tracks[i].url) return;
+    if (!tracks[i]) return;
     if (svCur === i) { svToggle(); return; }
-    svCur = i;
+    if (!tracks[i].url) { return; }
+    svCur = i; svPlaying = true;
     svAudio.src = tracks[i].url;
     svAudio.play();
-    svPlaying = true;
-    document.getElementById('sv-pp').textContent = '⏸';
+    // Update player bar
     document.getElementById('sv-pl-name').textContent = tracks[i].name;
-    document.querySelectorAll('.sv-track').forEach((el,j) => el.classList.toggle('playing', j===i));
-    document.querySelectorAll('[id^="svn-"]').forEach((el,j) => el.textContent = j===i ? '▶' : j+1);
+    document.getElementById('sv-pl-artist').textContent = p.artist || '';
+    const thumb = document.getElementById('sv-pl-thumb');
+    if (thumb) thumb.innerHTML = p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover">` : '♪';
+    svUpdateRows();
+    // Shift main if lyrics open
+    const lp = document.getElementById('sv-lyrics-panel');
+    if (lp && lp.style.transform === 'translateX(0px)') {
+      document.getElementById('sv-main').style.marginRight = '500px';
+    }
+  };
+
+  window.svPlayAll = () => {
+    if (svCur >= 0) { svToggle(); return; }
+    const first = tracks.findIndex(t => t.url);
+    if (first >= 0) svPlay(first);
   };
 
   window.svToggle = () => {
-    if (svCur < 0) { svPlay(0); return; }
-    if (svPlaying) { svAudio.pause(); svPlaying = false; document.getElementById('sv-pp').textContent = '▶'; }
-    else { svAudio.play(); svPlaying = true; document.getElementById('sv-pp').textContent = '⏸'; }
+    if (svCur < 0) { svPlayAll(); return; }
+    if (svPlaying) { svAudio.pause(); svPlaying = false; }
+    else { svAudio.play(); svPlaying = true; }
+    svUpdateRows();
+  };
+
+  window.svSkipNext = () => {
+    let next = svCur + 1;
+    while (next < tracks.length && !tracks[next].url) next++;
+    if (next < tracks.length) svPlay(next);
+  };
+
+  window.svSkipPrev = () => {
+    if (svAudio.currentTime > 3) { svAudio.currentTime = 0; return; }
+    let prev = svCur - 1;
+    while (prev >= 0 && !tracks[prev].url) prev--;
+    if (prev >= 0) svPlay(prev);
   };
 
   window.svSeek = (e) => {
@@ -4141,25 +4259,41 @@ function showSharedProject(p) {
     if (svAudio.duration) svAudio.currentTime = pct * svAudio.duration;
   };
 
-  svAudio.addEventListener('timeupdate', () => {
-    const pct = svAudio.duration ? (svAudio.currentTime / svAudio.duration) * 100 : 0;
-    document.getElementById('sv-prog-fill').style.width = pct + '%';
-    document.getElementById('sv-tc').textContent = fmt2(svAudio.currentTime);
-    document.getElementById('sv-tt').textContent = fmt2(svAudio.duration);
-  });
-
-  svAudio.addEventListener('ended', () => {
-    if (svCur < tracks.length - 1) svPlay(svCur + 1);
-    else { svPlaying = false; document.getElementById('sv-pp').textContent = '▶'; }
-  });
-
-  window.toggleLyrics = (btn, tid) => {
-    const panel = document.getElementById('lyr-'+tid);
-    if (!panel) return;
-    panel.classList.toggle('open');
-    btn.textContent = panel.classList.contains('open') ? '✏ hide' : '✏ lyrics';
+  window.svOpenLyrics = (i) => {
+    const t = tracks[i];
+    if (!t) return;
+    const content = (t.lyrics||[]).map(l => l.content||'').filter(Boolean).join('\n\n---\n\n');
+    document.getElementById('sv-lp-name').textContent = t.name;
+    document.getElementById('sv-lp-content').textContent = content || '(no lyrics)';
+    const panel = document.getElementById('sv-lyrics-panel');
+    panel.style.transform = 'translateX(0)';
+    document.getElementById('sv-main').style.marginRight = '500px';
+    document.getElementById('sv-main').style.transition = 'margin-right 0.22s cubic-bezier(0.4,0,0.2,1)';
   };
+
+  window.svCloseLyrics = () => {
+    document.getElementById('sv-lyrics-panel').style.transform = 'translateX(100%)';
+    document.getElementById('sv-main').style.marginRight = '0';
+  };
+
+  let svRaf = null;
+  svAudio.addEventListener('play', () => {
+    svPlaying = true; svUpdateRows();
+    function tick() {
+      if (!svAudio.duration) { svRaf = requestAnimationFrame(tick); return; }
+      const pct = (svAudio.currentTime / svAudio.duration) * 100;
+      document.getElementById('sv-prog-fill').style.width = pct + '%';
+      document.getElementById('sv-tc').textContent = fmt2(svAudio.currentTime);
+      document.getElementById('sv-tt').textContent = fmt2(svAudio.duration);
+      svRaf = requestAnimationFrame(tick);
+    }
+    if (svRaf) cancelAnimationFrame(svRaf);
+    svRaf = requestAnimationFrame(tick);
+  });
+  svAudio.addEventListener('pause', () => { svPlaying = false; svUpdateRows(); if (svRaf) cancelAnimationFrame(svRaf); });
+  svAudio.addEventListener('ended', () => { svPlaying = false; svUpdateRows(); svSkipNext(); });
 }
+
 
 // ─── INIT ───
 setupGlobalDrag();
