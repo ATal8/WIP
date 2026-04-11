@@ -1108,7 +1108,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.4.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.4.1 — firebase</div>
     </div>
   </aside>
 
@@ -4061,7 +4061,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.4.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.4.1 — firebase</div>
       </div>
     </div>
 
@@ -4278,7 +4278,6 @@ function showSharedProject(p) {
         for (let i = 0; i < peaks.length; i++) peaks[i] /= maxP;
         svWfCache[tid] = peaks;
       } catch(e) { console.warn('waveform failed',e); }
-      const wfLoadingEl = document.getElementById('sv-wf-loading');
       if (wfLoadingEl) wfLoadingEl.style.display = 'none';
     }
     svRenderWaveframe(peaks, progress||0);
