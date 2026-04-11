@@ -1108,7 +1108,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.3.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.4.0 — firebase</div>
     </div>
   </aside>
 
@@ -4061,7 +4061,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.3.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.4.0 — firebase</div>
       </div>
     </div>
 
@@ -4239,10 +4239,14 @@ function showSharedProject(p) {
   }
   async function svDrawWaveform(url, tid, progress) {
     const canvas = document.getElementById('sv-wf-canvas');
-    if (!canvas || !url) return;
+    const wrap = document.getElementById('sv-wf-wrap');
+    if (!canvas || !wrap || !url) return;
     const dpr = window.devicePixelRatio || 1;
-    const W = canvas.offsetWidth, H = canvas.offsetHeight;
+    // Use wrapper dimensions — reliable even with position:absolute canvas
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    if (!W || !H) return;
     canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     const ctx2 = canvas.getContext('2d');
     ctx2.setTransform(dpr,0,0,dpr,0,0);
     let peaks = svWfCache[tid];
@@ -4262,7 +4266,7 @@ function showSharedProject(p) {
         actx.close();
         const numBars = Math.floor(W);
         const raw = decoded.getChannelData(0);
-        const step = Math.floor(raw.length / numBars);
+        const step = Math.max(1, Math.floor(raw.length / numBars));
         peaks = new Float32Array(numBars);
         for (let i = 0; i < numBars; i++) {
           let max = 0;
@@ -4274,15 +4278,18 @@ function showSharedProject(p) {
         for (let i = 0; i < peaks.length; i++) peaks[i] /= maxP;
         svWfCache[tid] = peaks;
       } catch(e) { console.warn('waveform failed',e); }
+      const wfLoadingEl = document.getElementById('sv-wf-loading');
       if (wfLoadingEl) wfLoadingEl.style.display = 'none';
     }
     svRenderWaveframe(peaks, progress||0);
   }
   function svRenderWaveframe(peaks, progress) {
     const canvas = document.getElementById('sv-wf-canvas');
-    if (!canvas || !peaks) return;
+    const wrap = document.getElementById('sv-wf-wrap');
+    if (!canvas || !wrap || !peaks) return;
     const dpr = window.devicePixelRatio||1;
-    const W = canvas.offsetWidth, H = canvas.offsetHeight;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    if (!W || !H) return;
     const ctx2 = canvas.getContext('2d');
     ctx2.setTransform(dpr,0,0,dpr,0,0);
     ctx2.clearRect(0,0,W,H);
@@ -4452,7 +4459,7 @@ function showSharedProject(p) {
     const m = word.match(/[aeiouy]{1,2}/g);
     return m ? m.length : 1;
   }
-  function svUpdateSyllableLine(ta) {
+  window.svUpdateSyllableLine = function(ta) {
     const bar = document.getElementById('sv-lp-syl-line'); if (!bar) return;
     const pos = ta.selectionStart, text = ta.value;
     const lineStart = text.lastIndexOf('\n', pos-1)+1;
@@ -4468,7 +4475,7 @@ function showSharedProject(p) {
     }).join('');
     const overflow = count>24 ? `<span style="font-size:9px;color:${color}">+${count-24}</span>` : '';
     bar.innerHTML = `<div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap;overflow:hidden">${dots}${overflow}</div><span style="font-size:9px;color:${color};letter-spacing:0.1em;white-space:nowrap;margin-left:4px">${count} syl · ${label}</span>`;
-  }
+  };
   window.svInsertSection = (name) => {
     const ta = document.getElementById('sv-lyrics-ta'); ta.focus();
     const pos = ta.selectionStart, val = ta.value;
