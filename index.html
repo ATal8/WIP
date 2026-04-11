@@ -4234,8 +4234,8 @@ function showSharedProject(p) {
     ctx2.setTransform(dpr,0,0,dpr,0,0);
     let peaks = svWfCache[tid];
     if (!peaks) {
-      const loading = document.getElementById('sv-wf-loading');
-      if (loading) loading.style.display = 'block';
+      const wfLoadingEl = document.getElementById('sv-wf-loading');
+      if (wfLoadingEl) wfLoadingEl.style.display = 'block';
       try {
         const actx = new (window.AudioContext||window.webkitAudioContext)();
         let buf;
@@ -4261,8 +4261,7 @@ function showSharedProject(p) {
         for (let i = 0; i < peaks.length; i++) peaks[i] /= maxP;
         svWfCache[tid] = peaks;
       } catch(e) { console.warn('waveform failed',e); }
-      const loading = document.getElementById('sv-wf-loading');
-      if (loading) loading.style.display = 'none';
+      if (wfLoadingEl) wfLoadingEl.style.display = 'none';
     }
     svRenderWaveframe(peaks, progress||0);
   }
