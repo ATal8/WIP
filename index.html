@@ -1108,7 +1108,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.2.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.3.0 — firebase</div>
     </div>
   </aside>
 
@@ -2524,42 +2524,53 @@ async function shareAlbum() {
   const p = curP(); if (!p) return;
   if (!window._fbReady) { toast('firebase not ready yet'); return; }
 
-  toast('uploading tracks...');
+  toast('preparing share...');
   try {
     const db = window._fbDb;
     const storage = window._fbStorage;
     const shareId = p.id;
 
-    // Upload each track's audio to Firebase Storage
+    // ── Delete old files for this project from Storage ──
+    try {
+      const oldDoc = await window._fbGetDoc(window._fbDoc(db, 'shared', shareId));
+      if (oldDoc.exists()) {
+        const oldTracks = oldDoc.data().tracks || [];
+        await Promise.all(oldTracks.map(async t => {
+          if (!t.url) return;
+          try {
+            // Extract path from download URL or use track id
+            const oldRef = window._fbRef(storage, `shared/${shareId}/${t.localId || t.id}`);
+            await window._fbDeleteObject(oldRef);
+          } catch(e) { /* file might not exist, that's fine */ }
+        }));
+      }
+    } catch(e) { console.warn('cleanup failed, continuing...', e); }
+
+    // ── Upload current tracks ──
     const tracksWithUrls = [];
     for (let i = 0; i < p.tracks.length; i++) {
       const t = p.tracks[i];
       let audioUrl = t.url || await loadAudio(t.id);
       let cloudUrl = null;
-
       if (audioUrl) {
-        toast(`uploading track ${i+1}/${p.tracks.length}...`);
+        toast(`uploading ${i+1}/${p.tracks.length}...`);
         try {
           const storageRef = window._fbRef(storage, `shared/${shareId}/${t.id}`);
           const snapshot = await window._fbUploadString(storageRef, audioUrl, 'data_url');
           cloudUrl = await window._fbGetDownloadURL(snapshot.ref);
-        } catch(e) {
-          console.warn('audio upload failed for track', t.name, e);
-        }
+        } catch(e) { console.warn('upload failed for', t.name, e); }
       }
-
       tracksWithUrls.push({ ...t, url: cloudUrl, localId: t.id });
     }
 
-    // Save project metadata + cloud audio URLs to Firestore
+    // ── Save to Firestore (overwrites previous) ──
     const docRef = window._fbDoc(db, 'shared', shareId);
-    const shareData = {
+    await window._fbSetDoc(docRef, {
       ...p,
       tracks: tracksWithUrls,
       sharedBy: DB.currentUser,
       sharedAt: Date.now()
-    };
-    await window._fbSetDoc(docRef, shareData);
+    });
 
     const url = `${location.origin}${location.pathname}?share=${shareId}`;
     await navigator.clipboard.writeText(url).catch(() => {});
@@ -4050,7 +4061,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.2.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.3.0 — firebase</div>
       </div>
     </div>
 
