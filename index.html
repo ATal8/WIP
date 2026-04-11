@@ -1108,7 +1108,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.6.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.7.0 — firebase</div>
     </div>
   </aside>
 
@@ -4061,7 +4061,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.6.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.7.0 — firebase</div>
       </div>
     </div>
 
@@ -4221,6 +4221,14 @@ function showSharedProject(p) {
     </div>
     <!-- Syllable line indicator -->
     <div id="sv-lp-syl-line" style="display:flex;align-items:center;gap:4px;padding:6px 16px 10px;flex-shrink:0;min-height:28px"></div>
+    <!-- Beat grid -->
+    <div class="lp-beat-grid" id="sv-beat-grid" style="display:flex;align-items:center;gap:6px;padding:10px 16px 8px;flex-shrink:0;border-top:1px solid var(--border)">
+      <div class="beat-box beat-1" id="sv-beat-0"></div>
+      <div class="beat-box" id="sv-beat-1"></div>
+      <div class="beat-box" id="sv-beat-2"></div>
+      <div class="beat-box" id="sv-beat-3"></div>
+      <div class="lp-bpm-label" id="sv-bpm-label">— bpm</div>
+    </div>
   </div>
   `;
 
@@ -4372,12 +4380,14 @@ function showSharedProject(p) {
     panel.style.transform = 'translateX(0)';
     document.getElementById('sv-main').style.marginRight = '500px';
     document.getElementById('sv-main').style.transition = 'margin-right 0.22s cubic-bezier(0.4,0,0.2,1)';
+    svUpdateBeatGrid(i);
     setTimeout(() => ta.focus(), 250);
   };
 
   window.svCloseLyrics = () => {
     document.getElementById('sv-lyrics-panel').style.transform = 'translateX(100%)';
     document.getElementById('sv-main').style.marginRight = '0';
+    svStopBeatGrid();
   };
 
   window.svInsertSection = (name) => {
@@ -4394,6 +4404,44 @@ function showSharedProject(p) {
     const ta = document.getElementById('sv-lyrics-ta');
     if (ta) ta.style.fontSize = svLyricsFontSize + 'px';
   };
+
+  // ── Beat grid ──
+  let svBeatRaf = null;
+
+  function svStartBeatGrid(bpm) {
+    svStopBeatGrid();
+    if (!bpm || bpm === 'analyzing') return;
+    const beatDur = 60 / bpm;
+    const label = document.getElementById('sv-bpm-label');
+    if (label) label.textContent = `${Math.round(bpm)} bpm`;
+    function tick() {
+      const beat = Math.floor(window.svAudio.currentTime / beatDur) % 4;
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`sv-beat-${i}`)?.classList.toggle('active-beat', i === beat);
+      }
+      svBeatRaf = requestAnimationFrame(tick);
+    }
+    svBeatRaf = requestAnimationFrame(tick);
+  }
+
+  function svStopBeatGrid() {
+    if (svBeatRaf) { cancelAnimationFrame(svBeatRaf); svBeatRaf = null; }
+    for (let i = 0; i < 4; i++) document.getElementById(`sv-beat-${i}`)?.classList.remove('active-beat');
+  }
+
+  function svUpdateBeatGrid(trackIdx) {
+    if (trackIdx < 0 || !tracks[trackIdx]) { svStopBeatGrid(); return; }
+    const t = tracks[trackIdx];
+    const bpm = t.bpm && t.bpm !== 'analyzing' ? parseFloat(t.bpm) : null;
+    const label = document.getElementById('sv-bpm-label');
+    if (bpm) {
+      if (label) label.textContent = `${Math.round(bpm)} bpm`;
+      svStartBeatGrid(bpm);
+    } else {
+      svStopBeatGrid();
+      if (label) label.textContent = 'no bpm';
+    }
+  }
 
   // ── Player logic ──
   window.svAudio = new Audio();
@@ -4484,6 +4532,8 @@ function showSharedProject(p) {
 
   window.svAudio.addEventListener('play', () => {
     svPlaying=true; svUpdateRows();
+    // Update beat grid if lyrics panel is open
+    if (svLyricsTrackIdx >= 0) svUpdateBeatGrid(svLyricsTrackIdx);
     function tick() {
       if (!window.svAudio.duration) { svRaf=requestAnimationFrame(tick); return; }
       const pct = window.svAudio.currentTime/window.svAudio.duration;
@@ -4502,8 +4552,8 @@ function showSharedProject(p) {
     if (svRaf) cancelAnimationFrame(svRaf);
     svRaf=requestAnimationFrame(tick);
   });
-  window.svAudio.addEventListener('pause', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); });
-  window.svAudio.addEventListener('ended', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svSkipNext(); });
+  window.svAudio.addEventListener('pause', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svStopBeatGrid(); });
+  window.svAudio.addEventListener('ended', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svStopBeatGrid(); svSkipNext(); });
 
 }
 
