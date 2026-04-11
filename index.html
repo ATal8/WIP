@@ -1108,7 +1108,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.5.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.6.0 — firebase</div>
     </div>
   </aside>
 
@@ -4061,7 +4061,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.5.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.6.0 — firebase</div>
       </div>
     </div>
 
@@ -4227,7 +4227,9 @@ function showSharedProject(p) {
   // Ambient
   if (p.cover) setTimeout(() => { const el = document.getElementById('sv-ambient'); if(el) el.style.opacity='1'; }, 100);
 
-  // ── Waveform ──
+  // ── Define ALL window functions BEFORE setting innerHTML ──
+  // (so inline event handlers like onkeyup can find them immediately)
+
   const svWfCache = {};
 
   function svDataURLtoArrayBuffer(dataURL) {
@@ -4244,9 +4246,13 @@ function showSharedProject(p) {
     const wrap = document.getElementById('sv-wf-wrap');
     if (!canvas || !wrap || !peaks) return;
     const dpr = window.devicePixelRatio || 1;
-    const W = wrap.clientWidth, H = wrap.clientHeight;
+    const W = wrap.getBoundingClientRect().width;
+    const H = wrap.getBoundingClientRect().height;
     if (!W || !H) return;
-    if (canvas.width !== W * dpr) { canvas.width = W * dpr; canvas.height = H * dpr; }
+    if (canvas.width !== Math.round(W * dpr)) {
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+    }
     const ctx2 = canvas.getContext('2d');
     ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx2.clearRect(0, 0, W, H);
@@ -4262,8 +4268,9 @@ function showSharedProject(p) {
   async function svDrawWaveform(url, tid, progress) {
     const wrap = document.getElementById('sv-wf-wrap');
     if (!wrap || !url) return;
-    const W = wrap.clientWidth, H = wrap.clientHeight;
-    if (!W || !H) { console.warn('sv wf: wrap has no size', W, H); return; }
+    const rect = wrap.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+    if (!W || !H) { console.warn('sv wf: wrap size=0, retrying...'); setTimeout(() => svDrawWaveform(url, tid, progress), 200); return; }
 
     let peaks = svWfCache[tid];
     if (!peaks) {
@@ -4280,7 +4287,7 @@ function showSharedProject(p) {
         }
         const decoded = await actx.decodeAudioData(buf);
         actx.close();
-        const numBars = Math.max(1, Math.floor(W));
+        const numBars = Math.max(10, Math.floor(W));
         const raw = decoded.getChannelData(0);
         const step = Math.max(1, Math.floor(raw.length / numBars));
         peaks = new Float32Array(numBars);
@@ -4293,9 +4300,7 @@ function showSharedProject(p) {
         const maxP = Math.max(...peaks, 0.001);
         for (let i = 0; i < peaks.length; i++) peaks[i] /= maxP;
         svWfCache[tid] = peaks;
-      } catch(e) {
-        console.warn('sv waveform decode failed:', e);
-      }
+      } catch(e) { console.warn('sv wf decode failed:', e); }
       const loadEl2 = document.getElementById('sv-wf-loading');
       if (loadEl2) loadEl2.style.display = 'none';
     }
@@ -4304,117 +4309,7 @@ function showSharedProject(p) {
 
   window.svCurrentWfTid = null;
 
-  // ── Player logic ──
-  window.svAudio = new Audio();
-  window.svAudio.volume = 0.8;
-  let svCur = -1, svPlaying = false, svRaf = null;
-  const fmt2 = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
-
-  function svUpdateRows() {
-    tracks.forEach((_,i) => {
-      const row = document.getElementById(`sv-row-${i}`);
-      const num = document.getElementById(`sv-num-${i}`);
-      const ico = document.getElementById(`sv-ico-${i}`);
-      const name = document.getElementById(`sv-tname-${i}`);
-      const acts = document.getElementById(`sv-acts-${i}`);
-      if (!row) return;
-      const isCur = i===svCur, isPlay = isCur&&svPlaying;
-      row.style.background = isCur ? 'var(--adim)' : '';
-      row.style.borderColor = isCur ? 'rgba(200,255,50,0.14)' : 'transparent';
-      if (num) num.style.opacity = isCur ? '0' : '1';
-      if (ico) { ico.style.opacity = isCur?'1':'0'; ico.textContent = isPlay?'⏸':'▶'; }
-      if (name) name.style.color = isCur ? 'var(--accent)' : 'var(--text)';
-      if (acts) acts.style.opacity = isCur ? '1' : '0';
-    });
-    const btn = document.getElementById('sv-play-btn');
-    if (btn) btn.textContent = svPlaying ? '⏸' : '▶';
-    const ppIcon = document.getElementById('sv-pp-icon');
-    if (ppIcon) ppIcon.innerHTML = svPlaying
-      ? '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
-      : '<polygon points="5 3 19 12 5 21 5 3"/>';
-  }
-
-  window.svRowEnter = (el,i) => {
-    if (i!==svCur) el.style.background='var(--surface2)';
-    document.getElementById(`sv-acts-${i}`).style.opacity='1';
-    document.getElementById(`sv-num-${i}`).style.opacity='0';
-    document.getElementById(`sv-ico-${i}`).style.opacity='1';
-  };
-  window.svRowLeave = (el,i) => {
-    el.style.background = i===svCur ? 'var(--adim)' : '';
-    document.getElementById(`sv-acts-${i}`).style.opacity = i===svCur?'1':'0';
-    document.getElementById(`sv-num-${i}`).style.opacity = i===svCur?'0':'1';
-    document.getElementById(`sv-ico-${i}`).style.opacity = i===svCur?'1':'0';
-  };
-
-  window.svPlay = async (i) => {
-    if (!tracks[i]) return;
-    if (svCur===i) { svToggle(); return; }
-    if (!tracks[i].url) return;
-    svCur = i; svPlaying = true;
-    window.svAudio.src = tracks[i].url;
-    window.svAudio.play();
-    document.getElementById('sv-pl-name').textContent = tracks[i].name;
-    document.getElementById('sv-pl-artist').textContent = p.artist||'';
-    const thumb = document.getElementById('sv-pl-thumb');
-    if (thumb) thumb.innerHTML = p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">` : '♪';
-    svUpdateRows();
-    window.svCurrentWfTid = i;
-    // Wait two frames so the canvas has layout dimensions before drawing
-    requestAnimationFrame(() => requestAnimationFrame(() => svDrawWaveform(tracks[i].url, i, 0)));
-  };
-  window.svPlayAll = () => {
-    if (svCur>=0) { svToggle(); return; }
-    const first = tracks.findIndex(t=>t.url);
-    if (first>=0) svPlay(first);
-  };
-  window.svToggle = () => {
-    if (svCur<0) { svPlayAll(); return; }
-    if (svPlaying) { window.svAudio.pause(); }
-    else { window.svAudio.play(); }
-  };
-  window.svSkipNext = () => {
-    let next = svCur+1;
-    while (next<tracks.length && !tracks[next].url) next++;
-    if (next<tracks.length) svPlay(next);
-  };
-  window.svSkipPrev = () => {
-    if (window.svAudio.currentTime>3) { window.svAudio.currentTime=0; return; }
-    let prev = svCur-1;
-    while (prev>=0 && !tracks[prev].url) prev--;
-    if (prev>=0) svPlay(prev);
-  };
-  window.svSeek = (e) => {
-    const wrap = document.getElementById('sv-wf-wrap');
-    const r = wrap.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1,(e.clientX-r.left)/r.width));
-    if (window.svAudio.duration) window.svAudio.currentTime = pct*window.svAudio.duration;
-  };
-
-  window.svAudio.addEventListener('play', () => {
-    svPlaying=true; svUpdateRows();
-    function tick() {
-      if (!window.svAudio.duration) { svRaf=requestAnimationFrame(tick); return; }
-      const pct = window.svAudio.currentTime/window.svAudio.duration;
-      // Waveform
-      if (window.svCurrentWfTid !== null && svWfCache[window.svCurrentWfTid]) {
-        svRenderWaveframe(svWfCache[window.svCurrentWfTid], pct);
-      }
-      const cursor = document.getElementById('sv-wf-cursor');
-      const played = document.getElementById('sv-wf-played');
-      if (cursor) cursor.style.left = (pct*100)+'%';
-      if (played) played.style.width = (pct*100)+'%';
-      document.getElementById('sv-tc').textContent = fmt2(window.svAudio.currentTime);
-      document.getElementById('sv-tt').textContent = fmt2(window.svAudio.duration);
-      svRaf=requestAnimationFrame(tick);
-    }
-    if (svRaf) cancelAnimationFrame(svRaf);
-    svRaf=requestAnimationFrame(tick);
-  });
-  window.svAudio.addEventListener('pause', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); });
-  window.svAudio.addEventListener('ended', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svSkipNext(); });
-
-  // ── Lyrics panel (local only, not shared) ──
+  // ── Lyrics functions (defined before innerHTML so onkeyup works) ──
   let svLyricsFontSize = 14;
   let svLyricsTrackIdx = -1;
   const svLyricsDB = {};
@@ -4499,6 +4394,117 @@ function showSharedProject(p) {
     const ta = document.getElementById('sv-lyrics-ta');
     if (ta) ta.style.fontSize = svLyricsFontSize + 'px';
   };
+
+  // ── Player logic ──
+  window.svAudio = new Audio();
+  window.svAudio.volume = 0.8;
+  let svCur = -1, svPlaying = false, svRaf = null;
+  const fmt2 = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
+
+  function svUpdateRows() {
+    tracks.forEach((_,i) => {
+      const row = document.getElementById(`sv-row-${i}`);
+      const num = document.getElementById(`sv-num-${i}`);
+      const ico = document.getElementById(`sv-ico-${i}`);
+      const name = document.getElementById(`sv-tname-${i}`);
+      const acts = document.getElementById(`sv-acts-${i}`);
+      if (!row) return;
+      const isCur = i===svCur, isPlay = isCur&&svPlaying;
+      row.style.background = isCur ? 'var(--adim)' : '';
+      row.style.borderColor = isCur ? 'rgba(200,255,50,0.14)' : 'transparent';
+      if (num) num.style.opacity = isCur ? '0' : '1';
+      if (ico) { ico.style.opacity = isCur?'1':'0'; ico.textContent = isPlay?'⏸':'▶'; }
+      if (name) name.style.color = isCur ? 'var(--accent)' : 'var(--text)';
+      if (acts) acts.style.opacity = isCur ? '1' : '0';
+    });
+    const btn = document.getElementById('sv-play-btn');
+    if (btn) btn.textContent = svPlaying ? '⏸' : '▶';
+    const ppIcon = document.getElementById('sv-pp-icon');
+    if (ppIcon) ppIcon.innerHTML = svPlaying
+      ? '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
+      : '<polygon points="5 3 19 12 5 21 5 3"/>';
+  }
+
+  window.svRowEnter = (el,i) => {
+    if (i!==svCur) el.style.background='var(--surface2)';
+    document.getElementById(`sv-acts-${i}`).style.opacity='1';
+    document.getElementById(`sv-num-${i}`).style.opacity='0';
+    document.getElementById(`sv-ico-${i}`).style.opacity='1';
+  };
+  window.svRowLeave = (el,i) => {
+    el.style.background = i===svCur ? 'var(--adim)' : '';
+    document.getElementById(`sv-acts-${i}`).style.opacity = i===svCur?'1':'0';
+    document.getElementById(`sv-num-${i}`).style.opacity = i===svCur?'0':'1';
+    document.getElementById(`sv-ico-${i}`).style.opacity = i===svCur?'1':'0';
+  };
+
+  window.svPlay = async (i) => {
+    if (!tracks[i]) return;
+    if (svCur===i) { svToggle(); return; }
+    if (!tracks[i].url) return;
+    svCur = i; svPlaying = true;
+    window.svAudio.src = tracks[i].url;
+    window.svAudio.play();
+    document.getElementById('sv-pl-name').textContent = tracks[i].name;
+    document.getElementById('sv-pl-artist').textContent = p.artist||'';
+    const thumb = document.getElementById('sv-pl-thumb');
+    if (thumb) thumb.innerHTML = p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">` : '♪';
+    svUpdateRows();
+    window.svCurrentWfTid = i;
+    // Use setTimeout to ensure layout is complete before measuring
+    setTimeout(() => svDrawWaveform(tracks[i].url, i, 0), 100);
+  };
+  window.svPlayAll = () => {
+    if (svCur>=0) { svToggle(); return; }
+    const first = tracks.findIndex(t=>t.url);
+    if (first>=0) svPlay(first);
+  };
+  window.svToggle = () => {
+    if (svCur<0) { svPlayAll(); return; }
+    if (svPlaying) { window.svAudio.pause(); }
+    else { window.svAudio.play(); }
+  };
+  window.svSkipNext = () => {
+    let next = svCur+1;
+    while (next<tracks.length && !tracks[next].url) next++;
+    if (next<tracks.length) svPlay(next);
+  };
+  window.svSkipPrev = () => {
+    if (window.svAudio.currentTime>3) { window.svAudio.currentTime=0; return; }
+    let prev = svCur-1;
+    while (prev>=0 && !tracks[prev].url) prev--;
+    if (prev>=0) svPlay(prev);
+  };
+  window.svSeek = (e) => {
+    const wrap = document.getElementById('sv-wf-wrap');
+    const r = wrap.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1,(e.clientX-r.left)/r.width));
+    if (window.svAudio.duration) window.svAudio.currentTime = pct*window.svAudio.duration;
+  };
+
+  window.svAudio.addEventListener('play', () => {
+    svPlaying=true; svUpdateRows();
+    function tick() {
+      if (!window.svAudio.duration) { svRaf=requestAnimationFrame(tick); return; }
+      const pct = window.svAudio.currentTime/window.svAudio.duration;
+      // Waveform
+      if (window.svCurrentWfTid !== null && svWfCache[window.svCurrentWfTid]) {
+        svRenderWaveframe(svWfCache[window.svCurrentWfTid], pct);
+      }
+      const cursor = document.getElementById('sv-wf-cursor');
+      const played = document.getElementById('sv-wf-played');
+      if (cursor) cursor.style.left = (pct*100)+'%';
+      if (played) played.style.width = (pct*100)+'%';
+      document.getElementById('sv-tc').textContent = fmt2(window.svAudio.currentTime);
+      document.getElementById('sv-tt').textContent = fmt2(window.svAudio.duration);
+      svRaf=requestAnimationFrame(tick);
+    }
+    if (svRaf) cancelAnimationFrame(svRaf);
+    svRaf=requestAnimationFrame(tick);
+  });
+  window.svAudio.addEventListener('pause', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); });
+  window.svAudio.addEventListener('ended', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svSkipNext(); });
+
 }
 
 
