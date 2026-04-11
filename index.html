@@ -1108,7 +1108,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.7.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.8.0 — firebase</div>
     </div>
   </aside>
 
@@ -1518,7 +1518,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc }
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -1547,6 +1547,7 @@ window._fbRef = ref;
 window._fbUploadString = uploadString;
 window._fbGetDownloadURL = getDownloadURL;
 window._fbDeleteObject = deleteObject;
+window._fbOnSnapshot = onSnapshot;
 window._fbReady = true;
 </script>
 
@@ -4004,6 +4005,8 @@ async function checkShareMode() {
   try {
     const db = window._fbDb;
     const docRef = window._fbDoc(db, 'shared', shareId);
+
+    // First load
     const snap = await window._fbGetDoc(docRef);
     if (!snap.exists()) {
       document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:'DM Mono',monospace;background:#0a0a0b;color:#5a5a62">
@@ -4012,8 +4015,27 @@ async function checkShareMode() {
       </div>`;
       return true;
     }
-    const p = snap.data();
-    showSharedProject(p);
+    showSharedProject(snap.data());
+
+    // Live updates — when owner shares again, update metadata without interrupting playback
+    window._fbOnSnapshot(docRef, (updatedSnap) => {
+      if (!updatedSnap.exists()) return;
+      const newData = updatedSnap.data();
+      // Update track list metadata (names, statuses, bpm) without reloading audio
+      const tracksArea = document.getElementById('sv-tracks-area');
+      if (!tracksArea) return; // page not rendered yet
+      // Update sidebar project name
+      const sidebarName = document.querySelector('#sv-app [style*="sidebar"] .p-name-sm');
+      // Update track rows that exist — just refresh names/status/bpm
+      newData.tracks.forEach((t, i) => {
+        const nameEl = document.getElementById(`sv-tname-${i}`);
+        if (nameEl) nameEl.textContent = t.name;
+      });
+      // Show live indicator
+      const badge = document.getElementById('sv-live-badge');
+      if (badge) { badge.style.opacity = '1'; setTimeout(() => badge.style.opacity = '0', 2000); }
+    });
+
     return true;
   } catch(e) {
     console.warn('load shared failed', e);
@@ -4044,7 +4066,8 @@ function showSharedProject(p) {
       </div>
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
         <div style="width:26px;height:26px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent);font-weight:500;flex-shrink:0">${(p.sharedBy||'?')[0].toUpperCase()}</div>
-        <div style="font-size:11px;color:var(--mid);letter-spacing:0.05em">${p.sharedBy||'unknown'}</div>
+        <div style="font-size:11px;color:var(--mid);letter-spacing:0.05em;flex:1">${p.sharedBy||'unknown'}</div>
+        <div id="sv-live-badge" style="font-size:8px;letter-spacing:0.14em;color:var(--accent);border:1px solid rgba(200,255,50,0.3);border-radius:20px;padding:2px 7px;opacity:0;transition:opacity 0.4s">● LIVE</div>
       </div>
       <div style="padding:12px 0;flex:1;overflow-y:auto">
         <div style="font-size:9px;font-weight:500;letter-spacing:0.2em;color:var(--dim);text-transform:uppercase;padding:0 16px 8px">project</div>
@@ -4061,7 +4084,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.7.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.8.0 — firebase</div>
       </div>
     </div>
 
@@ -4170,7 +4193,6 @@ function showSharedProject(p) {
           <span id="sv-tc" style="width:30px;flex-shrink:0;font-size:9px;color:var(--dim);text-align:center;letter-spacing:0.03em">0:00</span>
           <div id="sv-wf-wrap" onclick="svSeek(event)" style="flex:1;height:28px;position:relative;cursor:pointer;border-radius:3px;overflow:hidden">
             <canvas id="sv-wf-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
-            <div id="sv-wf-played" style="position:absolute;top:0;left:0;bottom:0;width:0%;background:rgba(200,255,50,0.15);pointer-events:none"></div>
             <div id="sv-wf-cursor" style="position:absolute;top:0;bottom:0;width:1.5px;background:var(--accent);left:0%;pointer-events:none;box-shadow:0 0 6px rgba(200,255,50,0.5)"></div>
             <div id="sv-wf-loading" style="display:none;position:absolute;left:0;right:0;top:20%;bottom:20%;overflow:hidden;border-radius:2px">
               <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(200,255,50,0.06) 0px,rgba(200,255,50,0.06) 2px,transparent 2px,transparent 5px)"></div>
@@ -4542,9 +4564,7 @@ function showSharedProject(p) {
         svRenderWaveframe(svWfCache[window.svCurrentWfTid], pct);
       }
       const cursor = document.getElementById('sv-wf-cursor');
-      const played = document.getElementById('sv-wf-played');
       if (cursor) cursor.style.left = (pct*100)+'%';
-      if (played) played.style.width = (pct*100)+'%';
       document.getElementById('sv-tc').textContent = fmt2(window.svAudio.currentTime);
       document.getElementById('sv-tt').textContent = fmt2(window.svAudio.duration);
       svRaf=requestAnimationFrame(tick);
