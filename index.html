@@ -1517,6 +1517,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadString, getDownloadURL, deleteObject }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDjQbS2L8QJL8qhz7mrltXYC45FnzWY18",
@@ -1529,6 +1531,7 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
+const storage = getStorage(fbApp);
 window._fbDb = db;
 window._fbDoc = doc;
 window._fbSetDoc = setDoc;
@@ -1536,6 +1539,11 @@ window._fbGetDoc = getDoc;
 window._fbCollection = collection;
 window._fbGetDocs = getDocs;
 window._fbDeleteDoc = deleteDoc;
+window._fbStorage = storage;
+window._fbRef = ref;
+window._fbUploadString = uploadString;
+window._fbGetDownloadURL = getDownloadURL;
+window._fbDeleteObject = deleteObject;
 window._fbReady = true;
 </script>
 
@@ -2512,21 +2520,47 @@ function renameTrack(tid, name) {
 async function shareAlbum() {
   const p = curP(); if (!p) return;
   if (!window._fbReady) { toast('firebase not ready yet'); return; }
-  toast('generating share link...');
+
+  toast('uploading tracks...');
   try {
     const db = window._fbDb;
+    const storage = window._fbStorage;
     const shareId = p.id;
+
+    // Upload each track's audio to Firebase Storage
+    const tracksWithUrls = [];
+    for (let i = 0; i < p.tracks.length; i++) {
+      const t = p.tracks[i];
+      let audioUrl = t.url || await loadAudio(t.id);
+      let cloudUrl = null;
+
+      if (audioUrl) {
+        toast(`uploading track ${i+1}/${p.tracks.length}...`);
+        try {
+          const storageRef = window._fbRef(storage, `shared/${shareId}/${t.id}`);
+          const snapshot = await window._fbUploadString(storageRef, audioUrl, 'data_url');
+          cloudUrl = await window._fbGetDownloadURL(snapshot.ref);
+        } catch(e) {
+          console.warn('audio upload failed for track', t.name, e);
+        }
+      }
+
+      tracksWithUrls.push({ ...t, url: cloudUrl, localId: t.id });
+    }
+
+    // Save project metadata + cloud audio URLs to Firestore
     const docRef = window._fbDoc(db, 'shared', shareId);
     const shareData = {
       ...p,
-      tracks: p.tracks.map(t => ({ ...t, url: null })),
+      tracks: tracksWithUrls,
       sharedBy: DB.currentUser,
       sharedAt: Date.now()
     };
     await window._fbSetDoc(docRef, shareData);
+
     const url = `${location.origin}${location.pathname}?share=${shareId}`;
     await navigator.clipboard.writeText(url).catch(() => {});
-    toast(`link copied ✓`);
+    toast('link copied ✓');
   } catch(e) {
     console.warn('share failed', e);
     toast('share failed — check console');
@@ -3981,8 +4015,9 @@ function showSharedProject(p) {
 
   document.body.innerHTML = `
     <style>
-      body { font-family: 'DM Mono', monospace; background: #0a0a0b; color: #e8e8ea; margin: 0; }
-      .sv-wrap { max-width: 720px; margin: 0 auto; padding: 48px 32px 80px; }
+      @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap');
+      body { font-family: 'DM Mono', monospace; background: #0a0a0b; color: #e8e8ea; margin: 0; padding-bottom: 80px; }
+      .sv-wrap { max-width: 720px; margin: 0 auto; padding: 48px 32px 32px; }
       .sv-badge { font-size: 9px; letter-spacing: 0.24em; color: #c8ff32; text-transform: uppercase; margin-bottom: 32px; }
       .sv-hero { display: flex; align-items: flex-end; gap: 28px; margin-bottom: 40px; }
       .sv-cover { width: 140px; height: 140px; border-radius: 6px; background: #18181c; border: 1px solid #222226; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #5a5a62; overflow: hidden; flex-shrink: 0; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
@@ -3994,21 +4029,36 @@ function showSharedProject(p) {
       .sv-meta { font-size: 10px; color: #5a5a62; letter-spacing: 0.05em; }
       .sv-shared { font-size: 9px; color: #5a5a62; letter-spacing: 0.08em; margin-top: 12px; }
       .sv-tracks { border-top: 1px solid #222226; padding-top: 12px; }
-      .sv-track { display: grid; grid-template-columns: 28px 1fr 56px 68px; align-items: center; padding: 9px 6px; border-radius: 5px; border: 1px solid transparent; font-size: 11px; color: #909098; letter-spacing: 0.02em; }
+      .sv-track { display: grid; grid-template-columns: 28px 1fr 56px 68px; align-items: center; padding: 9px 6px; border-radius: 5px; border: 1px solid transparent; font-size: 11px; color: #909098; letter-spacing: 0.02em; cursor: pointer; transition: background 0.1s; }
       .sv-track:hover { background: #111113; }
+      .sv-track.playing { background: rgba(200,255,50,0.06); border-color: rgba(200,255,50,0.12); }
+      .sv-track.playing .sv-tname { color: #c8ff32; }
       .sv-tnum { font-size: 10px; color: #5a5a62; }
-      .sv-tname { color: #e8e8ea; font-size: 12px; }
+      .sv-tname { color: #e8e8ea; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sv-tbpm { font-size: 10px; color: #5a5a62; }
       .sv-tdur { font-size: 10px; color: #5a5a62; }
-      .sv-status { display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;border:1px solid transparent; }
+      .sv-status { display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;border:1px solid transparent;flex-shrink:0; }
       .s-idea { color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08); }
       .s-demo { color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08); }
       .s-mixing { color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08); }
       .s-done { color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08); }
-      .sv-lyrics-btn { font-size:9px;color:#5a5a62;background:none;border:1px solid #222226;border-radius:4px;padding:2px 7px;cursor:pointer;letter-spacing:0.06em;transition:color 0.12s,border-color 0.12s; }
+      .sv-lyrics-btn { font-size:9px;color:#5a5a62;background:none;border:1px solid #222226;border-radius:4px;padding:2px 7px;cursor:pointer;letter-spacing:0.06em;transition:color 0.12s,border-color 0.12s;flex-shrink:0; }
       .sv-lyrics-btn:hover { color:#c8ff32;border-color:rgba(200,255,50,0.3); }
-      .sv-lyrics-panel { margin-top:8px;padding:12px 14px;background:#111113;border:1px solid #222226;border-radius:6px;font-size:12px;color:#909098;line-height:1.85;white-space:pre-wrap;letter-spacing:0.02em;display:none; }
+      .sv-lyrics-panel { margin: 2px 6px 8px; padding:12px 14px;background:#111113;border:1px solid #222226;border-radius:6px;font-size:12px;color:#909098;line-height:1.85;white-space:pre-wrap;letter-spacing:0.02em;display:none; }
       .sv-lyrics-panel.open { display:block; }
+      /* Player bar */
+      #sv-player { position:fixed;bottom:0;left:0;right:0;height:64px;background:#111113;border-top:1px solid #222226;display:flex;align-items:center;gap:16px;padding:0 24px;z-index:100; }
+      #sv-pp { width:36px;height:36px;background:#c8ff32;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#0a0a0b;flex-shrink:0;transition:background 0.12s; }
+      #sv-pp:hover { background:#d4ff50; }
+      .sv-pl-info { display:flex;flex-direction:column;gap:2px;min-width:0;width:160px;flex-shrink:0; }
+      .sv-pl-name { font-size:11px;color:#e8e8ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+      .sv-pl-artist { font-size:9px;color:#5a5a62;letter-spacing:0.05em; }
+      .sv-prog-wrap { flex:1;display:flex;align-items:center;gap:10px; }
+      .sv-tc { font-size:9px;color:#5a5a62;width:32px;flex-shrink:0; }
+      .sv-prog { flex:1;height:3px;background:#222226;border-radius:3px;cursor:pointer;position:relative;padding:8px 0;margin:-8px 0;background-clip:content-box;box-sizing:content-box; }
+      .sv-prog-fill { height:100%;background:#c8ff32;border-radius:3px;pointer-events:none;width:0%; }
+      .sv-vol { width:70px;height:3px;background:#222226;border-radius:3px;cursor:pointer;padding:8px 0;margin:-8px 0;background-clip:content-box;box-sizing:content-box;flex-shrink:0; }
+      .sv-vol-fill { height:100%;background:#5a5a62;border-radius:3px;pointer-events:none;width:80%; }
     </style>
     <div class="sv-wrap">
       <div class="sv-badge">◈ WIP — shared project</div>
@@ -4022,26 +4072,87 @@ function showSharedProject(p) {
           <div class="sv-shared">shared by ${p.sharedBy||'unknown'}</div>
         </div>
       </div>
-      <div class="sv-tracks">
+      <div class="sv-tracks" id="sv-tracks">
         ${p.tracks.map((t,i) => {
           const s = t.status;
           const statusHtml = s ? `<span class="sv-status s-${s}">${s}</span>` : '';
           const hasLyrics = t.lyrics && t.lyrics.some(lyr => lyr.content && lyr.content.trim());
-          return `<div class="sv-track">
-            <div class="sv-tnum">${i+1}</div>
+          const hasAudio = !!t.url;
+          return `<div class="sv-track" id="svt-${t.localId||t.id}" onclick="svPlay(${i})">
+            <div class="sv-tnum" id="svn-${i}">${i+1}</div>
             <div style="display:flex;align-items:center;gap:8px;min-width:0">
-              <div class="sv-tname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
+              <div class="sv-tname">${t.name}</div>
               ${statusHtml}
-              ${hasLyrics ? `<button class="sv-lyrics-btn" onclick="toggleLyrics(this,'${t.id}')">✏ lyrics</button>` : ''}
+              ${hasLyrics ? `<button class="sv-lyrics-btn" onclick="event.stopPropagation();toggleLyrics(this,'${t.localId||t.id}')">✏ lyrics</button>` : ''}
             </div>
             <div class="sv-tbpm">${t.bpm && t.bpm!=='analyzing' ? t.bpm+' bpm' : '—'}</div>
             <div class="sv-tdur">${fmt(t.dur||0)}</div>
           </div>
-          ${hasLyrics ? `<div class="sv-lyrics-panel" id="lyr-${t.id}">${(t.lyrics.find(l=>l.content)||{content:''}).content.replace(/</g,'&lt;')}</div>` : ''}`;
+          ${hasLyrics ? `<div class="sv-lyrics-panel" id="lyr-${t.localId||t.id}">${(t.lyrics.find(l=>l.content)||{content:''}).content.replace(/</g,'&lt;')}</div>` : ''}`;
         }).join('')}
       </div>
     </div>
+    <div id="sv-player">
+      <button id="sv-pp" onclick="svToggle()">▶</button>
+      <div class="sv-pl-info">
+        <div class="sv-pl-name" id="sv-pl-name">—</div>
+        <div class="sv-pl-artist">${p.artist||''}</div>
+      </div>
+      <div class="sv-prog-wrap">
+        <span class="sv-tc" id="sv-tc">0:00</span>
+        <div class="sv-prog" id="sv-prog" onclick="svSeek(event)">
+          <div class="sv-prog-fill" id="sv-prog-fill"></div>
+        </div>
+        <span class="sv-tc" id="sv-tt">0:00</span>
+      </div>
+    </div>
   `;
+
+  // Player logic
+  const tracks = p.tracks;
+  const svAudio = new Audio();
+  svAudio.volume = 0.8;
+  let svCur = -1, svPlaying = false;
+  const fmt2 = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
+
+  window.svPlay = (i) => {
+    if (!tracks[i].url) return;
+    if (svCur === i) { svToggle(); return; }
+    svCur = i;
+    svAudio.src = tracks[i].url;
+    svAudio.play();
+    svPlaying = true;
+    document.getElementById('sv-pp').textContent = '⏸';
+    document.getElementById('sv-pl-name').textContent = tracks[i].name;
+    document.querySelectorAll('.sv-track').forEach((el,j) => el.classList.toggle('playing', j===i));
+    document.querySelectorAll('[id^="svn-"]').forEach((el,j) => el.textContent = j===i ? '▶' : j+1);
+  };
+
+  window.svToggle = () => {
+    if (svCur < 0) { svPlay(0); return; }
+    if (svPlaying) { svAudio.pause(); svPlaying = false; document.getElementById('sv-pp').textContent = '▶'; }
+    else { svAudio.play(); svPlaying = true; document.getElementById('sv-pp').textContent = '⏸'; }
+  };
+
+  window.svSeek = (e) => {
+    const bar = document.getElementById('sv-prog');
+    const r = bar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    if (svAudio.duration) svAudio.currentTime = pct * svAudio.duration;
+  };
+
+  svAudio.addEventListener('timeupdate', () => {
+    const pct = svAudio.duration ? (svAudio.currentTime / svAudio.duration) * 100 : 0;
+    document.getElementById('sv-prog-fill').style.width = pct + '%';
+    document.getElementById('sv-tc').textContent = fmt2(svAudio.currentTime);
+    document.getElementById('sv-tt').textContent = fmt2(svAudio.duration);
+  });
+
+  svAudio.addEventListener('ended', () => {
+    if (svCur < tracks.length - 1) svPlay(svCur + 1);
+    else { svPlaying = false; document.getElementById('sv-pp').textContent = '▶'; }
+  });
+
   window.toggleLyrics = (btn, tid) => {
     const panel = document.getElementById('lyr-'+tid);
     if (!panel) return;
