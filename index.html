@@ -1103,10 +1103,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div class="sb-section">
       <div class="sb-label">projects</div>
       <div id="project-list"></div>
-      <button class="sb-new-btn" onclick="openModal()">+ פרוייקט חדש</button>
+      <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.0.5 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.1.0 — firebase</div>
     </div>
   </aside>
 
@@ -2179,7 +2179,7 @@ function openModal() {
     <span class="m-cover-icon">🖼</span>
     <span class="m-cover-lbl">cover</span>`;
   document.getElementById('m-title').value = '';
-  document.getElementById('m-artist').value = DB.currentUser || '';
+  document.getElementById('m-artist').value = currentGoogleUser?.displayName || DB.currentUser || '';
   document.getElementById('m-year').value = new Date().getFullYear();
   document.querySelectorAll('.type-btn').forEach((b,i) => b.classList.toggle('selected', i === 0));
   document.getElementById('mo').classList.add('open');
@@ -2207,7 +2207,7 @@ function selectType(btn, type) {
 
 function createAlbum() {
   const name = document.getElementById('m-title').value.trim() || 'untitled project';
-  const artist = document.getElementById('m-artist').value.trim() || DB.currentUser || 'unknown artist';
+  const artist = document.getElementById('m-artist').value.trim() || currentGoogleUser?.displayName || 'unknown artist';
   const year = document.getElementById('m-year').value.trim() || String(new Date().getFullYear());
   const genre = '';
   const type = mCoverType || 'single';
@@ -4018,7 +4018,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.0.5 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.1.0 — firebase</div>
       </div>
     </div>
 
@@ -4622,11 +4622,17 @@ checkShareMode().then(isShareMode => {
         // טען מ-Firebase
         const cloudData = await loadDBFromFirebase(user.uid);
         if (cloudData && cloudData.albums) {
-          DB.albums = cloudData.albums;
-        } else {
-          loadDB(); // fallback ל-localStorage
-          if (!DB.albums[user.uid]) DB.albums[user.uid] = [];
+          // albums might be stored under uid or old username — normalize to uid
+          const albums = cloudData.albums;
+          if (albums[user.uid]) {
+            DB.albums[user.uid] = albums[user.uid];
+          } else {
+            // migrate from old username key if exists
+            const firstKey = Object.keys(albums)[0];
+            if (firstKey) DB.albums[user.uid] = albums[firstKey];
+          }
         }
+        if (!DB.albums[user.uid]) DB.albums[user.uid] = [];
 
         // טען אודיו מ-IndexedDB
         try {
