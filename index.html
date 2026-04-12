@@ -1086,11 +1086,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <div class="sb-sub">work in progress</div>
     </div>
     <div class="sb-user">
-      <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="user settings" style="cursor:pointer">?</div>
-      <span class="sb-uname" id="sb-uname" contenteditable="true"
-            title="click to rename"
-            onblur="renameCurrentUser(this)"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}if(event.key==='Escape'){this.textContent=DB.currentUser;this.blur()}">—</span>
+      <div class="sb-avatar" id="sb-avatar" onclick="openUserSwitcher(event)" title="account" style="cursor:pointer">?</div>
+      <span class="sb-uname" id="sb-uname">—</span>
       <button class="sb-switch" onclick="openUserSwitcher(event)" title="switch user">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -1106,7 +1103,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.1.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.2.0 — firebase</div>
     </div>
   </aside>
 
@@ -2371,16 +2368,25 @@ function addTracks(files) {
   Array.from(files).forEach(f => {
     if (!f.type.match(/audio/)) return;
     const reader = new FileReader();
-    reader.onload = ev => {
+    reader.onload = async ev => {
       const url = ev.target.result;
-      const t = { id: uid(), name: f.name.replace(/\.[^.]+$/, ''), originalName: f.name, fileType: f.name.split('.').pop().toUpperCase(), url, dur: 0, added: Date.now(), pid: p.id, bpm: null };
+      const t = { id: uid(), name: f.name.replace(/\.[^.]+$/, ''), originalName: f.name, fileType: f.name.split('.').pop().toUpperCase(), url, dur: 0, added: Date.now(), pid: p.id, bpm: null, cloudUrl: null };
       const tmp = new Audio(url);
       tmp.addEventListener('loadedmetadata', () => { t.dur = tmp.duration; renderTrackList(); updateMetaRow(); renderSidebar(); saveDB(); });
       p.tracks.push(t);
       saveAudio(t.id, url);
       renderTrackList(); updateMetaRow(); renderSidebar(); saveDB();
-      // Auto-detect BPM in background
       analyzeTrackBPM(t, p);
+      // העלה לענן אוטומטית
+      if (window._fbReady && window._fbStorage && currentGoogleUser) {
+        try {
+          const storageRef = window._fbRef(window._fbStorage, `users/${currentGoogleUser.uid}/tracks/${t.id}`);
+          const snapshot = await window._fbUploadString(storageRef, url, 'data_url');
+          t.cloudUrl = await window._fbGetDownloadURL(snapshot.ref);
+          saveDB();
+          toast(`${t.name} ↑ saved to cloud`);
+        } catch(e) { console.warn('cloud upload failed', e); }
+      }
     };
     reader.readAsDataURL(f);
   });
@@ -3520,6 +3526,8 @@ async function restoreAudioUrls() {
     for (const p of projects) {
       for (const t of p.tracks) {
         if (!t.url) t.url = await loadAudio(t.id);
+        // אם אין local audio אבל יש cloud URL — השתמש בו
+        if (!t.url && t.cloudUrl) t.url = t.cloudUrl;
       }
     }
   }
@@ -4018,7 +4026,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.1.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.2.0 — firebase</div>
       </div>
     </div>
 
