@@ -1113,7 +1113,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.2 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.3 — firebase</div>
     </div>
   </aside>
 
@@ -1617,7 +1617,7 @@ async function signOutGoogle() {
 }
 
 function updateSidebarUser() {
-  const name = currentGoogleUser?.displayName || DB.currentUser || '';
+  const name = DB.preferredName || currentGoogleUser?.displayName || DB.currentUser || '';
   const photo = currentGoogleUser?.photoURL || null;
   const el = document.getElementById('sb-uname');
   if (el) el.textContent = name;
@@ -1728,7 +1728,7 @@ async function confirmDeleteUser() {
 
 // ─── USER SETTINGS ───
 function openUserSettings() {
-  const displayName = currentGoogleUser?.displayName || '';
+  const displayName = DB.preferredName || currentGoogleUser?.displayName || '';
   const email = currentGoogleUser?.email || '';
   const photo = currentGoogleUser?.photoURL || null;
 
@@ -1776,28 +1776,25 @@ function saveUserSettings() {
   document.getElementById('us-modal').classList.remove('open');
   if (!newName) return;
 
-  const oldName = currentGoogleUser?.displayName || DB.currentUser;
+  // שמור שם מועדף
+  DB.preferredName = newName;
 
-  // עדכן שם ב-artist של כל הפרויקטים
+  // עדכן artist בכל הפרויקטים
   const albums = curAlbums();
   albums.forEach(p => {
-    // החלף כל artist שהוא השם הישן או ה-UID
-    if (!p.artist || p.artist === oldName || p.artist === DB.currentUser || p.artist.length > 30) {
-      p.artist = newName;
-    }
+    p.artist = newName;
   });
 
   // עדכן sidebar
   const unEl = document.getElementById('sb-uname');
   if (unEl) unEl.textContent = newName;
 
-  // עדכן הגדרות בתצוגה
   const dnEl = document.getElementById('us-display-name');
   if (dnEl) dnEl.textContent = newName;
 
   saveDB();
   renderSidebar();
-  renderMain(); // מחדש את ה-hero שבו מופיע שם האמן
+  renderMain();
   toast('display name updated ✓');
 }
 
@@ -2195,7 +2192,7 @@ function openModal() {
     <span class="m-cover-icon">🖼</span>
     <span class="m-cover-lbl">cover</span>`;
   document.getElementById('m-title').value = '';
-  document.getElementById('m-artist').value = currentGoogleUser?.displayName || DB.currentUser || '';
+  document.getElementById('m-artist').value = DB.preferredName || currentGoogleUser?.displayName || DB.currentUser || '';
   document.getElementById('m-year').value = new Date().getFullYear();
   document.querySelectorAll('.type-btn').forEach((b,i) => b.classList.toggle('selected', i === 0));
   document.getElementById('mo').classList.add('open');
@@ -2223,7 +2220,7 @@ function selectType(btn, type) {
 
 function createAlbum() {
   const name = document.getElementById('m-title').value.trim() || 'untitled project';
-  const artist = document.getElementById('m-artist').value.trim() || currentGoogleUser?.displayName || 'unknown artist';
+  const artist = document.getElementById('m-artist').value.trim() || DB.preferredName || currentGoogleUser?.displayName || 'unknown artist';
   const year = document.getElementById('m-year').value.trim() || String(new Date().getFullYear());
   const genre = '';
   const type = mCoverType || 'single';
@@ -3483,6 +3480,7 @@ function saveDB() {
     const payload = {
       albums: albumsToSave,
       currentUser: DB.currentUser,
+      preferredName: DB.preferredName || currentGoogleUser?.displayName || '',
       displayName: currentGoogleUser?.displayName || DB.currentUser,
       photoURL: currentGoogleUser?.photoURL || null,
       updatedAt: Date.now()
@@ -4058,7 +4056,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.2 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.3 — firebase</div>
       </div>
     </div>
 
@@ -4662,20 +4660,20 @@ checkShareMode().then(isShareMode => {
         // טען מ-Firebase
         const cloudData = await loadDBFromFirebase(user.uid);
         if (cloudData && cloudData.albums) {
-          // albums might be stored under uid or old username — normalize to uid
           const albums = cloudData.albums;
           if (albums[user.uid]) {
             DB.albums[user.uid] = albums[user.uid];
           } else {
-            // migrate from old username key if exists
             const firstKey = Object.keys(albums)[0];
             if (firstKey) DB.albums[user.uid] = albums[firstKey];
           }
+          // שחזר שם מועדף
+          if (cloudData.preferredName) DB.preferredName = cloudData.preferredName;
         }
         if (!DB.albums[user.uid]) DB.albums[user.uid] = [];
 
         // תקן פרויקטים שה-artist שלהם הוא UID
-        const displayName = user.displayName || user.email || 'Artist';
+        const displayName = DB.preferredName || user.displayName || user.email || 'Artist';
         if (DB.albums[user.uid]) {
           DB.albums[user.uid].forEach(p => {
             if (p.artist === user.uid || !p.artist || p.artist.length > 30) {
