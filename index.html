@@ -1105,16 +1105,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <div class="sb-sub">work in progress</div>
     </div>
     <div class="sb-user">
-      <div class="sb-avatar" id="sb-avatar" onclick="openUserSwitcher(event)" title="account" style="cursor:pointer">?</div>
+      <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
       <span class="sb-uname" id="sb-uname">—</span>
-      <button class="sb-switch" onclick="openUserSwitcher(event)" title="switch user">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-      </button>
     </div>
     <div class="sb-section">
       <div class="sb-label">projects</div>
@@ -1122,7 +1114,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.3.1 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.0 — firebase</div>
     </div>
   </aside>
 
@@ -1360,39 +1352,40 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 <!-- USER SETTINGS MODAL -->
 <div class="modal-overlay" id="us-modal" onclick="closeUserSettings(event)">
   <div class="modal" style="width:340px" onclick="event.stopPropagation()">
-    <div class="modal-title">user settings</div>
+    <div class="modal-title">הגדרות חשבון</div>
+    <!-- תמונת פרופיל -->
     <div style="display:flex;align-items:center;gap:20px;margin-bottom:22px">
-      <div class="us-avatar-wrap" id="us-avatar-wrap">
+      <div class="us-avatar-wrap" id="us-avatar-wrap" style="cursor:default" title="תמונה מגוגל">
         <span class="us-avatar-letter" id="us-avatar-letter">?</span>
-        <div class="us-avatar-overlay">change</div>
-        <input type="file" accept="image/*" onchange="handleUserAvatarUpload(event)">
+        <div class="us-avatar-overlay" style="font-size:8px">מגוגל</div>
       </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:10px">
-        <div class="m-field">
-          <div class="m-label">display name</div>
-          <input class="m-input" id="us-name" onkeydown="if(event.key==='Enter')saveUserSettings()">
-        </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:13px;font-weight:500;color:var(--text)" id="us-display-name">—</div>
+        <div style="font-size:10px;color:var(--dim);letter-spacing:0.04em" id="us-email">—</div>
       </div>
     </div>
+    <!-- שינוי שם תצוגה -->
+    <div class="m-field" style="margin-bottom:18px">
+      <div class="m-label">שם תצוגה באפליקציה</div>
+      <input class="m-input" id="us-name" placeholder="השם שיופיע על הפרויקטים" onkeydown="if(event.key==='Enter')saveUserSettings()">
+    </div>
+    <!-- מידע -->
     <div style="padding:10px 14px;background:var(--bg);border-radius:6px;border:1px solid var(--border);margin-bottom:20px">
-      <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">account info</div>
+      <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">נתוני חשבון</div>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mid)">
-        <span>projects</span><span id="us-project-count">0</span>
+        <span>פרויקטים</span><span id="us-project-count">0</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mid);margin-top:4px">
-        <span>tracks</span><span id="us-track-count">0</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mid);margin-top:4px">
-        <span>member since</span><span id="us-since">—</span>
+        <span>טראקים</span><span id="us-track-count">0</span>
       </div>
     </div>
     <div class="modal-btns" style="justify-content:space-between">
       <button class="btn-cancel" style="color:#ff5555;border-color:rgba(255,85,85,0.4);opacity:0.7"
               onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7"
-              onclick="promptDeleteUser(DB.currentUser);closeUserSettings()">delete</button>
+              onclick="signOutGoogle();closeUserSettings()">התנתק</button>
       <div style="display:flex;gap:8px">
-        <button class="btn-cancel" onclick="closeUserSettings()">cancel</button>
-        <button class="btn-confirm" onclick="saveUserSettings()">done</button>
+        <button class="btn-cancel" onclick="closeUserSettings()">ביטול</button>
+        <button class="btn-confirm" onclick="saveUserSettings()">שמור</button>
       </div>
     </div>
   </div>
@@ -1739,71 +1732,78 @@ async function confirmDeleteUser() {
 
 // ─── USER SETTINGS ───
 function openUserSettings() {
-  const u = DB.users.find(x => x.name === DB.currentUser);
-  document.getElementById('us-name').value = DB.currentUser;
-  // Avatar
+  const displayName = currentGoogleUser?.displayName || '';
+  const email = currentGoogleUser?.email || '';
+  const photo = currentGoogleUser?.photoURL || null;
+
+  // שם ומייל
+  const nameEl = document.getElementById('us-display-name');
+  const emailEl = document.getElementById('us-email');
+  if (nameEl) nameEl.textContent = displayName;
+  if (emailEl) emailEl.textContent = email;
+
+  // שם עריכה
+  const nameInput = document.getElementById('us-name');
+  if (nameInput) nameInput.value = displayName;
+
+  // אווטאר
   const wrap = document.getElementById('us-avatar-wrap');
   const letter = document.getElementById('us-avatar-letter');
-  const existing = wrap.querySelector('img');
-  if (existing) existing.remove();
-  if (u?.avatar) {
-    const img = document.createElement('img');
-    img.src = u.avatar;
-    wrap.insertBefore(img, wrap.firstChild);
-    letter.style.display = 'none';
-  } else {
-    letter.style.display = '';
-    letter.textContent = DB.currentUser ? DB.currentUser[0].toUpperCase() : '?';
+  if (wrap) {
+    const existing = wrap.querySelector('img');
+    if (existing) existing.remove();
+    if (photo) {
+      const img = document.createElement('img');
+      img.src = photo;
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%';
+      wrap.appendChild(img);
+      if (letter) letter.style.display = 'none';
+    } else {
+      if (letter) { letter.style.display = ''; letter.textContent = displayName ? displayName[0].toUpperCase() : '?'; }
+    }
   }
-  // Stats
+
+  // סטטיסטיקות
   const projects = curAlbums();
   const trackCount = projects.reduce((a, p) => a + p.tracks.length, 0);
-  document.getElementById('us-project-count').textContent = projects.length;
-  document.getElementById('us-track-count').textContent = trackCount;
-  document.getElementById('us-since').textContent = u ? new Date(u.created).toLocaleDateString('en-US', {month:'short', year:'numeric'}) : '—';
+  const pcEl = document.getElementById('us-project-count');
+  const tcEl = document.getElementById('us-track-count');
+  if (pcEl) pcEl.textContent = projects.length;
+  if (tcEl) tcEl.textContent = trackCount;
+
   document.getElementById('us-modal').classList.add('open');
-  setTimeout(() => document.getElementById('us-name').focus(), 80);
+  setTimeout(() => document.getElementById('us-name')?.focus(), 80);
 }
 
+function saveUserSettings() {
+  const newName = document.getElementById('us-name')?.value.trim();
+  document.getElementById('us-modal').classList.remove('open');
+  if (!newName) return;
+
+  // עדכן שם תצוגה בפרויקטים
+  const albums = curAlbums();
+  albums.forEach(p => {
+    if (p.artist === (currentGoogleUser?.displayName || DB.currentUser)) {
+      p.artist = newName;
+    }
+  });
+
+  // עדכן sidebar
+  const unEl = document.getElementById('sb-uname');
+  if (unEl) unEl.textContent = newName;
+
+  saveDB();
+  renderSidebar();
+  toast(`שם עודכן ל-${newName} ✓`);
+}
+
+
+// ─── COLLAB ARTIST FIELD ───
 function closeUserSettings(e) {
   if (e && e.target !== document.getElementById('us-modal')) return;
   document.getElementById('us-modal').classList.remove('open');
 }
 
-function handleUserAvatarUpload(e) {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    const u = DB.users.find(x => x.name === DB.currentUser);
-    if (u) u.avatar = ev.target.result;
-    // Update sidebar avatar
-    updateSidebarUser();
-    saveDB();
-    // Refresh avatar preview in modal
-    const wrap = document.getElementById('us-avatar-wrap');
-    const letter = document.getElementById('us-avatar-letter');
-    const existing = wrap.querySelector('img');
-    if (existing) existing.remove();
-    const img = document.createElement('img');
-    img.src = ev.target.result;
-    wrap.insertBefore(img, wrap.firstChild);
-    letter.style.display = 'none';
-  };
-  r.readAsDataURL(f);
-}
-
-function saveUserSettings() {
-  const newName = document.getElementById('us-name').value.trim();
-  document.getElementById('us-modal').classList.remove('open');
-  if (newName && newName !== DB.currentUser) {
-    // Simulate the rename flow
-    const el = document.getElementById('sb-uname');
-    el.textContent = newName;
-    renameCurrentUser(el);
-  }
-}
-
-// ─── COLLAB ARTIST FIELD ───
 function updateCollabInput() {
   const type = document.getElementById('ps-collab-type').value;
   const input = document.getElementById('ps-collab-name');
@@ -4054,7 +4054,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.3.1 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.0 — firebase</div>
       </div>
     </div>
 
