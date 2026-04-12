@@ -1062,17 +1062,19 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 </head>
 <body>
 
-<!-- ONBOARDING (first time only) -->
+<!-- ONBOARDING — Google Sign-In -->
 <div id="onboarding">
   <div class="ob-box">
     <div class="ob-logo">◈ wip</div>
     <div>
-      <div class="ob-title">what's your name?</div>
-      <div class="ob-sub">just once, we promise</div>
+      <div class="ob-title">work in progress</div>
+      <div class="ob-sub">התחבר כדי להתחיל</div>
     </div>
-    <input class="ob-input" id="ob-input" placeholder="your name..." maxlength="24"
-           onkeydown="if(event.key==='Enter')obEnter()">
-    <button class="ob-go" onclick="obEnter()">→ let's go</button>
+    <button class="ob-go" id="google-signin-btn" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;letter-spacing:0.06em">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      המשך עם Google
+    </button>
+    <div id="ob-error" style="font-size:10px;color:#ff5555;letter-spacing:0.06em;display:none">שגיאה בהתחברות — נסה שוב</div>
   </div>
 </div>
 
@@ -1101,14 +1103,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div class="sb-section">
       <div class="sb-label">projects</div>
       <div id="project-list"></div>
-      <button class="sb-new-btn" onclick="openModal()">+ new project</button>
-      <button class="sb-new-btn" style="margin-top:0;border-style:dashed;position:relative;overflow:hidden">
-        <input type="file" accept=".wip,.json" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importProject(this.files)">
-        ↓ import .wip
-      </button>
+      <button class="sb-new-btn" onclick="openModal()">+ פרוייקט חדש</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.8.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.0.0 — firebase</div>
     </div>
   </aside>
 
@@ -1203,10 +1201,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <div class="ctx-item" id="ctx-project-settings" onclick="ctxOpenSettings()">
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     project settings
-  </div>
-  <div class="ctx-item" id="ctx-export-project" onclick="ctxExportProject()">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    export project
   </div>
   <div class="ctx-item" id="ctx-track-settings" onclick="ctxOpenTrackSettings()" style="display:none">
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1348,13 +1342,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
         <button class="btn-confirm" onclick="saveProjectSettings()">done</button>
       </div>
     </div>
-    <button class="btn-cancel" onclick="exportFromSettings()" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      export project
-    </button>
-    <button class="btn-cancel" id="ps-autosave-btn" style="width:100%;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px">
-      auto-save to file
-    </button>
   </div>
 </div>
 
@@ -1522,6 +1509,8 @@ import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSn
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDjQbS2L8QJL8qhz7mrltXYC45FnzWY18",
@@ -1535,6 +1524,9 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const storage = getStorage(fbApp);
+const auth = getAuth(fbApp);
+const googleProvider = new GoogleAuthProvider();
+
 window._fbDb = db;
 window._fbDoc = doc;
 window._fbSetDoc = setDoc;
@@ -1548,6 +1540,11 @@ window._fbUploadString = uploadString;
 window._fbGetDownloadURL = getDownloadURL;
 window._fbDeleteObject = deleteObject;
 window._fbOnSnapshot = onSnapshot;
+window._fbAuth = auth;
+window._fbGoogleProvider = googleProvider;
+window._fbSignInWithPopup = signInWithPopup;
+window._fbSignOut = signOut;
+window._fbOnAuthStateChanged = onAuthStateChanged;
 window._fbReady = true;
 </script>
 
@@ -1586,11 +1583,37 @@ function toast(msg) {
 
 function curAlbums() {
   if (!DB.currentUser) return [];
-  return DB.albums[DB.currentUser] || [];
+  if (!DB.albums[DB.currentUser]) DB.albums[DB.currentUser] = [];
+  return DB.albums[DB.currentUser];
 }
 
-// ─── USER SYSTEM ───
-function initApp() {
+// ─── GOOGLE AUTH ───
+let currentGoogleUser = null; // Firebase User object
+
+async function signInWithGoogle() {
+  const btn = document.getElementById('google-signin-btn');
+  const errEl = document.getElementById('ob-error');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  try {
+    await window._fbSignInWithPopup(window._fbAuth, window._fbGoogleProvider);
+    // onAuthStateChanged will handle the rest
+  } catch(e) {
+    console.warn('Google sign-in failed', e);
+    if (errEl) errEl.style.display = 'block';
+    if (btn) { btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> המשך עם Google`; btn.disabled = false; }
+  }
+}
+
+async function signOutGoogle() {
+  await window._fbSignOut(window._fbAuth);
+  currentGoogleUser = null;
+  DB.currentUser = null;
+  DB.albums = {};
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('onboarding').classList.add('open');
+  const btn = document.getElementById('google-signin-btn');
+  if (btn) { btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> המשך עם Google`; btn.disabled = false; }
+}
   // loadDB already called before restoreAudioUrls in init chain
   // If we have a current user → go straight in
   if (DB.currentUser && DB.users.find(u => u.name === DB.currentUser)) {
@@ -1676,12 +1699,14 @@ function enterApp(name) {
 }
 
 function updateSidebarUser() {
-  const name = DB.currentUser || '';
-  document.getElementById('sb-uname').textContent = name;
-  const u = DB.users.find(x => x.name === name);
+  const name = currentGoogleUser?.displayName || DB.currentUser || '';
+  const photo = currentGoogleUser?.photoURL || null;
+  const el = document.getElementById('sb-uname');
+  if (el) el.textContent = name;
   const av = document.getElementById('sb-avatar');
-  if (u?.avatar) {
-    av.innerHTML = `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`;
+  if (!av) return;
+  if (photo) {
+    av.innerHTML = `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`;
     av.style.position = 'relative';
     av.style.overflow = 'hidden';
   } else {
@@ -1706,102 +1731,38 @@ function renameCurrentUser(el) {
   toast(`renamed to ${newName} ✓`);
 }
 
-// ─── USER SWITCHER DROPDOWN ───
 function openUserSwitcher(e) {
   e.stopPropagation();
-  // Close if already open
   const existing = document.getElementById('user-switcher-menu');
   if (existing) { existing.remove(); return; }
 
   const menu = document.createElement('div');
   menu.id = 'user-switcher-menu';
-  menu.style.cssText = `
-    position:fixed; z-index:600;
-    background:var(--surface2); border:1px solid var(--border-h);
-    border-radius:8px; padding:4px; min-width:160px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.5);
-    animation: statusMenuIn 0.1s ease;
-  `;
+  menu.style.cssText = `position:fixed;z-index:600;background:var(--surface2);border:1px solid var(--border-h);border-radius:8px;padding:4px;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,0.5);animation:statusMenuIn 0.1s ease`;
 
-  // Section label
-  const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-size:8.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);padding:6px 10px 4px';
-  lbl.textContent = 'switch user';
-  menu.appendChild(lbl);
+  // User info
+  const info = document.createElement('div');
+  info.style.cssText = 'padding:8px 10px 6px;border-bottom:1px solid var(--border);margin-bottom:4px';
+  info.innerHTML = `<div style="font-size:11px;color:var(--text);font-weight:400">${currentGoogleUser?.displayName || DB.currentUser}</div><div style="font-size:9px;color:var(--dim);margin-top:2px;letter-spacing:0.04em">${currentGoogleUser?.email || ''}</div>`;
+  menu.appendChild(info);
 
-  // Existing users
-  DB.users.forEach(u => {
-    const item = document.createElement('div');
-    const isActive = u.name === DB.currentUser;
-    item.style.cssText = `
-      display:flex; align-items:center; gap:10px;
-      padding:7px 10px; border-radius:5px; cursor:pointer;
-      font-size:11px; color:${isActive ? 'var(--accent)' : 'var(--mid)'};
-      background:${isActive ? 'var(--adim)' : 'none'};
-      transition:background 0.1s, color 0.1s;
-    `;
-
-    const av = document.createElement('span');
-    av.style.cssText = `width:20px;height:20px;border-radius:50%;background:${isActive ? 'var(--adim)' : 'var(--surface3)'};border:1px solid ${isActive ? 'rgba(200,255,50,0.3)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;color:${isActive ? 'var(--accent)' : 'var(--mid)'}`;
-    av.textContent = u.name[0].toUpperCase();
-
-    const nameEl = document.createElement('span');
-    nameEl.style.flex = '1';
-    nameEl.textContent = u.name;
-
-    if (isActive) {
-      const check = document.createElement('span');
-      check.style.cssText = 'font-size:10px;color:var(--accent)';
-      check.textContent = '✓';
-      item.appendChild(av); item.appendChild(nameEl); item.appendChild(check);
-    } else {
-      item.appendChild(av); item.appendChild(nameEl);
-    }
-
-    item.onmouseenter = () => { if (!isActive) { item.style.background = 'var(--surface3)'; item.style.color = 'var(--text)'; } };
-    item.onmouseleave = () => { if (!isActive) { item.style.background = 'none'; item.style.color = 'var(--mid)'; } };
-    item.onclick = ev => { ev.stopPropagation(); menu.remove(); if (!isActive) enterApp(u.name); };
-    menu.appendChild(item);
-  });
-
-  // Divider + new user
-  const div = document.createElement('div');
-  div.style.cssText = 'height:1px;background:var(--border);margin:4px 0';
-  menu.appendChild(div);
-
-  const newUser = document.createElement('div');
-  newUser.style.cssText = `
-    display:flex; align-items:center; gap:10px;
-    padding:7px 10px; border-radius:5px; cursor:pointer;
-    font-size:11px; color:var(--dim);
-    transition:background 0.1s, color 0.1s;
-  `;
-  newUser.innerHTML = `<span style="font-size:14px;line-height:1;margin-left:2px">+</span><span>new user</span>`;
-  newUser.onmouseenter = () => { newUser.style.background = 'var(--surface3)'; newUser.style.color = 'var(--text)'; };
-  newUser.onmouseleave = () => { newUser.style.background = 'none'; newUser.style.color = 'var(--dim)'; };
-  newUser.onclick = ev => { ev.stopPropagation(); menu.remove(); promptNewUser(); };
-  menu.appendChild(newUser);
+  // Sign out
+  const signOutItem = document.createElement('div');
+  signOutItem.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--mid);transition:background 0.1s,color 0.1s';
+  signOutItem.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> התנתק`;
+  signOutItem.onmouseenter = () => { signOutItem.style.background = 'var(--surface3)'; signOutItem.style.color = '#ff5555'; };
+  signOutItem.onmouseleave = () => { signOutItem.style.background = 'none'; signOutItem.style.color = 'var(--mid)'; };
+  signOutItem.onclick = () => { menu.remove(); signOutGoogle(); };
+  menu.appendChild(signOutItem);
 
   document.body.appendChild(menu);
-  const btn = e.target.closest('button');
+  const btn = e.target.closest('button') || e.target;
   const rect = btn.getBoundingClientRect();
   menu.style.left = rect.left + 'px';
-  menu.style.top  = (rect.bottom + 6) + 'px';
-
+  menu.style.top = (rect.bottom + 6) + 'px';
   setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
 }
 
-function promptNewUser() {
-  const name = prompt('Enter a name for the new user:');
-  if (!name?.trim()) return;
-  const n = name.trim();
-  if (DB.users.find(u => u.name === n)) { toast('name already exists'); return; }
-  DB.users.push({ name: n, created: Date.now() });
-  DB.albums[n] = [];
-  saveDB();
-  enterApp(n);
-  toast(`welcome, ${n} 👋`);
-}
 
 // Keep for delete user modal compatibility
 let delUserTarget = null;
@@ -2796,13 +2757,33 @@ function deleteProject() {
 
 function confirmDeleteProject() {
   if (!psProjectId) return;
+  const pid = psProjectId;
   const albums = curAlbums();
-  const i = albums.findIndex(x => x.id === psProjectId);
+  const i = albums.findIndex(x => x.id === pid);
   if (i !== -1) albums.splice(i, 1);
-  if (S.curPid === psProjectId) { S.curPid = null; audio.pause(); S.playing = false; S.curTid = null; }
+  if (S.curPid === pid) { S.curPid = null; audio.pause(); S.playing = false; S.curTid = null; }
   document.getElementById('del-proj-modal').classList.remove('open');
   psProjectId = null;
   saveDB(); renderSidebar(); renderMain();
+  // מחק מ-Firebase — shared doc + קבצי אודיו
+  if (window._fbReady) {
+    try {
+      const db = window._fbDb;
+      const storage = window._fbStorage;
+      // מחק את ה-shared document
+      window._fbDeleteDoc(window._fbDoc(db, 'shared', pid)).catch(() => {});
+      // מחק קבצי אודיו מ-Storage
+      window._fbGetDoc(window._fbDoc(db, 'shared', pid)).then(snap => {
+        if (!snap.exists()) return;
+        const tracks = snap.data().tracks || [];
+        tracks.forEach(t => {
+          if (!t.localId && !t.id) return;
+          const storageRef = window._fbRef(storage, `shared/${pid}/${t.localId || t.id}`);
+          window._fbDeleteObject(storageRef).catch(() => {});
+        });
+      }).catch(() => {});
+    } catch(e) { console.warn('Firebase delete failed', e); }
+  }
 }
 let tsTrackId = null;
 
@@ -3552,23 +3533,23 @@ function saveDB() {
       }));
     }
     const payload = {
-      users: DB.users,
       albums: albumsToSave,
-      currentUser: DB.currentUser
+      currentUser: DB.currentUser,
+      displayName: currentGoogleUser?.displayName || DB.currentUser,
+      photoURL: currentGoogleUser?.photoURL || null,
+      updatedAt: Date.now()
     };
-    // Always save to localStorage as fast cache
     localStorage.setItem('wip_db', JSON.stringify(payload));
     scheduleAutoSave();
-    // Save to Firebase in background
     saveDBToFirebase(payload);
   } catch(e) { console.warn('saveDB failed', e); }
 }
 
 async function saveDBToFirebase(payload) {
-  if (!window._fbReady || !DB.currentUser) return;
+  if (!window._fbReady || !currentGoogleUser) return;
   try {
-    const db = window._fbDb;
-    const docRef = window._fbDoc(db, 'users', DB.currentUser);
+    const uid = currentGoogleUser.uid;
+    const docRef = window._fbDoc(window._fbDb, 'users', uid);
     await window._fbSetDoc(docRef, payload, { merge: true });
   } catch(e) { console.warn('Firebase save failed', e); }
 }
@@ -3596,20 +3577,18 @@ function loadDB() {
     const raw = localStorage.getItem('wip_db');
     if (!raw) return;
     const saved = JSON.parse(raw);
-    DB.users = saved.users || [];
     DB.albums = saved.albums || {};
     DB.currentUser = saved.currentUser || null;
   } catch(e) {
     console.warn('loadDB failed', e);
-    DB.users = []; DB.albums = {}; DB.currentUser = null;
+    DB.albums = {}; DB.currentUser = null;
   }
 }
 
-async function loadDBFromFirebase(username) {
-  if (!window._fbReady || !username) return null;
+async function loadDBFromFirebase(uid) {
+  if (!window._fbReady || !uid) return null;
   try {
-    const db = window._fbDb;
-    const docRef = window._fbDoc(db, 'users', username);
+    const docRef = window._fbDoc(window._fbDb, 'users', uid);
     const snap = await window._fbGetDoc(docRef);
     if (snap.exists()) return snap.data();
     return null;
@@ -3637,7 +3616,7 @@ function openCtxMenu(e, pid) {
   e.preventDefault();
   ctxPid = pid; ctxTid = null;
   document.getElementById('ctx-project-settings').style.display = 'flex';
-  document.getElementById('ctx-export-project').style.display = 'flex';
+  
   document.getElementById('ctx-track-settings').style.display = 'none';
   showCtxAt(e);
 }
@@ -3645,7 +3624,7 @@ function openTrackCtxMenu(e, tid) {
   e.preventDefault();
   ctxTid = tid; ctxPid = null;
   document.getElementById('ctx-project-settings').style.display = 'none';
-  document.getElementById('ctx-export-project').style.display = 'none';
+  
   document.getElementById('ctx-track-settings').style.display = 'flex';
   showCtxAt(e);
 }
@@ -4017,23 +3996,61 @@ async function checkShareMode() {
     }
     showSharedProject(snap.data());
 
-    // Live updates — when owner shares again, update metadata without interrupting playback
+    // עדכון חי — כשהבעלים מעדכן, רענן הכל
     window._fbOnSnapshot(docRef, (updatedSnap) => {
       if (!updatedSnap.exists()) return;
       const newData = updatedSnap.data();
-      // Update track list metadata (names, statuses, bpm) without reloading audio
       const tracksArea = document.getElementById('sv-tracks-area');
-      if (!tracksArea) return; // page not rendered yet
-      // Update sidebar project name
-      const sidebarName = document.querySelector('#sv-app [style*="sidebar"] .p-name-sm');
-      // Update track rows that exist — just refresh names/status/bpm
-      newData.tracks.forEach((t, i) => {
-        const nameEl = document.getElementById(`sv-tname-${i}`);
-        if (nameEl) nameEl.textContent = t.name;
-      });
-      // Show live indicator
+      if (!tracksArea) return;
+
+      const fmt2 = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
+      const MONTHS2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const fdate2 = ts => { const d = new Date(ts); return `${MONTHS2[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
+
+      // עדכן רשימת טראקים מחדש
+      const newTracks = newData.tracks.map(t => ({ ...t, lyrics: [] }));
+      tracksArea.innerHTML = newTracks.map((t, i) => {
+        const s = t.status;
+        const statusHtml = s ? `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;cursor:default;flex-shrink:0;border:1px solid transparent;${
+          s==='idea'?'color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08)':
+          s==='demo'?'color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08)':
+          s==='mixing'?'color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08)':
+          s==='done'?'color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08)':''
+        }">${s}</span>` : '';
+        return `<div id="sv-row-${i}" data-idx="${i}"
+          style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:background 0.1s;margin-bottom:1px"
+          onclick="svPlay(${i})"
+          onmouseenter="svRowEnter(this,${i})"
+          onmouseleave="svRowLeave(this,${i})">
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:20px">
+            <span id="sv-num-${i}" style="font-size:10px;color:var(--dim)">${i+1}</span>
+            <span id="sv-ico-${i}" style="position:absolute;font-size:11px;color:var(--accent);opacity:0">▶</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span id="sv-tname-${i}" style="font-size:12.5px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em">${t.name}</span>
+            ${statusHtml}
+          </div>
+          <div style="font-size:10px;color:var(--dim);letter-spacing:0.04em">${t.bpm && t.bpm!=='analyzing' ? `<span style="color:var(--accent);opacity:0.75">${t.bpm}</span>` : '—'}</div>
+          <div style="font-size:9px;color:var(--dim);letter-spacing:0.04em">${fdate2(t.added||Date.now())}</div>
+          <div style="font-size:10px;color:var(--dim)">${fmt2(t.dur||0)}</div>
+          <div id="sv-acts-${i}" style="display:flex;align-items:center;justify-content:flex-end;gap:3px;opacity:0;transition:opacity 0.1s">
+            <button onclick="event.stopPropagation();svOpenLyrics(${i})" title="כתוב לירקס"
+              style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:4px;font-size:13px"
+              onmouseenter="this.style.background='var(--surface3)';this.style.color='var(--text)'"
+              onmouseleave="this.style.background='none';this.style.color='var(--dim)'">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
+          </div>
+        </div>`;
+      }).join('');
+
+      // עדכן גם את מספר הטראקים בהירו
+      const metaTracks = document.getElementById('sv-meta-tracks');
+      if (metaTracks) metaTracks.textContent = `${newTracks.length} טראק${newTracks.length!==1?'ים':''}`;
+
+      // הצג תג "חי"
       const badge = document.getElementById('sv-live-badge');
-      if (badge) { badge.style.opacity = '1'; setTimeout(() => badge.style.opacity = '0', 2000); }
+      if (badge) { badge.style.opacity = '1'; setTimeout(() => badge.style.opacity = '0', 2500); }
     });
 
     return true;
@@ -4084,7 +4101,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v1.8.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.0.0 — firebase</div>
       </div>
     </div>
 
@@ -4207,6 +4224,9 @@ function showSharedProject(p) {
           <span class="vol-icon">🔈</span>
           <input type="range" class="vol-slider" min="0" max="1" step="0.01" value="0.8" oninput="window.svAudio.volume=this.value">
         </div>
+        <button onclick="svToggleFullscreen()" title="fullscreen" style="margin-left:8px;width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dim);transition:color 0.12s,background 0.12s" onmouseenter="this.style.color='var(--text)';this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.color='var(--dim)';this.style.background='transparent'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
       </div>
     </div>
 
@@ -4251,6 +4271,39 @@ function showSharedProject(p) {
       <div class="beat-box" id="sv-beat-3"></div>
       <div class="lp-bpm-label" id="sv-bpm-label">— bpm</div>
     </div>
+  </div>
+
+  <!-- FULLSCREEN VIEW -->
+  <div id="sv-fs-view" onclick="svToggleFullscreen()" style="position:fixed;inset:0;z-index:500;opacity:0;pointer-events:none;transition:opacity 0.25s;display:flex;align-items:center;justify-content:center">
+    <div id="sv-fs-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) saturate(1.3) brightness(0.25);transform:scale(1.1)"></div>
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:28px;padding:40px" onclick="event.stopPropagation()">
+      <div id="sv-fs-cover" style="width:220px;height:220px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:60px;color:var(--dim);overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.8)">♩</div>
+      <div style="text-align:center">
+        <div id="sv-fs-track" style="font-size:22px;font-weight:500;color:#fff;letter-spacing:-0.01em;margin-bottom:6px">—</div>
+        <div id="sv-fs-artist" style="font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:0.04em">no track playing</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:18px">
+        <button onclick="svSkipPrev()" style="width:48px;height:48px;border:none;background:none;cursor:pointer;color:rgba(255,255,255,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center" onmouseenter="this.style.color='#fff';this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.color='rgba(255,255,255,0.7)';this.style.background='none'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <button id="sv-fs-pp" onclick="svToggle()" style="width:60px;height:60px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s" onmouseenter="this.style.background='#d4ff50'" onmouseleave="this.style.background='var(--accent)'">
+          <svg id="sv-fs-pp-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+        <button onclick="svSkipNext()" style="width:48px;height:48px;border:none;background:none;cursor:pointer;color:rgba(255,255,255,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center" onmouseenter="this.style.color='#fff';this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.color='rgba(255,255,255,0.7)';this.style.background='none'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;width:400px">
+        <span id="sv-fs-tc" style="font-size:10px;color:rgba(255,255,255,0.4);width:34px;text-align:center;flex-shrink:0">0:00</span>
+        <div id="sv-fs-prog" onclick="svFsSeek(event)" style="flex:1;height:3px;background:rgba(255,255,255,0.15);border-radius:3px;cursor:pointer;padding:10px 0;margin:-10px 0;background-clip:content-box;box-sizing:content-box">
+          <div id="sv-fs-fill" style="height:100%;background:var(--accent);border-radius:3px;pointer-events:none;width:0%"></div>
+        </div>
+        <span id="sv-fs-tt" style="font-size:10px;color:rgba(255,255,255,0.4);width:34px;text-align:center;flex-shrink:0">0:00</span>
+      </div>
+    </div>
+    <button onclick="svToggleFullscreen()" style="position:absolute;top:24px;right:28px;width:36px;height:36px;border:none;background:rgba(255,255,255,0.08);border-radius:50%;cursor:pointer;color:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center" onmouseenter="this.style.background='rgba(255,255,255,0.15)';this.style.color='#fff'" onmouseleave="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.5)'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
   `;
 
@@ -4471,7 +4524,47 @@ function showSharedProject(p) {
   let svCur = -1, svPlaying = false, svRaf = null;
   const fmt2 = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
 
-  function svUpdateRows() {
+  let svFsOpen = false;
+
+  window.svToggleFullscreen = () => {
+    svFsOpen = !svFsOpen;
+    const v = document.getElementById('sv-fs-view');
+    v.style.opacity = svFsOpen ? '1' : '0';
+    v.style.pointerEvents = svFsOpen ? 'all' : 'none';
+    if (svFsOpen) {
+      document.documentElement.requestFullscreen?.();
+      svUpdateFsView();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
+  function svUpdateFsView() {
+    if (!svFsOpen) return;
+    const t = svCur >= 0 ? tracks[svCur] : null;
+    const cover = document.getElementById('sv-fs-cover');
+    const bg = document.getElementById('sv-fs-bg');
+    if (cover) cover.innerHTML = p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover">` : '♩';
+    if (bg) bg.style.backgroundImage = p.cover ? `url(${p.cover})` : 'none';
+    const trackEl = document.getElementById('sv-fs-track');
+    const artistEl = document.getElementById('sv-fs-artist');
+    if (trackEl) trackEl.textContent = t ? t.name : '—';
+    if (artistEl) artistEl.textContent = p.artist || 'no track playing';
+    const ppIcon = document.getElementById('sv-fs-pp-icon');
+    if (ppIcon) ppIcon.innerHTML = svPlaying
+      ? '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
+      : '<polygon points="5 3 19 12 5 21 5 3"/>';
+  }
+
+  window.svFsSeek = (e) => {
+    const bar = document.getElementById('sv-fs-prog');
+    const r = bar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    if (window.svAudio.duration) window.svAudio.currentTime = pct * window.svAudio.duration;
+  };
+
+  // Keyboard ESC closes fullscreen
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && svFsOpen) svToggleFullscreen(); });
     tracks.forEach((_,i) => {
       const row = document.getElementById(`sv-row-${i}`);
       const num = document.getElementById(`sv-num-${i}`);
@@ -4521,6 +4614,7 @@ function showSharedProject(p) {
     if (thumb) thumb.innerHTML = p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">` : '♪';
     svUpdateRows();
     window.svCurrentWfTid = i;
+    if (svFsOpen) svUpdateFsView();
     // Use setTimeout to ensure layout is complete before measuring
     setTimeout(() => svDrawWaveform(tracks[i].url, i, 0), 100);
   };
@@ -4554,6 +4648,7 @@ function showSharedProject(p) {
 
   window.svAudio.addEventListener('play', () => {
     svPlaying=true; svUpdateRows();
+    if (svFsOpen) svUpdateFsView();
     // Update beat grid if lyrics panel is open
     if (svLyricsTrackIdx >= 0) svUpdateBeatGrid(svLyricsTrackIdx);
     function tick() {
@@ -4567,13 +4662,22 @@ function showSharedProject(p) {
       if (cursor) cursor.style.left = (pct*100)+'%';
       document.getElementById('sv-tc').textContent = fmt2(window.svAudio.currentTime);
       document.getElementById('sv-tt').textContent = fmt2(window.svAudio.duration);
+      // עדכן fullscreen אם פתוח
+      if (svFsOpen) {
+        const fsFill = document.getElementById('sv-fs-fill');
+        const fsTc = document.getElementById('sv-fs-tc');
+        const fsTt = document.getElementById('sv-fs-tt');
+        if (fsFill) fsFill.style.width = (pct*100)+'%';
+        if (fsTc) fsTc.textContent = fmt2(window.svAudio.currentTime);
+        if (fsTt) fsTt.textContent = fmt2(window.svAudio.duration);
+      }
       svRaf=requestAnimationFrame(tick);
     }
     if (svRaf) cancelAnimationFrame(svRaf);
     svRaf=requestAnimationFrame(tick);
   });
-  window.svAudio.addEventListener('pause', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svStopBeatGrid(); });
-  window.svAudio.addEventListener('ended', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svStopBeatGrid(); svSkipNext(); });
+  window.svAudio.addEventListener('pause', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svStopBeatGrid(); if(svFsOpen) svUpdateFsView(); });
+  window.svAudio.addEventListener('ended', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svStopBeatGrid(); if(svFsOpen) svUpdateFsView(); svSkipNext(); });
 
 }
 
@@ -4583,42 +4687,57 @@ function showSharedProject(p) {
 setupGlobalDrag();
 document.getElementById('app').style.display = 'none';
 
-document.addEventListener('DOMContentLoaded', () => {});
-
-// Check for share mode first, then normal init
+// Check for share mode first
 checkShareMode().then(isShareMode => {
-  if (isShareMode) return; // Don't init app in share mode
+  if (isShareMode) return;
 
-  openIDB().then(async idbInstance => {
-    idb = idbInstance;
-    loadDB();
+  // Wait for Firebase auth to be ready
+  const waitForFb = setInterval(() => {
+    if (!window._fbReady) return;
+    clearInterval(waitForFb);
 
-    // Try to sync from Firebase if we have a user
-    if (DB.currentUser) {
-      // Wait for Firebase to be ready (loaded async via module)
-      let tries = 0;
-      while (!window._fbReady && tries < 30) {
-        await new Promise(r => setTimeout(r, 100));
-        tries++;
-      }
-      if (window._fbReady) {
-        const cloudData = await loadDBFromFirebase(DB.currentUser);
+    // Listen for auth state
+    window._fbOnAuthStateChanged(window._fbAuth, async (user) => {
+      if (user) {
+        // מחובר — טען נתונים
+        currentGoogleUser = user;
+        DB.currentUser = user.uid;
+
+        // טען מ-Firebase
+        const cloudData = await loadDBFromFirebase(user.uid);
         if (cloudData && cloudData.albums) {
-          // Merge: cloud wins for meta, keep local audio references
-          DB.users = cloudData.users || DB.users;
-          DB.albums = cloudData.albums || DB.albums;
-          // Don't overwrite currentUser
+          DB.albums = cloudData.albums;
+        } else {
+          loadDB(); // fallback ל-localStorage
+          if (!DB.albums[user.uid]) DB.albums[user.uid] = [];
         }
-      }
-    }
 
-    await restoreAudioUrls();
-    initApp();
-  }).catch(e => {
-    console.warn('IndexedDB unavailable', e);
-    loadDB();
-    initApp();
-  });
+        // טען אודיו מ-IndexedDB
+        try {
+          idb = await openIDB();
+        } catch(e) { console.warn('IDB unavailable', e); }
+        await restoreAudioUrls();
+
+        // הסתר onboarding, הצג אפליקציה
+        document.getElementById('onboarding').classList.remove('open');
+        document.getElementById('app').style.display = 'grid';
+        updateSidebarUser();
+        renderSidebar();
+        renderMain();
+
+        // שחזר session קודם
+        const ps = loadPlayerState();
+        if (ps?.curPid) {
+          const p = curAlbums().find(x => x.id === ps.curPid);
+          if (p) selectProject(ps.curPid);
+        }
+      } else {
+        // לא מחובר — הצג onboarding
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('onboarding').classList.add('open');
+      }
+    });
+  }, 100);
 });
 
 </script>
