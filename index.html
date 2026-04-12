@@ -1113,7 +1113,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.1 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.2 — firebase</div>
     </div>
   </aside>
 
@@ -1381,7 +1381,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
               onclick="signOutGoogle();closeUserSettings()">sign out</button>
       <div style="display:flex;gap:8px">
         <button class="btn-cancel" onclick="closeUserSettings()">cancel</button>
-        <button class="btn-confirm" onclick="saveUserSettings()">save</button>
+        <button class="btn-confirm" onclick="saveUserSettings()">done</button>
       </div>
     </div>
   </div>
@@ -1776,10 +1776,13 @@ function saveUserSettings() {
   document.getElementById('us-modal').classList.remove('open');
   if (!newName) return;
 
-  // עדכן שם תצוגה בפרויקטים
+  const oldName = currentGoogleUser?.displayName || DB.currentUser;
+
+  // עדכן שם ב-artist של כל הפרויקטים
   const albums = curAlbums();
   albums.forEach(p => {
-    if (p.artist === (currentGoogleUser?.displayName || DB.currentUser)) {
+    // החלף כל artist שהוא השם הישן או ה-UID
+    if (!p.artist || p.artist === oldName || p.artist === DB.currentUser || p.artist.length > 30) {
       p.artist = newName;
     }
   });
@@ -1788,9 +1791,14 @@ function saveUserSettings() {
   const unEl = document.getElementById('sb-uname');
   if (unEl) unEl.textContent = newName;
 
+  // עדכן הגדרות בתצוגה
+  const dnEl = document.getElementById('us-display-name');
+  if (dnEl) dnEl.textContent = newName;
+
   saveDB();
   renderSidebar();
-  toast(`display name updated ✓`);
+  renderMain(); // מחדש את ה-hero שבו מופיע שם האמן
+  toast('display name updated ✓');
 }
 
 
@@ -4050,7 +4058,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.1 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.2 — firebase</div>
       </div>
     </div>
 
