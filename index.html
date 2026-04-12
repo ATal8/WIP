@@ -1122,7 +1122,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.3.0 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.3.1 — firebase</div>
     </div>
   </aside>
 
@@ -2649,8 +2649,8 @@ function closeProjectSettings(e) {
 
 function saveProjectSettings() {
   const p = curAlbums().find(x => x.id === psProjectId); if (!p) return;
-  p.name   = document.getElementById('ps-name').value.trim()   || p.name;
-  p.artist   = DB.currentUser || p.artist;
+  p.name     = document.getElementById('ps-name').value.trim() || p.name;
+  // artist stays as-is — set at creation from Google displayName
   p.year     = document.getElementById('ps-year').value.trim() || p.year;
   p.type     = document.getElementById('ps-type').value;
   p.deadline = document.getElementById('ps-deadline').value || '';
@@ -4054,7 +4054,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.3.0 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.3.1 — firebase</div>
       </div>
     </div>
 
@@ -4669,6 +4669,16 @@ checkShareMode().then(isShareMode => {
           }
         }
         if (!DB.albums[user.uid]) DB.albums[user.uid] = [];
+
+        // תקן פרויקטים שה-artist שלהם הוא UID
+        const displayName = user.displayName || user.email || 'Artist';
+        if (DB.albums[user.uid]) {
+          DB.albums[user.uid].forEach(p => {
+            if (p.artist === user.uid || !p.artist || p.artist.length > 30) {
+              p.artist = displayName;
+            }
+          });
+        }
 
         // טען אודיו מ-IndexedDB
         try {
