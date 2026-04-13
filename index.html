@@ -1414,8 +1414,14 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   /* Deadline row — already full width in redesigned modal */
 
   /* Track settings */
-  #ts-modal .modal-btns { flex-wrap: wrap; gap: 8px; }
-
+  #ts-modal .modal-btns {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  #ts-lyrics-btn { display: none !important; }
   /* Account modal stats */
   #us-modal [style*="font-size:18px"] { font-size: 22px; }
   #us-modal [style*="font-size:9px"][style*="text-transform:uppercase"] { font-size: 10px; }
@@ -1957,7 +1963,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.4</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.5</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3442,9 +3448,9 @@ function openTrackSettings(tid) {
   document.getElementById('ts-filetype').textContent = t.fileType || '—';
   const bpmEl = document.getElementById('ts-bpm-display');
   if (bpmEl) bpmEl.textContent = t.bpm && t.bpm !== 'analyzing' ? t.bpm + ' bpm' : (t.bpm === 'analyzing' ? '···' : '—');
-  // Show lyrics button on mobile
-  const lyrBtn = document.getElementById('ts-lyrics-btn');
-  if (lyrBtn && isMobile()) lyrBtn.style.display = 'flex';
+  // Show lyrics button on mobile — hidden now
+  // const lyrBtn = document.getElementById('ts-lyrics-btn');
+  // if (lyrBtn && isMobile()) lyrBtn.style.display = 'flex';
   resetModalTransform('ts-modal');
   document.getElementById('ts-modal').classList.add('open');
   setTimeout(() => document.getElementById('ts-name').focus(), 80);
