@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.9</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.0</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4320,7 +4320,7 @@ function saveDB() {
       }));
     }
     const now = Date.now();
-    _lastSelfSaveTs = now; // track for self-save detection in onSnapshot
+    _lastSelfSaveTs = now;
     const payload = {
       albums: albumsToSave,
       currentUser: DB.currentUser,
@@ -4330,7 +4330,17 @@ function saveDB() {
       photoURL: currentGoogleUser?.photoURL || null,
       updatedAt: now
     };
-    localStorage.setItem('wip_db', JSON.stringify(payload));
+    // Strip raw base64 covers from localStorage - only keep coverUrl (~20KB compressed)
+    // Prevents stale local base64 overriding cloud cover on next load/sync
+    const localPayload = { ...payload, albums: {} };
+    for (const [user, projects] of Object.entries(albumsToSave)) {
+      if (user.startsWith('__') && user.endsWith('__')) continue;
+      localPayload.albums[user] = projects.map(p => ({
+        ...p,
+        cover: p.coverUrl || null
+      }));
+    }
+    localStorage.setItem('wip_db', JSON.stringify(localPayload));
     scheduleAutoSave();
     saveDBToFirebase(payload);
   } catch(e) { console.error('[WIP] saveDB failed:', e); }
@@ -4825,24 +4835,7 @@ const waitForFb = setInterval(() => {
       const cloudData = await loadDBFromFirebase(user.uid);
       if (cloudData && cloudData.albums) {
         const albums = cloudData.albums;
-        // Load local covers from localStorage (since we don't store base64 in Firebase)
-        let localCovers = {};
-        try {
-          const raw = localStorage.getItem('wip_db');
-          if (raw) {
-            const local = JSON.parse(raw);
-            for (const projects of Object.values(local.albums || {})) {
-              for (const p of projects) {
-                if (p.cover && p.cover.startsWith('data:')) localCovers[p.id] = p.cover;
-              }
-            }
-          }
-        } catch(e) {}
-
-        const mergeAuthCover = (p) => {
-          const result = p.coverUrl || localCovers[p.id] || p.cover || null;
-          return result;
-        };
+        const mergeAuthCover = (p) => p.coverUrl || p.cover || null;
         if (albums[user.uid]) {
           DB.albums[user.uid] = albums[user.uid].map(p => ({ ...p, cover: mergeAuthCover(p) }));
         } else {
@@ -5227,28 +5220,12 @@ function initLiveSync(uid) {
     // Skip if this is our own save (same updatedAt timestamp)
     if (data.updatedAt && data.updatedAt === _lastSelfSaveTs) return;
 
-    // Preserve local base64 covers
-    const localCovers = {};
-    try {
-      const raw = localStorage.getItem('wip_db');
-      if (raw) {
-        const local = JSON.parse(raw);
-        for (const projects of Object.values(local.albums || {})) {
-          for (const p of projects) {
-            if (p.cover?.startsWith('data:')) localCovers[p.id] = p.cover;
-          }
-        }
-      }
-    } catch(e) {}
-
     const cloudAlbums = data.albums[uid] || data.albums[Object.keys(data.albums)[0]] || [];
-    DB.albums[uid] = cloudAlbums.map(p => {
-      const cloudCoverUrl = p.coverUrl || null;
-      const localCover = localCovers[p.id] || null;
-      // coverUrl from Firestore is always authoritative - prefer it over stale local
-      const cover = cloudCoverUrl || localCover || p.cover || null;
-      return { ...p, cover, coverUrl: cloudCoverUrl };
-    });
+    DB.albums[uid] = cloudAlbums.map(p => ({
+      ...p,
+      cover: p.coverUrl || p.cover || null,
+      coverUrl: p.coverUrl || null
+    }));
 
     if (data.preferredName) DB.preferredName = data.preferredName;
     if (data.customAvatar) DB.customAvatar = data.customAvatar;
