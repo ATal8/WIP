@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.0</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.1</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3197,9 +3197,9 @@ function handleCoverUpload(e) {
   const r = new FileReader();
   r.onload = async ev => {
     const dataUrl = ev.target.result;
-    p.cover = dataUrl;
-    saveDB(); renderMain(); renderSidebar();
-    await uploadCoverToStorage(p, dataUrl);
+    p.cover = dataUrl; // local preview immediately
+    renderMain(); renderSidebar();
+    await uploadCoverToStorage(p, dataUrl); // sets coverUrl then saveDB
   };
   r.readAsDataURL(f);
 }
@@ -3378,7 +3378,6 @@ function handlePsCoverUpload(e) {
   r.onload = async ev => {
     const dataUrl = ev.target.result;
     p.cover = dataUrl; // local preview immediately
-    saveDB();
     const wrap = document.getElementById('ps-cover-wrap');
     if (wrap) wrap.innerHTML = `<img src="${dataUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">`;
     renderMain(); renderSidebar();
