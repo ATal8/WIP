@@ -5226,7 +5226,7 @@ function initLiveSync(uid) {
 
     // Skip if this is our own save (same updatedAt timestamp)
     console.log('[WIP sync] snapshot received. updatedAt:', data.updatedAt, '_lastSelfSaveTs:', _lastSelfSaveTs, 'skip?', data.updatedAt && data.updatedAt === _lastSelfSaveTs);
-    if (data.updatedAt && data.updatedAt === _lastSelfSaveTs) return;
+    if (data.updatedAt && data.updatedAt === _lastSelfSaveTs) { alert('SYNC SKIPPED — self-save detected'); return; }
 
     // Preserve local base64 covers
     const localCovers = {};
@@ -5243,7 +5243,7 @@ function initLiveSync(uid) {
     } catch(e) {}
 
     const cloudAlbums = data.albums[uid] || data.albums[Object.keys(data.albums)[0]] || [];
-    console.log('[WIP sync] processing', cloudAlbums.length, 'projects from cloud. uid key exists?', !!data.albums[uid]);
+    alert('SYNC RUNNING — got ' + cloudAlbums.length + ' projects. uid key exists: ' + !!data.albums[uid]);
     DB.albums[uid] = cloudAlbums.map(p => {
       const cloudCoverUrl = p.coverUrl || null;
       const localCover = localCovers[p.id] || null;
