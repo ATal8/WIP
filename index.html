@@ -1886,19 +1886,17 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 <div class="modal-overlay" id="ps-modal" onclick="closeProjectSettings(event)">
   <div class="modal" style="width:400px" onclick="event.stopPropagation()">
     <div class="modal-title">project settings</div>
-    <div style="display:flex;gap:16px;margin-bottom:18px;align-items:flex-start">
-      <div id="ps-cover-wrap" style="width:90px;height:90px;flex-shrink:0;border-radius:6px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--dim);cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+    <div style="display:flex;gap:14px;margin-bottom:20px;align-items:center">
+      <div id="ps-cover-wrap" style="width:72px;height:72px;flex-shrink:0;border-radius:10px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--dim);cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
         <input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">
       </div>
-      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
-        <div class="m-field">
-          <div class="m-label">project name</div>
-          <input class="m-input" id="ps-name">
-        </div>
+      <div class="m-field" style="flex:1;margin:0">
+        <div class="m-label">project name</div>
+        <input class="m-input" id="ps-name">
       </div>
     </div>
-    <div style="display:flex;gap:10px;margin-bottom:18px">
-      <div class="m-field">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="m-field" style="margin:0">
         <div class="m-label">type</div>
         <select class="m-input" id="ps-type" style="cursor:pointer">
           <option value="single">single</option>
@@ -1910,16 +1908,16 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
           <option value="soundtrack">soundtrack</option>
         </select>
       </div>
-      <div class="m-field">
+      <div class="m-field" style="margin:0">
         <div class="m-label">year</div>
         <input class="m-input" id="ps-year" maxlength="4">
       </div>
-      <div class="m-field">
-        <div class="m-label">deadline</div>
-        <input class="m-input" id="ps-deadline" type="date" style="cursor:pointer;color-scheme:dark">
-      </div>
     </div>
-    <div class="m-field" style="margin-bottom:18px">
+    <div class="m-field" style="margin-bottom:14px">
+      <div class="m-label">deadline</div>
+      <input class="m-input" id="ps-deadline" type="date" style="cursor:pointer;color-scheme:dark">
+    </div>
+    <div class="m-field" style="margin-bottom:14px">
       <div class="m-label">project notes</div>
       <textarea class="m-input" id="ps-notes" rows="3" style="resize:vertical;min-height:72px;font-family:'DM Mono',monospace;line-height:1.6" placeholder="ideas, references, goals..."></textarea>
     </div>
@@ -1982,7 +1980,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.0</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.1</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5180,10 +5178,47 @@ function initMobileSwipeSeek() {
   }
 }
 
+// ══ SWIPE DOWN TO CLOSE DRAWERS ══
+function addSwipeToClose(drawerId, closeFn) {
+  const drawer = document.getElementById(drawerId);
+  if (!drawer) return;
+  let startY = 0, currentY = 0, dragging = false;
+
+  drawer.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    dragging = true;
+    drawer.style.transition = 'none';
+  }, { passive: true });
+
+  drawer.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    currentY = e.touches[0].clientY;
+    const dy = Math.max(0, currentY - startY);
+    drawer.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+
+  drawer.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    const dy = currentY - startY;
+    drawer.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+    if (dy > 80) {
+      closeFn();
+    } else {
+      drawer.style.transform = 'translateY(0)';
+    }
+  });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   syncMobilePlayBtn();
   initMobilePlayer();
-  if (isMobile()) initMobileSwipeSeek();
+  if (isMobile()) {
+    initMobileSwipeSeek();
+    addSwipeToClose('mobile-drawer', closeMobileDrawer);
+    addSwipeToClose('notif-drawer', closeNotifDrawer);
+  }
 });
 // ══════════════════════════════════════
 
