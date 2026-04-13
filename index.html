@@ -1063,6 +1063,231 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 .no-sel-icon { font-size: 32px; opacity: 0.16; }
 .no-sel-txt { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
 .no-sel-hint { font-size: 9px; opacity: 0.5; letter-spacing: 0.07em; }
+
+/* ══════════════════════════════════════
+   MOBILE BOTTOM NAV
+   ══════════════════════════════════════ */
+#bottom-nav { display: none; }
+
+/* ══════════════════════════════════════
+   MOBILE DRAWER (project list)
+   ══════════════════════════════════════ */
+#mobile-drawer-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 350;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+#mobile-drawer-overlay.open { opacity: 1; }
+#mobile-drawer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 82vh;
+  display: flex; flex-direction: column;
+}
+#mobile-drawer-overlay.open #mobile-drawer { transform: translateY(0); }
+.mob-drawer-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--border-h); margin: 12px auto 0;
+  flex-shrink: 0;
+}
+.mob-drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.mob-drawer-title {
+  font-size: 16px; font-weight: 500; color: var(--text);
+  letter-spacing: -0.01em;
+}
+.mob-drawer-new {
+  width: 32px; height: 32px; border: none; background: var(--adim);
+  border-radius: 50%; color: var(--accent); font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
+}
+.mob-drawer-new:hover { background: rgba(200,255,50,0.2); }
+.mob-drawer-list { flex: 1; overflow-y: auto; padding: 8px 0 16px; }
+.mob-proj-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 18px; cursor: pointer;
+  transition: background 0.1s; position: relative;
+}
+.mob-proj-item:active { background: var(--surface2); }
+.mob-proj-item.active { background: var(--surface2); }
+.mob-proj-item.active::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  height: 20px; width: 3px; background: var(--accent); border-radius: 0 3px 3px 0;
+}
+.mob-proj-thumb {
+  width: 48px; height: 48px; border-radius: 6px;
+  background: var(--surface3); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--dim);
+  border: 1px solid var(--border); position: relative; overflow: hidden;
+}
+.mob-proj-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mob-proj-item.active .mob-proj-thumb { border-color: rgba(200,255,50,0.3); }
+.mob-proj-info { min-width: 0; flex: 1; }
+.mob-proj-name {
+  font-size: 14px; font-weight: 400; color: var(--mid);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mob-proj-item.active .mob-proj-name { color: var(--text); }
+.mob-proj-sub {
+  font-size: 11px; color: var(--dim); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mob-empty-proj {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 10px; padding: 40px 20px;
+  color: var(--dim);
+}
+.mob-empty-proj-icon { font-size: 28px; opacity: 0.2; }
+.mob-empty-proj-txt { font-size: 11px; letter-spacing: 0.08em; }
+
+/* ══════════════════════════════════════
+   @MEDIA MOBILE ≤640px
+   ══════════════════════════════════════ */
+@media (max-width: 640px) {
+  :root {
+    --bottom-nav-h: 60px;
+    --mobile-player-h: 64px;
+  }
+
+  /* ── App grid: no sidebar ── */
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr var(--mobile-player-h) var(--bottom-nav-h);
+    grid-template-areas: "main" "player" "botnav";
+  }
+  #sidebar { display: none; }
+
+  /* ── Main content full width ── */
+  #main-content { max-width: 100%; }
+
+  /* ── Album hero: vertical stack ── */
+  .album-hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 16px 18px;
+    gap: 16px;
+  }
+  .album-cover { width: 140px; height: 140px; }
+  .album-info { width: 100%; }
+  .album-title { font-size: 26px; }
+  .album-actions { justify-content: center; }
+  .hero-bg, .hero-cover-blur { display: none; }
+
+  /* ── Track list: 3 columns ── */
+  .tbl-head { grid-template-columns: 36px 1fr 52px; padding: 5px 10px; }
+  .track-row { grid-template-columns: 36px 1fr 52px; padding: 10px 10px; }
+  .t-bpm, .t-date, .t-actions { display: none; }
+  .t-dur { text-align: right; }
+  .tbl-head > .th:nth-child(3),
+  .tbl-head > .th:nth-child(4),
+  .tbl-head > .th:nth-child(5) { display: none; }
+
+  /* ── Tracks section padding ── */
+  .tracks-section { padding: 0 12px 20px; }
+
+  /* ── Mini player ── */
+  #player {
+    height: var(--mobile-player-h);
+    padding: 0 16px;
+    cursor: pointer;
+    border-radius: 10px 10px 0 0;
+    border-left: none; border-right: none;
+    position: relative;
+  }
+  .pl-center { display: none; }
+  .pl-right { display: none; }
+  .pl-left { flex: 1; min-width: 0; }
+  #mob-play-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; flex-shrink: 0;
+    border: none; background: none; cursor: pointer;
+    color: var(--text); font-size: 20px;
+    border-radius: 50%;
+    transition: background 0.1s;
+  }
+  #mob-play-btn:active { background: var(--surface2); }
+  #mob-progress-bar {
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--border-h);
+    border-radius: 2px 2px 0 0;
+  }
+  #mob-progress-fill {
+    height: 100%; background: var(--accent);
+    border-radius: 2px 2px 0 0;
+    transition: width 0.5s linear;
+  }
+
+  /* ── Bottom nav ── */
+  #bottom-nav {
+    display: flex;
+    grid-area: botnav;
+    align-items: center;
+    justify-content: space-around;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bnav-btn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; padding: 8px 0;
+    border: none; background: none; cursor: pointer;
+    color: var(--dim); transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bnav-btn.active { color: var(--accent); }
+  .bnav-btn svg { width: 22px; height: 22px; }
+  .bnav-label { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
+  .bnav-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--adim); border: 1px solid rgba(200,255,50,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--accent); font-weight: 500;
+    overflow: hidden; position: relative;
+  }
+  .bnav-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+  /* ── Modals: bottom sheet ── */
+  .modal-overlay { align-items: flex-end; }
+  .modal-overlay .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(20px);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  /* ── No-sel hint on mobile ── */
+  .no-sel-hint { display: none; }
+  .no-sel-txt { font-size: 11px; }
+
+  /* ── Fullscreen: hide close btn text ── */
+  .fs-close { top: 16px; right: 16px; }
+
+  /* ── Onboarding box wider ── */
+  .ob-box { width: 90%; max-width: 360px; }
+
+  /* ── Mobile drawer overlay shown ── */
+  #mobile-drawer-overlay { display: block; pointer-events: none; }
+  #mobile-drawer-overlay.open { pointer-events: all; }
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -1109,7 +1334,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <aside id="sidebar">
     <div class="sb-top">
       <div class="sb-logo">WIP</div>
-      <div class="sb-sub">work in progress · v1.1</div>
+      <div class="sb-sub">work in progress · v3.0.0</div>
     </div>
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
@@ -1121,7 +1346,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.9.0</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.0.0</div>
     </div>
   </aside>
 
@@ -1200,10 +1425,46 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
         </svg>
       </button>
     </div>
+    <!-- Mobile: progress bar + play button -->
+    <div id="mob-progress-bar"><div id="mob-progress-fill" style="width:0%"></div></div>
+    <button id="mob-play-btn" onclick="event.stopPropagation();togglePlay()" style="display:none">
+      <svg id="mob-pp-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </button>
   </footer>
 </div>
 
-<!-- GLOBAL DRAG OVERLAY -->
+<!-- BOTTOM NAV (mobile only) -->
+<nav id="bottom-nav">
+  <button class="bnav-btn" id="bnav-library" onclick="toggleMobileDrawer()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18M3 12h18M3 18h18"/>
+    </svg>
+    <span class="bnav-label">library</span>
+  </button>
+  <button class="bnav-btn" id="bnav-home" onclick="closeMobileDrawer()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+    <span class="bnav-label">home</span>
+  </button>
+  <button class="bnav-btn" id="bnav-account" onclick="openUserSettings()">
+    <div class="bnav-avatar" id="bnav-avatar">?</div>
+    <span class="bnav-label">account</span>
+  </button>
+</nav>
+
+<!-- MOBILE DRAWER -->
+<div id="mobile-drawer-overlay" onclick="closeMobileDrawer()">
+  <div id="mobile-drawer" onclick="event.stopPropagation()">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <div class="mob-drawer-title">your projects</div>
+      <button class="mob-drawer-new" onclick="closeMobileDrawer();openModal()" title="new project">+</button>
+    </div>
+    <div class="mob-drawer-list" id="mob-project-list"></div>
+  </div>
+</div>
 <div id="drag-overlay">
   <div class="drag-overlay-ring"></div>
   <div class="drag-overlay-ring"></div>
@@ -4123,6 +4384,7 @@ const waitForFb = setInterval(() => {
       document.getElementById('app').style.display = 'grid';
       updateSidebarUser();
       renderSidebar();
+      updateMobileNav();
 
       // טען פרויקטים שמורים מאחרים
       loadSavedProjects(user);
@@ -4285,6 +4547,140 @@ async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect, a
     });
   } catch(e) { console.warn('_loadSharedEntry failed', e); }
 }
+
+// ══════════════════════════════════════
+// MOBILE FUNCTIONS (v3.0.0)
+// ══════════════════════════════════════
+
+function isMobile() { return window.innerWidth <= 640; }
+
+// ── Drawer ──
+function toggleMobileDrawer() {
+  const overlay = document.getElementById('mobile-drawer-overlay');
+  if (overlay.classList.contains('open')) closeMobileDrawer();
+  else openMobileDrawer();
+}
+function openMobileDrawer() {
+  renderMobileDrawer();
+  const overlay = document.getElementById('mobile-drawer-overlay');
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => overlay.classList.add('open'));
+  document.getElementById('bnav-library').classList.add('active');
+}
+function closeMobileDrawer() {
+  const overlay = document.getElementById('mobile-drawer-overlay');
+  overlay.classList.remove('open');
+  document.getElementById('bnav-library')?.classList.remove('active');
+  setTimeout(() => { if (!overlay.classList.contains('open')) overlay.style.display = 'none'; }, 300);
+}
+
+function renderMobileDrawer() {
+  const list = document.getElementById('mob-project-list');
+  if (!list) return;
+  const all = curAlbums();
+  if (!all.length) {
+    list.innerHTML = `<div class="mob-empty-proj"><div class="mob-empty-proj-icon">◈</div><div class="mob-empty-proj-txt">no projects yet</div></div>`;
+    return;
+  }
+  list.innerHTML = all.map(p => {
+    const isActive = S.curPid === p.id;
+    const coverHtml = p.cover ? `<img src="${p.cover}">` : '🎵';
+    return `<div class="mob-proj-item${isActive ? ' active' : ''}" onclick="mobileProjSelect('${p.id}')">
+      <div class="mob-proj-thumb">${coverHtml}</div>
+      <div class="mob-proj-info">
+        <div class="mob-proj-name">${p.name || 'untitled'}</div>
+        <div class="mob-proj-sub">${(p.type || 'project').toUpperCase()} · ${p.tracks?.length || 0} track${p.tracks?.length !== 1 ? 's' : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mobileProjSelect(id) {
+  selectProject(id);
+  closeMobileDrawer();
+}
+
+// ── Bottom nav avatar sync ──
+function updateMobileNav() {
+  if (!isMobile()) return;
+  const name = DB.preferredName || currentGoogleUser?.displayName || '';
+  const photo = DB.customAvatar || currentGoogleUser?.photoURL || null;
+  const av = document.getElementById('bnav-avatar');
+  if (!av) return;
+  const existingImg = av.querySelector('img');
+  if (existingImg) existingImg.remove();
+  if (photo) {
+    const img = document.createElement('img');
+    img.src = photo;
+    av.appendChild(img);
+    av.textContent = '';
+    av.appendChild(img);
+  } else {
+    av.textContent = name ? name[0].toUpperCase() : '?';
+  }
+}
+
+// ── Mobile player: tap bar → fullscreen, show/hide mob-play-btn ──
+function initMobilePlayer() {
+  const player = document.getElementById('player');
+  const mobBtn = document.getElementById('mob-play-btn');
+  if (!player || !mobBtn) return;
+  player.addEventListener('click', (e) => {
+    if (!isMobile()) return;
+    if (e.target.closest('#mob-play-btn')) return;
+    toggleFullscreen();
+  });
+}
+
+// ── Update mobile progress bar + play icon ──
+const _origUpdateProgress = typeof updateProgress === 'function' ? updateProgress : null;
+function updateMobileProgress(pct, playing) {
+  const fill = document.getElementById('mob-progress-fill');
+  if (fill) fill.style.width = (pct * 100) + '%';
+  const icon = document.getElementById('mob-pp-icon');
+  if (icon) icon.innerHTML = playing
+    ? '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
+    : '<polygon points="5 3 19 12 5 21 5 3"/>';
+}
+
+// ── Show mobile play button only on mobile ──
+function syncMobilePlayBtn() {
+  const btn = document.getElementById('mob-play-btn');
+  if (btn) btn.style.display = isMobile() ? 'flex' : 'none';
+}
+
+// Hook into existing updatePlayerUI
+const _origUpdatePlayerUI = typeof updatePlayerUI === 'function' ? updatePlayerUI : null;
+(function patchMobileHooks() {
+  const orig = window.updatePlayerUI;
+  if (!orig) { setTimeout(patchMobileHooks, 200); return; }
+  window.updatePlayerUI = function(t, p) {
+    orig(t, p);
+    syncMobilePlayBtn();
+    updateMobileNav();
+  };
+})();
+
+// Patch audio timeupdate for mobile progress
+(function patchAudioProgress() {
+  const chk = setInterval(() => {
+    if (typeof audio === 'undefined') return;
+    clearInterval(chk);
+    audio.addEventListener('timeupdate', () => {
+      if (!audio.duration) return;
+      updateMobileProgress(audio.currentTime / audio.duration, !audio.paused);
+    });
+    audio.addEventListener('play',  () => updateMobileProgress(audio.currentTime / (audio.duration || 1), true));
+    audio.addEventListener('pause', () => updateMobileProgress(audio.currentTime / (audio.duration || 1), false));
+  }, 300);
+})();
+
+// Init on load
+window.addEventListener('DOMContentLoaded', () => {
+  syncMobilePlayBtn();
+  initMobilePlayer();
+});
+window.addEventListener('resize', syncMobilePlayBtn);
 
 </script>
 </body>
