@@ -1583,7 +1583,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <aside id="sidebar">
     <div class="sb-top">
       <div class="sb-logo">WIP</div>
-      <div class="sb-sub">work in progress · v3.1.8</div>
+      <div class="sb-sub">work in progress · v3.2.0</div>
     </div>
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
@@ -1595,7 +1595,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.1.8</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.2.0</div>
     </div>
   </aside>
 
@@ -1699,18 +1699,33 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     </svg>
     <span class="bnav-label">library</span>
   </button>
-  <button class="bnav-btn" id="bnav-home" onclick="closeMobileDrawer()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
-      <path d="M9 21V12h6v9"/>
-    </svg>
-    <span class="bnav-label">home</span>
-  </button>
   <button class="bnav-btn" id="bnav-account" onclick="openUserSettings()">
     <div class="bnav-avatar" id="bnav-avatar">?</div>
     <span class="bnav-label">account</span>
   </button>
+  <button class="bnav-btn" id="bnav-notif" onclick="toggleNotifDrawer()">
+    <div style="position:relative;display:inline-flex">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span id="notif-badge" style="display:none;position:absolute;top:-3px;right:-4px;width:8px;height:8px;background:#ff5555;border-radius:50%;border:1.5px solid var(--bg)"></span>
+    </div>
+    <span class="bnav-label">alerts</span>
+  </button>
 </nav>
+
+<!-- NOTIFICATIONS DRAWER -->
+<div id="notif-drawer-overlay" onclick="closeNotifDrawer()" style="display:none;position:fixed;inset:0;z-index:350;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);opacity:0;transition:opacity 0.25s">
+  <div id="notif-drawer" onclick="event.stopPropagation()" style="position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);max-height:82vh;display:flex;flex-direction:column">
+    <div style="width:36px;height:4px;border-radius:2px;background:var(--border-h);margin:12px auto 0;flex-shrink:0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:16px;font-weight:500;color:var(--text);letter-spacing:-0.01em">notifications</div>
+      <button onclick="markAllNotifsRead()" style="font-size:10px;letter-spacing:0.06em;color:var(--dim);background:none;border:none;cursor:pointer;padding:4px 8px">mark all read</button>
+    </div>
+    <div id="notif-list" style="flex:1;overflow-y:auto;padding:8px 0 16px"></div>
+  </div>
+</div>
 
 <!-- MOBILE DRAWER -->
 <div id="mobile-drawer-overlay" onclick="closeMobileDrawer()">
@@ -1920,7 +1935,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.1.8</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.2.0</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3142,6 +3157,11 @@ function playTrack(tid) {
   audio.src = t.url; audio.play();
   S.queue = p.tracks.map(x => x.id);
   updatePlayerUI(t, p); renderTrackList();
+
+  // Fire notification if track belongs to another user
+  if (p._isShared && p._ownerUid && p._ownerUid !== DB.currentUser) {
+    sendListenNotification(p._ownerUid, t.name, p.name);
+  }
 
   // If lyrics panel is open, follow the playing track
   if (document.getElementById('lyrics-panel').classList.contains('open')) {
@@ -4712,6 +4732,7 @@ const waitForFb = setInterval(() => {
       updateSidebarUser();
       renderSidebar();
       updateMobileNav();
+      initNotifications(user.uid);
 
       // טען פרויקטים שמורים מאחרים
       loadSavedProjects(user);
@@ -5006,6 +5027,152 @@ window.addEventListener('DOMContentLoaded', () => {
   initMobilePlayer();
 });
 window.addEventListener('resize', syncMobilePlayBtn);
+
+// ══════════════════════════════════════
+// NOTIFICATIONS SYSTEM
+// ══════════════════════════════════════
+
+let _notifUnsubscribe = null;
+
+async function sendListenNotification(ownerUid, trackName, projectName) {
+  if (!window._fbReady || !DB.currentUser) return;
+  try {
+    const notifId = `${DB.currentUser}_${Date.now()}`;
+    await window._fbSetDoc(
+      window._fbDoc(window._fbDb, 'notifications', ownerUid, 'items', notifId),
+      {
+        listenerUid: DB.currentUser,
+        trackName,
+        projectName,
+        timestamp: Date.now(),
+        read: false
+      }
+    );
+  } catch(e) { console.warn('notif send failed', e); }
+}
+
+function initNotifications(userUid) {
+  if (!window._fbReady) return;
+  if (_notifUnsubscribe) _notifUnsubscribe();
+  const col = window._fbCollection(window._fbDb, 'notifications', userUid, 'items');
+  _notifUnsubscribe = window._fbOnSnapshot(col, async (snap) => {
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 50);
+    const unread = items.filter(x => !x.read).length;
+
+    // Update badge
+    const badge = document.getElementById('notif-badge');
+    if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+
+    // Fetch listener profiles (live)
+    const uids = [...new Set(items.map(x => x.listenerUid).filter(Boolean))];
+    const profiles = {};
+    await Promise.all(uids.map(async uid => {
+      try {
+        const snap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', uid));
+        if (snap.exists()) profiles[uid] = snap.data();
+      } catch(e) {}
+    }));
+
+    renderNotifList(items, profiles);
+  });
+}
+
+function renderNotifList(items, profiles) {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+
+  if (!items.length) {
+    list.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:10px;color:var(--dim)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div style="font-size:11px;letter-spacing:0.08em">no notifications yet</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(n => {
+    const profile = profiles[n.listenerUid] || {};
+    const name = profile.preferredName || profile.displayName || 'someone';
+    const photo = profile.customAvatar || profile.photoURL || null;
+    const avatarHtml = photo
+      ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`
+      : `<span style="font-size:14px;font-weight:500;color:var(--accent)">${name[0]?.toUpperCase() || '?'}</span>`;
+    const timeStr = formatNotifTime(n.timestamp);
+
+    return `<div onclick="markNotifRead('${n.id}')" style="display:flex;align-items:flex-start;gap:14px;padding:13px 18px;cursor:pointer;transition:background 0.1s;${n.read ? '' : 'background:rgba(200,255,50,0.04);'}" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='${n.read ? 'none' : 'rgba(200,255,50,0.04)'}'">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">${avatarHtml}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text);line-height:1.4;letter-spacing:0.01em">
+          <span style="font-weight:500">${name}</span>
+          <span style="color:var(--mid)"> listened to </span>
+          <span style="font-weight:500">${n.trackName}</span>
+          <span style="color:var(--mid)"> off </span>
+          <span style="color:var(--accent)">${n.projectName}</span>
+        </div>
+        <div style="font-size:10px;color:var(--dim);margin-top:4px;letter-spacing:0.04em">${timeStr}</div>
+      </div>
+      ${!n.read ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px"></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function formatNotifTime(ts) {
+  const now = Date.now();
+  const diff = Math.floor((now - ts) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  const d = new Date(ts);
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
+async function markNotifRead(notifId) {
+  if (!window._fbReady || !DB.currentUser) return;
+  try {
+    await window._fbSetDoc(
+      window._fbDoc(window._fbDb, 'notifications', DB.currentUser, 'items', notifId),
+      { read: true }, { merge: true }
+    );
+  } catch(e) {}
+}
+
+async function markAllNotifsRead() {
+  if (!window._fbReady || !DB.currentUser) return;
+  try {
+    const col = window._fbCollection(window._fbDb, 'notifications', DB.currentUser, 'items');
+    const snap = await window._fbGetDocs(col);
+    await Promise.all(snap.docs
+      .filter(d => !d.data().read)
+      .map(d => window._fbSetDoc(d.ref, { read: true }, { merge: true }))
+    );
+  } catch(e) {}
+}
+
+function toggleNotifDrawer() {
+  const overlay = document.getElementById('notif-drawer-overlay');
+  if (overlay.classList.contains('open')) closeNotifDrawer();
+  else openNotifDrawer();
+}
+function openNotifDrawer() {
+  closeMobileDrawer();
+  const overlay = document.getElementById('notif-drawer-overlay');
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => {
+    overlay.style.opacity = '1';
+    overlay.classList.add('open');
+    document.getElementById('notif-drawer').style.transform = 'translateY(0)';
+  });
+  document.getElementById('bnav-notif').classList.add('active');
+}
+function closeNotifDrawer() {
+  const overlay = document.getElementById('notif-drawer-overlay');
+  overlay.style.opacity = '0';
+  document.getElementById('notif-drawer').style.transform = 'translateY(100%)';
+  overlay.classList.remove('open');
+  document.getElementById('bnav-notif')?.classList.remove('active');
+  setTimeout(() => { if (!overlay.classList.contains('open')) overlay.style.display = 'none'; }, 300);
+}
 
 </script>
 </body>
