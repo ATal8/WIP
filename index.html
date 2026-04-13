@@ -1121,7 +1121,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.4</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.9.0</div>
     </div>
   </aside>
 
@@ -1361,18 +1361,24 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <div class="modal" style="width:340px" onclick="event.stopPropagation()">
     <div class="modal-title">account</div>
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
-      <div id="us-avatar-wrap" style="width:52px;height:52px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
+      <div id="us-avatar-wrap" style="width:52px;height:52px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:border-color 0.15s"
+        onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
         <span id="us-avatar-letter" style="font-size:20px;font-weight:500;color:var(--accent)">?</span>
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;font-size:9px;color:#fff;letter-spacing:0.06em" id="us-avatar-overlay">change</div>
+        <input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handleUserAvatarUpload(event)"
+          onmouseenter="document.getElementById('us-avatar-overlay').style.opacity=1"
+          onmouseleave="document.getElementById('us-avatar-overlay').style.opacity=0">
       </div>
       <div style="min-width:0;flex:1">
         <div id="us-display-name" style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">—</div>
         <div id="us-email" style="font-size:10px;color:var(--dim);letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
       </div>
     </div>
-    <div class="m-field" style="margin-bottom:18px">
+    <div class="m-field" style="margin-bottom:6px">
       <div class="m-label">display name</div>
-      <input class="m-input" id="us-name" onkeydown="if(event.key==='Enter')saveUserSettings()">
+      <input class="m-input" id="us-name" oninput="checkNameAvailability(this.value)" onkeydown="if(event.key==='Enter')saveUserSettings()">
     </div>
+    <div id="us-name-status" style="font-size:9px;letter-spacing:0.06em;margin-bottom:16px;min-height:14px"></div>
     <div style="display:flex;gap:12px;margin-bottom:20px">
       <div style="flex:1;padding:10px 14px;background:var(--bg);border-radius:6px;border:1px solid var(--border);text-align:center">
         <div style="font-size:18px;font-weight:500;color:var(--text);margin-bottom:2px" id="us-project-count">0</div>
@@ -1389,7 +1395,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
               onclick="signOutGoogle();closeUserSettings()">sign out</button>
       <div style="display:flex;gap:8px">
         <button class="btn-cancel" onclick="closeUserSettings()">cancel</button>
-        <button class="btn-confirm" onclick="saveUserSettings()">done</button>
+        <button class="btn-confirm" id="us-save-btn" onclick="saveUserSettings()">done</button>
       </div>
     </div>
   </div>
@@ -1646,9 +1652,29 @@ async function signOutGoogle() {
 }
 
 
+async function claimUniqueUsername(base, uid) {
+  // Clean base name
+  base = base.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'user';
+  let candidate = base;
+  let n = 1;
+  while (true) {
+    try {
+      const snap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'usernames', candidate.toLowerCase()));
+      if (!snap.exists()) {
+        // Available — claim it
+        await window._fbSetDoc(window._fbDoc(window._fbDb, 'usernames', candidate.toLowerCase()), { uid, name: candidate });
+        return candidate;
+      } else if (snap.data().uid === uid) {
+        return candidate; // already ours
+      }
+      candidate = `${base}_${n++}`;
+    } catch(e) { return base; }
+  }
+}
+
 function updateSidebarUser() {
   const name = DB.preferredName || currentGoogleUser?.displayName || DB.currentUser || '';
-  const photo = currentGoogleUser?.photoURL || null;
+  const photo = DB.customAvatar || currentGoogleUser?.photoURL || null;
   const el = document.getElementById('sb-uname');
   if (el) el.textContent = name;
   const av = document.getElementById('sb-avatar');
@@ -1760,17 +1786,18 @@ async function confirmDeleteUser() {
 function openUserSettings() {
   const displayName = DB.preferredName || currentGoogleUser?.displayName || '';
   const email = currentGoogleUser?.email || '';
-  const photo = currentGoogleUser?.photoURL || null;
+  const photo = DB.customAvatar || currentGoogleUser?.photoURL || null;
 
-  // שם ומייל
   const nameEl = document.getElementById('us-display-name');
   const emailEl = document.getElementById('us-email');
   if (nameEl) nameEl.textContent = displayName;
   if (emailEl) emailEl.textContent = email;
 
-  // שם עריכה
   const nameInput = document.getElementById('us-name');
   if (nameInput) nameInput.value = displayName;
+
+  const statusEl = document.getElementById('us-name-status');
+  if (statusEl) statusEl.textContent = '';
 
   // אווטאר
   const wrap = document.getElementById('us-avatar-wrap');
@@ -1781,47 +1808,109 @@ function openUserSettings() {
     if (photo) {
       const img = document.createElement('img');
       img.src = photo;
-      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%';
-      wrap.appendChild(img);
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:0';
+      wrap.insertBefore(img, wrap.firstChild);
       if (letter) letter.style.display = 'none';
     } else {
       if (letter) { letter.style.display = ''; letter.textContent = displayName ? displayName[0].toUpperCase() : '?'; }
     }
   }
 
-  // סטטיסטיקות
   const projects = curAlbums();
-  const trackCount = projects.reduce((a, p) => a + p.tracks.length, 0);
   const pcEl = document.getElementById('us-project-count');
   const tcEl = document.getElementById('us-track-count');
   if (pcEl) pcEl.textContent = projects.length;
-  if (tcEl) tcEl.textContent = trackCount;
+  if (tcEl) tcEl.textContent = projects.reduce((a, p) => a + p.tracks.length, 0);
 
   document.getElementById('us-modal').classList.add('open');
   setTimeout(() => document.getElementById('us-name')?.focus(), 80);
 }
 
-function saveUserSettings() {
+let _nameCheckTimer = null;
+async function checkNameAvailability(val) {
+  const statusEl = document.getElementById('us-name-status');
+  const saveBtn = document.getElementById('us-save-btn');
+  const current = DB.preferredName || currentGoogleUser?.displayName || '';
+  if (!statusEl) return;
+  val = val.trim();
+  if (!val || val === current) { statusEl.textContent = ''; if (saveBtn) saveBtn.disabled = false; return; }
+  statusEl.style.color = 'var(--dim)';
+  statusEl.textContent = 'checking...';
+  clearTimeout(_nameCheckTimer);
+  _nameCheckTimer = setTimeout(async () => {
+    try {
+      const col = window._fbCollection(window._fbDb, 'usernames');
+      const snap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'usernames', val.toLowerCase()));
+      if (snap.exists() && snap.data().uid !== DB.currentUser) {
+        statusEl.style.color = '#ff5555';
+        statusEl.textContent = `"${val}" is taken`;
+        if (saveBtn) saveBtn.disabled = true;
+      } else {
+        statusEl.style.color = 'var(--accent)';
+        statusEl.textContent = `"${val}" is available ✓`;
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    } catch(e) { statusEl.textContent = ''; }
+  }, 400);
+}
+
+async function handleUserAvatarUpload(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const dataUrl = ev.target.result;
+    // Show preview immediately
+    const wrap = document.getElementById('us-avatar-wrap');
+    const letter = document.getElementById('us-avatar-letter');
+    if (wrap) {
+      const existing = wrap.querySelector('img');
+      if (existing) existing.remove();
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:0';
+      wrap.insertBefore(img, wrap.firstChild);
+      if (letter) letter.style.display = 'none';
+    }
+    // Upload to Firebase Storage
+    if (window._fbReady && window._fbStorage && currentGoogleUser) {
+      try {
+        const ref = window._fbRef(window._fbStorage, `avatars/${currentGoogleUser.uid}`);
+        const snap = await window._fbUploadString(ref, dataUrl, 'data_url');
+        const url = await window._fbGetDownloadURL(snap.ref);
+        DB.customAvatar = url;
+        saveDB();
+        updateSidebarUser();
+        toast('avatar updated ✓');
+      } catch(e) { console.warn('avatar upload failed', e); }
+    }
+  };
+  reader.readAsDataURL(f);
+}
+
+async function saveUserSettings() {
   const newName = document.getElementById('us-name')?.value.trim();
+  if (!newName) { document.getElementById('us-modal').classList.remove('open'); return; }
+
+  const current = DB.preferredName || currentGoogleUser?.displayName || '';
+  const saveBtn = document.getElementById('us-save-btn');
+  if (saveBtn?.disabled) return; // name taken
+
+  // Check uniqueness if name changed
+  if (newName !== current && window._fbReady) {
+    // Release old name, claim new one
+    try {
+      if (current) await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'usernames', current.toLowerCase())).catch(() => {});
+      await window._fbSetDoc(window._fbDoc(window._fbDb, 'usernames', newName.toLowerCase()), { uid: DB.currentUser, name: newName });
+    } catch(e) { console.warn('username claim failed', e); }
+  }
+
   document.getElementById('us-modal').classList.remove('open');
-  if (!newName) return;
-
-  // שמור שם מועדף
   DB.preferredName = newName;
-
-  // עדכן artist בכל הפרויקטים
-  const albums = curAlbums();
-  albums.forEach(p => {
-    p.artist = newName;
-  });
-
-  // עדכן sidebar
+  curAlbums().forEach(p => { p.artist = newName; });
   const unEl = document.getElementById('sb-uname');
   if (unEl) unEl.textContent = newName;
-
   const dnEl = document.getElementById('us-display-name');
   if (dnEl) dnEl.textContent = newName;
-
   saveDB();
   renderSidebar();
   renderMain();
@@ -3523,6 +3612,7 @@ function saveDB() {
       albums: albumsToSave,
       currentUser: DB.currentUser,
       preferredName: DB.preferredName || currentGoogleUser?.displayName || '',
+      customAvatar: DB.customAvatar || null,
       displayName: currentGoogleUser?.displayName || DB.currentUser,
       photoURL: currentGoogleUser?.photoURL || null,
       updatedAt: Date.now()
@@ -3994,6 +4084,7 @@ const waitForFb = setInterval(() => {
           if (firstKey) DB.albums[user.uid] = albums[firstKey];
         }
         if (cloudData.preferredName) DB.preferredName = cloudData.preferredName;
+          if (cloudData.customAvatar) DB.customAvatar = cloudData.customAvatar;
       }
       if (!DB.albums[user.uid]) DB.albums[user.uid] = [];
 
@@ -4001,6 +4092,12 @@ const waitForFb = setInterval(() => {
       DB.albums[user.uid].forEach(p => {
         if (p.artist === user.uid || !p.artist || p.artist.length > 30) p.artist = displayName;
       });
+
+      // Auto-claim unique username if not yet done
+      if (!DB.preferredName && window._fbReady) {
+        DB.preferredName = await claimUniqueUsername(user.displayName || user.email?.split('@')[0] || 'user', user.uid);
+        DB.albums[user.uid].forEach(p => { if (!p.artist || p.artist === user.uid || p.artist.length > 30) p.artist = DB.preferredName; });
+      }
 
       try { idb = await openIDB(); } catch(e) {}
       await restoreAudioUrls();
