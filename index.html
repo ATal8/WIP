@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.5-debug</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.5</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4640,7 +4640,6 @@ const waitForFb = setInterval(() => {
       DB.currentUser = user.uid;
       const isAnon = user.isAnonymous;
 
-      console.log('[WIP anon] user signed in, isAnon:', isAnon, 'uid:', user.uid);
       if (isAnon) {
         // Anonymous user — only load the shared project, no DB, no username claim
         DB.albums[user.uid] = [];
@@ -4715,15 +4714,11 @@ const waitForFb = setInterval(() => {
     } else {
       // No user — check if there's a share link, auto sign-in anonymously
       const shareIdForAnon = getShareParam();
-      console.log('[WIP anon] no user, shareId:', shareIdForAnon);
       if (shareIdForAnon) {
         try {
-          console.log('[WIP anon] signing in anonymously...');
           await window._fbSignInAnonymously();
-          console.log('[WIP anon] signInAnonymously OK');
           // onAuthStateChanged will fire again with the anon user
         } catch(e) {
-          console.warn('[WIP anon] signInAnonymously failed:', e.code, e.message);
           // Fallback — show onboarding
           document.getElementById('app').style.display = 'none';
           document.body.classList.remove('auth-loading');
