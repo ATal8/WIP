@@ -46,9 +46,10 @@ body {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
   backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
-  z-index: 400; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  z-index: 400; opacity: 0; pointer-events: none; transition: opacity 0.3s;
 }
 #onboarding.open { opacity: 1; pointer-events: all; }
+#onboarding.loading { opacity: 1; pointer-events: none; }
 .ob-box {
   display: flex; flex-direction: column; align-items: center;
   gap: 24px; width: 320px;
@@ -1063,7 +1064,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 <body>
 
 <!-- ONBOARDING — Google Sign-In -->
-<div id="onboarding" class="open">
+<div id="onboarding" class="loading">
   <div class="ob-box">
     <div class="ob-logo">◈ wip</div>
     <div>
@@ -1113,7 +1114,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.5 — firebase</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.6</div>
     </div>
   </aside>
 
@@ -2489,7 +2490,7 @@ async function shareAlbum() {
     await window._fbSetDoc(docRef, {
       ...p,
       tracks: tracksWithUrls,
-      sharedBy: DB.currentUser,
+      sharedBy: DB.preferredName || currentGoogleUser?.displayName || DB.currentUser,
       sharedAt: Date.now()
     });
 
@@ -4070,7 +4071,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.5 — firebase</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.6</div>
       </div>
     </div>
 
@@ -4703,7 +4704,9 @@ checkShareMode().then(isShareMode => {
         await restoreAudioUrls();
 
         // הסתר onboarding, הצג אפליקציה
-        document.getElementById('onboarding').classList.remove('open');
+        const ob = document.getElementById('onboarding');
+        ob.classList.remove('open');
+        ob.classList.remove('loading');
         document.getElementById('app').style.display = 'grid';
         updateSidebarUser();
         renderSidebar();
@@ -4718,7 +4721,9 @@ checkShareMode().then(isShareMode => {
       } else {
         // לא מחובר — הצג onboarding
         document.getElementById('app').style.display = 'none';
-        document.getElementById('onboarding').classList.add('open');
+        const ob = document.getElementById('onboarding');
+        ob.classList.remove('loading');
+        ob.classList.add('open');
       }
     });
   }, 100);
