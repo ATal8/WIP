@@ -1411,6 +1411,33 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   }
   .modal-overlay.open .modal { transform: translateY(0); }
 
+  /* Modal text consistency */
+  .modal-title { font-size: 17px; font-weight: 500; margin-bottom: 20px; }
+  .m-label { font-size: 11px; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .m-input { font-size: 14px !important; padding: 12px 14px; border-radius: 8px; }
+  .modal-btns { margin-top: 8px; }
+  .btn-confirm, .btn-cancel { font-size: 13px; padding: 10px 18px; border-radius: 8px; }
+
+  /* Deadline row — stack vertically to prevent overflow */
+  #ps-modal [style*="display:flex;gap:10px"] {
+    flex-direction: column;
+    gap: 12px;
+  }
+  #ps-deadline { width: 100%; }
+
+  /* Project settings cover row — adjust for mobile */
+  #ps-modal [style*="display:flex;gap:16px"] {
+    gap: 14px;
+  }
+  #ps-cover-wrap { width: 72px !important; height: 72px !important; font-size: 22px !important; }
+
+  /* Track settings */
+  #ts-modal .modal-btns { flex-wrap: wrap; gap: 8px; }
+
+  /* Account modal stats */
+  #us-modal [style*="font-size:18px"] { font-size: 22px; }
+  #us-modal [style*="font-size:9px"][style*="text-transform:uppercase"] { font-size: 10px; }
+
   /* ══ NO AUTO-ZOOM: inputs need font-size ≥ 16px ══ */
   input, textarea, select { font-size: 16px !important; }
   .ob-input { font-size: 16px !important; letter-spacing: 0.04em; }
@@ -1583,7 +1610,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <aside id="sidebar">
     <div class="sb-top">
       <div class="sb-logo">WIP</div>
-      <div class="sb-sub">work in progress · v3.2.6</div>
+      <div class="sb-sub">work in progress</div>
     </div>
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
@@ -1603,7 +1630,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
         <span style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500">notifications</span>
         <span id="sb-notif-badge" style="display:none;width:6px;height:6px;background:#ff5555;border-radius:50%;margin-left:2px"></span>
       </button>
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5;margin-top:6px">v3.2.6</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5;margin-top:6px"></div>
     </div>
   </aside>
 
@@ -1955,7 +1982,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.2.6</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.0</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5109,15 +5136,55 @@ const _origUpdatePlayerUI = typeof updatePlayerUI === 'function' ? updatePlayerU
   }, 300);
 })();
 
-// Init on load
-window.addEventListener('DOMContentLoaded', () => {
-  syncMobilePlayBtn();
-  initMobilePlayer();
-});
 window.addEventListener('resize', syncMobilePlayBtn);
 
 // ══════════════════════════════════════
 // NOTIFICATIONS SYSTEM
+
+// ══════════════════════════════════════
+// MOBILE SWIPE SEEK
+// ══════════════════════════════════════
+function initMobileSwipeSeek() {
+  // Mini player progress bar (top strip)
+  const mobBar = document.getElementById('mob-progress-bar');
+  if (mobBar) {
+    let seeking = false;
+    const seek = (e) => {
+      const touch = e.touches ? e.touches[0] : e;
+      const r = mobBar.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
+      if (audio.duration) audio.currentTime = pct * audio.duration;
+      updateMobileProgress(pct, !audio.paused);
+    };
+    mobBar.addEventListener('touchstart', (e) => { seeking = true; seek(e); e.stopPropagation(); }, { passive: true });
+    mobBar.addEventListener('touchmove',  (e) => { if (seeking) seek(e); }, { passive: true });
+    mobBar.addEventListener('touchend',   () => { seeking = false; });
+  }
+
+  // Fullscreen progress bar
+  const fsBar = document.querySelector('.fs-prog-bar');
+  if (fsBar) {
+    let fsSeek = false;
+    const seekFs = (e) => {
+      const touch = e.touches ? e.touches[0] : e;
+      const r = fsBar.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
+      if (audio.duration) {
+        audio.currentTime = pct * audio.duration;
+        document.getElementById('fs-pf').style.width = (pct * 100) + '%';
+      }
+    };
+    fsBar.addEventListener('touchstart', (e) => { fsSeek = true; seekFs(e); }, { passive: true });
+    fsBar.addEventListener('touchmove',  (e) => { if (fsSeek) seekFs(e); }, { passive: true });
+    fsBar.addEventListener('touchend',   () => { fsSeek = false; });
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  syncMobilePlayBtn();
+  initMobilePlayer();
+  if (isMobile()) initMobileSwipeSeek();
+});
 // ══════════════════════════════════════
 
 let _notifUnsubscribe = null;
