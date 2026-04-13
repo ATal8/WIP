@@ -1121,7 +1121,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.0</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.1</div>
     </div>
   </aside>
 
@@ -4001,6 +4001,9 @@ const waitForFb = setInterval(() => {
       updateSidebarUser();
       renderSidebar();
 
+      // טען פרויקטים שמורים מאחרים
+      loadSavedProjects(user);
+
       // Handle share link — open the project if it belongs to this user
       const shareId = getShareParam();
       if (shareId) {
@@ -4032,25 +4035,70 @@ const waitForFb = setInterval(() => {
   });
 }, 100);
 
+async function saveSharedProject(shareId, ownerUid, projectId, viewerUid) {
+  const btn = document.getElementById('shared-save-btn');
+  if (btn) { btn.textContent = 'saving...'; btn.disabled = true; }
+  try {
+    // שמור reference ב-Firestore
+    const savedRef = window._fbDoc(window._fbDb, 'savedProjects', `${viewerUid}_${shareId}`);
+    await window._fbSetDoc(savedRef, { shareId, ownerUid, projectId, viewerUid, savedAt: Date.now() });
+    // עדכן כפתור
+    if (btn) {
+      btn.textContent = '✓ saved';
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'var(--bg)';
+      btn.style.borderColor = 'var(--accent)';
+    }
+    // סמן כשמור בזיכרון
+    const fakeId = '__shared__' + shareId;
+    const p = (DB.albums['__shared__'] || []).find(p => p.id === fakeId);
+    if (p) p._alreadySaved = true;
+    toast('saved to library ✓');
+  } catch(e) {
+    console.warn('save failed', e);
+    if (btn) { btn.textContent = '+ save to library'; btn.disabled = false; }
+    toast('save failed');
+  }
+}
+
 async function loadAndShowSharedProject(shareId, user) {
   try {
-    // Get share metadata
     const shareSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'shared', shareId));
     if (!shareSnap.exists()) { renderMain(); return; }
     const { ownerUid, projectId } = shareSnap.data();
+    await _loadSharedEntry(shareId, ownerUid, projectId, user, true);
+  } catch(e) {
+    console.warn('loadAndShowSharedProject failed', e);
+    renderMain();
+  }
+}
 
-    // Load owner's project from their Firestore doc
+// טוען את כל הפרויקטים השמורים בכל התחברות
+async function loadSavedProjects(user) {
+  try {
+    const col = window._fbCollection(window._fbDb, 'savedProjects');
+    const snaps = await window._fbGetDocs(col);
+    const mine = snaps.docs.filter(d => d.id.startsWith(user.uid + '_'));
+    await Promise.all(mine.map(async (d) => {
+      const { shareId, ownerUid, projectId } = d.data();
+      await _loadSharedEntry(shareId, ownerUid, projectId, user, false);
+    }));
+    if ((DB.albums['__shared__'] || []).length > 0) renderSidebar();
+  } catch(e) { console.warn('loadSavedProjects failed', e); }
+}
+
+async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect) {
+  try {
     const ownerSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
-    if (!ownerSnap.exists()) { renderMain(); return; }
+    if (!ownerSnap.exists()) return;
     const ownerData = ownerSnap.data();
     const project = Object.values(ownerData.albums || {}).flat().find(p => p.id === projectId);
-    if (!project) { renderMain(); return; }
+    if (!project) return;
 
     const ownerName = ownerData.preferredName || ownerData.displayName || '';
-
-    // Add to __shared__ bucket and show
-    if (!DB.albums['__shared__']) DB.albums['__shared__'] = [];
     const fakeId = '__shared__' + shareId;
+
+    if (!DB.albums['__shared__']) DB.albums['__shared__'] = [];
     DB.albums['__shared__'] = DB.albums['__shared__'].filter(p => p.id !== fakeId);
     DB.albums['__shared__'].push({
       ...project,
@@ -4059,17 +4107,11 @@ async function loadAndShowSharedProject(shareId, user) {
       _shareId: shareId,
       _ownerUid: ownerUid,
       _ownerName: ownerName,
+      _alreadySaved: true,
       tracks: project.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
     });
 
-    // Check if already saved
-    const savedSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'savedProjects', `${user.uid}_${shareId}`));
-    if (savedSnap.exists()) {
-      DB.albums['__shared__'].find(p => p.id === fakeId)._alreadySaved = true;
-    }
-
-    renderSidebar();
-    selectProject(fakeId);
+    if (andSelect) { renderSidebar(); selectProject(fakeId); }
 
     // Live updates
     window._fbOnSnapshot(window._fbDoc(window._fbDb, 'users', ownerUid), (snap) => {
@@ -4080,15 +4122,14 @@ async function loadAndShowSharedProject(shareId, user) {
       if (idx >= 0) {
         const existing = DB.albums['__shared__'][idx];
         DB.albums['__shared__'][idx] = { ...existing, ...updated, id: fakeId,
+          _isShared: true, _shareId: shareId, _ownerUid: ownerUid,
+          _ownerName: ownerName, _alreadySaved: true,
           tracks: updated.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null })) };
         if (S.curPid === fakeId) renderMain();
         renderSidebar();
       }
     });
-  } catch(e) {
-    console.warn('loadAndShowSharedProject failed', e);
-    renderMain();
-  }
+  } catch(e) { console.warn('_loadSharedEntry failed', e); }
 }
 
 </script>
