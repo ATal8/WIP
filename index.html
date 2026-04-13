@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.8</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.9-debug</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5225,6 +5225,7 @@ function initLiveSync(uid) {
     if (!data.albums) return;
 
     // Skip if this is our own save (same updatedAt timestamp)
+    console.log('[WIP sync] snapshot received. updatedAt:', data.updatedAt, '_lastSelfSaveTs:', _lastSelfSaveTs, 'skip?', data.updatedAt && data.updatedAt === _lastSelfSaveTs);
     if (data.updatedAt && data.updatedAt === _lastSelfSaveTs) return;
 
     // Preserve local base64 covers
@@ -5242,6 +5243,7 @@ function initLiveSync(uid) {
     } catch(e) {}
 
     const cloudAlbums = data.albums[uid] || data.albums[Object.keys(data.albums)[0]] || [];
+    console.log('[WIP sync] processing', cloudAlbums.length, 'projects from cloud. uid key exists?', !!data.albums[uid]);
     DB.albums[uid] = cloudAlbums.map(p => {
       const cloudCoverUrl = p.coverUrl || null;
       const localCover = localCovers[p.id] || null;
