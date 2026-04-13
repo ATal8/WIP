@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>WIP — Work In Progress</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&family=Fredoka:wght@300;400;500&display=swap');
@@ -37,11 +37,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-weight: 300;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
-
-/* ─── ONBOARDING (first time only) ─── */
 #onboarding {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
   backdrop-filter: blur(8px);
@@ -84,7 +82,7 @@ body.auth-loading #onboarding { opacity: 0; pointer-events: none; }
 /* ─── APP LAYOUT ─── */
 #app {
   display: none;
-  height: 100vh;
+  height: 100dvh;
   display: grid;
   grid-template-rows: 1fr var(--player-h);
   grid-template-columns: var(--sidebar-w) 1fr;
@@ -263,6 +261,7 @@ body.auth-loading #onboarding { opacity: 0; pointer-events: none; }
   width: 48px; height: 48px; background: var(--accent); border: none; border-radius: 50%;
   color: var(--bg); font-size: 17px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  padding-left: 2px; /* optical centering for play triangle */
   transition: transform 0.1s, background 0.15s; flex-shrink: 0;
 }
 .btn-play-album:hover { background: #d4ff50; transform: scale(1.07); }
@@ -587,22 +586,47 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   position: fixed; inset: 0; z-index: 400;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #06060a;
 }
 #fs-view.open { opacity: 1; pointer-events: all; }
+
 .fs-bg {
+  position: absolute;
+  inset: -60px;
+  background-color: #06060a;
+  background-size: cover;
+  background-position: center;
+  filter: blur(72px) saturate(2.2);
+  transform: scale(1.0);
+  opacity: 0.38;
+  transition: background-image 1s ease, opacity 0.9s ease;
+}
+#fs-view.open .fs-bg { opacity: 0.38; }
+
+/* Dark base layer under the blur */
+#fs-view::before {
+  content: '';
   position: absolute; inset: 0;
-  background: #0a0a0b;
-  background-size: cover; background-position: center;
-  filter: blur(60px) brightness(0.25) saturate(1.6);
-  transform: scale(1.1);
+  background: #06060a;
+  z-index: 0;
+  pointer-events: none;
+}
+/* Gradient vignette: darker at edges, lets blur color show in middle */
+#fs-view::after {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 30%, rgba(4,4,8,0.65) 100%),
+    linear-gradient(to bottom, rgba(4,4,8,0.55) 0%, transparent 22%, transparent 72%, rgba(4,4,8,0.75) 100%);
+  z-index: 1;
+  pointer-events: none;
 }
 .fs-content {
-  position: relative; z-index: 1;
+  position: relative; z-index: 2;
   display: flex; flex-direction: column; align-items: center; gap: 20px;
   width: 340px;
-}
-.fs-cover {
+}.fs-cover {
   width: 280px; height: 280px;
   border-radius: 10px; background: var(--surface2);
   border: 1px solid rgba(255,255,255,0.08);
@@ -657,7 +681,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 }
 .fs-btn.fs-play:hover { background: #d4ff50; }
 .fs-close {
-  position: absolute; top: 24px; right: 28px; z-index: 2;
+  position: absolute; top: 24px; right: 28px; z-index: 3;
   width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.08);
   border-radius: 50%; cursor: pointer; color: rgba(255,255,255,0.5);
   display: flex; align-items: center; justify-content: center;
@@ -928,15 +952,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 /* When panel is open, shift main content */
 #app.lyrics-open #main { margin-right: 500px; transition: margin-right 0.22s cubic-bezier(0.4,0,0.2,1); }
 #app:not(.lyrics-open) #main { margin-right: 0; transition: margin-right 0.22s cubic-bezier(0.4,0,0.2,1); }
-.deadline-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 10px; letter-spacing: 0.08em; padding: 3px 9px;
-  border-radius: 20px; border: 1px solid var(--border);
-  color: var(--dim); transition: color 0.2s, border-color 0.2s;
-}
-.deadline-badge.soon { color: #ffaa44; border-color: rgba(255,170,68,0.4); }
-.deadline-badge.overdue { color: #ff5555; border-color: rgba(255,85,85,0.4); }
-.deadline-badge.done { color: var(--accent); border-color: rgba(200,255,50,0.3); }
 
 /* ─── PROJECT NOTES ─── */
 .project-notes-wrap {
@@ -1059,10 +1074,481 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   transition: background 0.1s, color 0.1s;
 }
 .ctx-item:hover { background: var(--surface3); color: var(--text); }
+/* ─── TRACK DUR CELL ─── */
+.t-dur-cell { display: flex; align-items: center; justify-content: flex-end; }
+.t-mob-btn {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border: none; background: none; cursor: pointer;
+  color: var(--dim); border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.1s, background 0.1s;
+}
+.t-mob-btn:active { background: var(--surface2); color: var(--text); }
+
 .no-sel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--dim); }
 .no-sel-icon { font-size: 32px; opacity: 0.16; }
 .no-sel-txt { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
 .no-sel-hint { font-size: 9px; opacity: 0.5; letter-spacing: 0.07em; }
+
+/* ══════════════════════════════════════
+   MOBILE BOTTOM NAV
+   ══════════════════════════════════════ */
+#bottom-nav { display: none; }
+
+/* ══════════════════════════════════════
+   MOBILE DRAWER (project list)
+   ══════════════════════════════════════ */
+#mobile-drawer-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 350;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+#mobile-drawer-overlay.open { opacity: 1; }
+#mobile-drawer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 82vh;
+  display: flex; flex-direction: column;
+}
+#mobile-drawer-overlay.open #mobile-drawer { transform: translateY(0); }
+.mob-drawer-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--border-h); margin: 12px auto 0;
+  flex-shrink: 0;
+}
+.mob-drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.mob-drawer-title {
+  font-size: 16px; font-weight: 500; color: var(--text);
+  letter-spacing: -0.01em;
+}
+.mob-drawer-new {
+  width: 32px; height: 32px; border: none; background: var(--adim);
+  border-radius: 50%; color: var(--accent); font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
+}
+.mob-drawer-new:hover { background: rgba(200,255,50,0.2); }
+.mob-drawer-list { flex: 1; overflow-y: auto; padding: 8px 0 16px; }
+.mob-proj-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 18px; cursor: pointer;
+  transition: background 0.1s; position: relative;
+}
+.mob-proj-item:active { background: var(--surface2); }
+.mob-proj-item.active { background: var(--surface2); }
+.mob-proj-item.active::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  height: 20px; width: 3px; background: var(--accent); border-radius: 0 3px 3px 0;
+}
+.mob-proj-thumb {
+  width: 48px; height: 48px; border-radius: 6px;
+  background: var(--surface3); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--dim);
+  border: 1px solid var(--border); position: relative; overflow: hidden;
+}
+.mob-proj-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mob-proj-item.active .mob-proj-thumb { border-color: rgba(200,255,50,0.3); }
+.mob-proj-info { min-width: 0; flex: 1; }
+.mob-proj-name {
+  font-size: 14px; font-weight: 400; color: var(--mid);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mob-proj-item.active .mob-proj-name { color: var(--text); }
+.mob-proj-sub {
+  font-size: 11px; color: var(--dim); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mob-empty-proj {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 10px; padding: 40px 20px;
+  color: var(--dim);
+}
+.mob-empty-proj-icon { font-size: 28px; opacity: 0.2; }
+.mob-empty-proj-txt { font-size: 11px; letter-spacing: 0.08em; }
+
+/* ══════════════════════════════════════
+   @MEDIA MOBILE ≤640px
+   ══════════════════════════════════════ */
+/* ══════════════════════════════════════
+   @MEDIA MOBILE ≤640px
+   ══════════════════════════════════════ */
+@media (max-width: 640px) {
+  :root {
+    --bottom-nav-h: 62px;
+    --mobile-player-h: 72px;
+  }
+
+  body { height: 100dvh; }
+
+  /* ── App: single column, no sidebar ── */
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: "main";
+    height: 100dvh;
+  }
+  #sidebar { display: none; }
+
+  /* ── Main: room for fixed bars at bottom ── */
+  #main { padding-bottom: calc(var(--mobile-player-h) + var(--bottom-nav-h)); }
+  #main-content { max-width: 100%; }
+  #main-ambient { display: none; }
+  /* Mobile ambient: separate fixed element added via JS */
+
+  /* ══ ALBUM HERO — mobile redesign ══ */
+  .album-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0 0 20px;
+    gap: 0;
+    position: relative;
+  }
+  /* ── Cover: normal flow, scrolls with content ── */
+  .album-cover {
+    position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    height: 260px;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    cursor: default;
+    z-index: auto;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, black 38%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 38%, transparent 100%);
+  }
+  .album-cover img { border-radius: 0; }
+  .album-cover:hover { transform: none; }
+  .cover-overlay { display: none; }
+  .cover-input { display: none; }
+  .album-cover::after { display: none; }
+  #mob-hero-bg { display: none !important; }
+
+  /* ── Hero: no extra padding ── */
+  .album-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0 20px 20px;
+    gap: 0;
+    position: relative;
+    z-index: auto;
+  }
+
+  /* ── Ambient: injected into hero by JS, scrolls naturally ── */
+  .album-info {
+    width: 100%;
+    padding: 16px 0 0;
+  }
+  .album-type { margin-bottom: 6px; }
+  .album-title { font-size: 26px; }
+  .album-artist { margin-top: 6px; font-size: 13px; }
+  .album-meta { margin-top: 8px; flex-wrap: wrap; gap: 5px; }
+  .album-actions { margin-top: 18px; padding: 0; }
+
+  .hero-cover-blur { display: none; }
+
+  /* ══ TRACK LIST — mobile ══ */
+  .tracks-section { padding: 4px 12px 20px; }
+  hr.div { margin-bottom: 6px; }
+  .tracks-toolbar { padding: 0 8px; margin-bottom: 8px; }
+  .tbl-head { display: none; } /* hide header row on mobile */
+  .track-row {
+    grid-template-columns: 44px 1fr 48px;
+    padding: 8px 8px;
+    border-radius: 8px;
+    margin-bottom: 1px;
+  }
+  .t-bpm, .t-date, .t-actions { display: none; }
+  .t-dur { font-size: 11px; text-align: right; color: var(--dim); }
+  .t-name { font-size: 13px; }
+  .num-wrap { width: 36px; height: 36px; }
+  .t-num { font-size: 12px; }
+  /* Waveform thumb hidden on mobile */
+  .waveform { display: none; }
+  /* Status badge hidden on mobile (saves space) */
+  .t-status { display: none; }
+
+  /* ══ MINI PLAYER — fixed bar ══ */
+  #player {
+    position: fixed;
+    bottom: var(--bottom-nav-h);
+    left: 0; right: 0;
+    height: var(--mobile-player-h);
+    padding: 0 14px 0 14px;
+    cursor: pointer;
+    z-index: 200;
+    background: var(--surface2);
+    border-top: 1px solid var(--border-h);
+    border-bottom: none;
+    gap: 12px;
+  }
+  /* Progress line at top of player */
+  #mob-progress-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 0;
+  }
+  #mob-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s linear;
+  }
+  .pl-center { display: none; }
+  .pl-right  { display: none; }
+  .pl-left   { flex: 1; min-width: 0; gap: 12px; }
+  /* Album thumb bigger */
+  .pl-thumb {
+    width: 46px; height: 46px;
+    border-radius: 6px;
+    border-color: var(--border-h);
+    flex-shrink: 0;
+  }
+  .pl-name  { font-size: 12.5px; font-weight: 400; }
+  .pl-artist { font-size: 10px; margin-top: 3px; }
+
+  /* Mobile play/pause button */
+  #mob-play-btn {
+    display: flex !important;
+    align-items: center; justify-content: center;
+    width: 44px; height: 44px; flex-shrink: 0;
+    border: none;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 50%;
+    padding-left: 2px; /* optical centering for play triangle */
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s, background 0.15s;
+  }
+  #mob-play-btn:active { transform: scale(0.92); background: #d4ff50; }
+
+  /* ══ BOTTOM NAV ══ */
+  #bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--bottom-nav-h);
+    align-items: center;
+    justify-content: space-around;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bnav-btn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 5px; padding: 10px 0;
+    border: none; background: none; cursor: pointer;
+    color: var(--dim); transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bnav-btn.active { color: var(--accent); }
+  .bnav-btn svg { width: 22px; height: 22px; }
+  .bnav-label {
+    font-size: 9px; letter-spacing: 0.07em;
+    text-transform: uppercase; font-weight: 500;
+  }
+  .bnav-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--adim);
+    border: 1.5px solid rgba(200,255,50,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--accent); font-weight: 500;
+    overflow: hidden; position: relative;
+  }
+  .bnav-avatar img {
+    position: absolute; inset: 0; width: 100%;
+    height: 100%; object-fit: cover; border-radius: 50%;
+  }
+
+  /* ══ MOBILE DRAWER ══ */
+  #mobile-drawer-overlay { display: block; pointer-events: none; }
+  #mobile-drawer-overlay.open { pointer-events: all; }
+  #mobile-drawer { max-height: 78dvh; }
+  .mob-proj-item { padding: 11px 18px; }
+  .mob-proj-thumb { width: 52px; height: 52px; border-radius: 8px; }
+  .mob-proj-name { font-size: 14.5px; }
+  .mob-proj-sub { font-size: 11px; margin-top: 3px; }
+
+  /* ══ MODALS — bottom sheet ══ */
+  .modal-overlay { align-items: flex-end; }
+  .modal-overlay .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 22px 22px 0 0 !important;
+    padding: 28px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(24px);
+    max-height: 90dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  /* Modal text consistency */
+  .modal-title { font-size: 17px; font-weight: 500; margin-bottom: 20px; }
+  .m-label { font-size: 11px; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .m-input { font-size: 14px !important; padding: 12px 14px; border-radius: 8px; }
+  .modal-btns { margin-top: 8px; }
+  .btn-confirm, .btn-cancel { font-size: 13px; padding: 10px 18px; border-radius: 8px; }
+
+  /* Deadline row — already full width in redesigned modal */
+
+  /* Track settings */
+  #ts-modal .modal-btns {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  #ts-lyrics-btn { display: none !important; }
+  /* Account modal stats */
+  #us-modal [style*="font-size:18px"] { font-size: 22px; }
+  #us-modal [style*="font-size:9px"][style*="text-transform:uppercase"] { font-size: 10px; }
+
+  /* ══ NO AUTO-ZOOM: inputs need font-size ≥ 16px ══ */
+  input, textarea, select { font-size: 16px !important; }
+  .ob-input { font-size: 16px !important; letter-spacing: 0.04em; }
+
+  /* ══ TRACK ROW: gear icon instead of duration ══ */
+  .t-dur { display: none; }
+  .t-mob-btn { display: flex; }
+
+  /* ══ LYRICS PANEL: full-screen slide-up ══ */
+  #lyrics-panel {
+    top: 0; left: 0; right: 0;
+    bottom: 0;
+    width: 100%;
+    border-left: none;
+    transform: translateY(100%);
+    z-index: 450;
+  }
+  #lyrics-panel.open { transform: translateY(0); }
+  #app.lyrics-open #main { margin-right: 0 !important; }
+
+  /* ══ BEAT GRID: move to top, always visible ══ */
+  .lp-header     { order: 0; }
+  .lp-takes      { order: 1; }
+  .lp-toolbar    { order: 2; }
+  .lp-beat-grid  {
+    order: 3;
+    border-top: none;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    gap: 8px;
+    background: var(--bg);
+  }
+  .lp-editor-wrap { order: 4; }
+  .lp-footer     { order: 5; }
+  .beat-box {
+    height: 38px;
+    border-radius: 8px;
+    font-size: 10px;
+  }
+  .lp-bpm-label { font-size: 10px; }
+
+  /* ══ LYRICS TOOLBAR: horizontal scroll ══ */
+  .lp-toolbar { flex-wrap: nowrap; overflow-x: auto; padding: 10px 12px; gap: 8px; }
+  .lp-section-btn { flex-shrink: 0; }
+  .lp-sep { flex-shrink: 0; }
+
+  /* ══ MOBILE AMBIENT MODE — sits inside hero, scrolls with it ══ */
+  #mob-ambient {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 500px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  #mob-ambient.visible { opacity: 1; }
+  #mob-ambient-img {
+    position: absolute;
+    top: -20px; left: -20px; right: -20px;
+    height: 70%;
+    background-size: cover;
+    background-position: center top;
+    filter: blur(48px) saturate(2.4) brightness(0.38);
+    -webkit-mask-image: linear-gradient(to bottom,
+      rgba(0,0,0,0.92) 0%,
+      rgba(0,0,0,0.80) 30%,
+      rgba(0,0,0,0.30) 65%,
+      transparent 100%);
+    mask-image: linear-gradient(to bottom,
+      rgba(0,0,0,0.92) 0%,
+      rgba(0,0,0,0.80) 30%,
+      rgba(0,0,0,0.30) 65%,
+      transparent 100%);
+  }
+  #mob-ambient-glow {
+    position: absolute;
+    inset: 0;
+    transition: background 0.9s ease;
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 20%,
+      rgba(0,0,0,0.25) 50%,
+      transparent 100%);
+    mask-image: linear-gradient(to bottom,
+      transparent 20%,
+      rgba(0,0,0,0.25) 50%,
+      transparent 100%);
+  }
+  #main { position: relative; z-index: 1; }
+  #main-content { position: relative; }
+
+  /* ══ MISC ══ */
+  .ob-box { width: 90%; max-width: 360px; }
+  .no-sel-hint { display: none; }
+  .fs-close { top: max(16px, env(safe-area-inset-top, 16px)); }
+
+  /* ══ FULLSCREEN — mobile optimized ══ */
+  #fs-view { z-index: 500; }
+  .fs-bg {
+    filter: blur(60px) saturate(2.5);
+    opacity: 0.42;
+    inset: -80px;
+  }
+  .fs-content {
+    width: 100%;
+    padding: 0 28px;
+    gap: 24px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+  }
+  .fs-cover {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    aspect-ratio: 1;
+    align-self: center;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+  }
+  .fs-track { font-size: 20px; font-weight: 500; }
+  .fs-prog-wrap { width: 100%; }
+  .fs-ctrl-row { gap: 20px; margin-top: 8px; }
+  .fs-btn { width: 52px; height: 52px; }
+  .fs-play { width: 64px !important; height: 64px !important; }
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -1114,6 +1600,13 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
       <span class="sb-uname" id="sb-uname">—</span>
+      <button id="sb-notif-btn" onclick="toggleDesktopNotif()" title="notifications" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color 0.12s,background 0.12s;position:relative" onmouseenter="this.style.color='var(--mid)';this.style.background='var(--surface2)'" onmouseleave="this.style.color='var(--dim)';this.style.background='none'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span id="sb-notif-badge" style="display:none;position:absolute;top:4px;right:4px;width:6px;height:6px;background:#ff5555;border-radius:50%;border:1.5px solid var(--surface)"></span>
+      </button>
     </div>
     <div class="sb-section">
       <div class="sb-label">projects</div>
@@ -1121,9 +1614,21 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.9.1</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5;margin-top:6px"></div>
     </div>
   </aside>
+
+  <!-- DESKTOP NOTIFICATIONS PANEL -->
+  <div id="desktop-notif-panel" style="display:none;position:fixed;width:320px;background:var(--surface);border:1px solid var(--border-h);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3);z-index:300;flex-direction:column;max-height:480px;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--mid)">notifications</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="markAllNotifsRead()" style="font-size:9px;letter-spacing:0.06em;color:var(--dim);background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:3px;transition:color 0.1s" onmouseenter="this.style.color='var(--mid)'" onmouseleave="this.style.color='var(--dim)'">mark all read</button>
+        <button onclick="toggleDesktopNotif()" style="width:20px;height:20px;background:none;border:none;cursor:pointer;color:var(--dim);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:14px;transition:color 0.1s" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--dim)'">×</button>
+      </div>
+    </div>
+    <div id="desktop-notif-list" style="flex:1;overflow-y:auto;padding:6px 0 12px"></div>
+  </div>
 
   <main id="main">
     <div id="main-ambient"></div>
@@ -1200,10 +1705,70 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
         </svg>
       </button>
     </div>
+    <!-- Mobile: progress bar + play button -->
+    <div id="mob-progress-bar"><div id="mob-progress-fill" style="width:0%"></div></div>
+    <button id="mob-play-btn" onclick="event.stopPropagation();togglePlay()" style="display:none">
+      <svg id="mob-pp-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </button>
   </footer>
 </div>
 
-<!-- GLOBAL DRAG OVERLAY -->
+<!-- MOBILE AMBIENT (YouTube-style glow) -->
+<div id="mob-ambient" aria-hidden="true">
+  <div id="mob-ambient-img"></div>
+  <div id="mob-ambient-glow"></div>
+</div>
+
+<!-- MOBILE FIXED COVER (stays in place while content scrolls) -->
+<div id="mob-hero-bg" aria-hidden="true"></div>
+
+<!-- BOTTOM NAV (mobile only) -->
+<nav id="bottom-nav">
+  <button class="bnav-btn" id="bnav-library" onclick="toggleMobileDrawer()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18M3 12h18M3 18h18"/>
+    </svg>
+    <span class="bnav-label">library</span>
+  </button>
+  <button class="bnav-btn" id="bnav-account" onclick="openUserSettings()">
+    <div class="bnav-avatar" id="bnav-avatar">?</div>
+    <span class="bnav-label">account</span>
+  </button>
+  <button class="bnav-btn" id="bnav-notif" onclick="toggleNotifDrawer()">
+    <div style="position:relative;display:inline-flex">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span id="notif-badge" style="display:none;position:absolute;top:-3px;right:-4px;width:8px;height:8px;background:#ff5555;border-radius:50%;border:1.5px solid var(--bg)"></span>
+    </div>
+    <span class="bnav-label">notifications</span>
+  </button>
+</nav>
+
+<!-- NOTIFICATIONS DRAWER -->
+<div id="notif-drawer-overlay" onclick="closeNotifDrawer()" style="display:none;position:fixed;inset:0;z-index:350;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);opacity:0;transition:opacity 0.25s">
+  <div id="notif-drawer" onclick="event.stopPropagation()" style="position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);max-height:82vh;display:flex;flex-direction:column">
+    <div style="width:36px;height:4px;border-radius:2px;background:var(--border-h);margin:12px auto 0;flex-shrink:0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:16px;font-weight:500;color:var(--text);letter-spacing:-0.01em">notifications</div>
+      <button onclick="markAllNotifsRead()" style="font-size:10px;letter-spacing:0.06em;color:var(--dim);background:none;border:none;cursor:pointer;padding:4px 8px">mark all read</button>
+    </div>
+    <div id="notif-list" style="flex:1;overflow-y:auto;padding:8px 0 16px"></div>
+  </div>
+</div>
+
+<!-- MOBILE DRAWER -->
+<div id="mobile-drawer-overlay" onclick="closeMobileDrawer()">
+  <div id="mobile-drawer" onclick="event.stopPropagation()">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <div class="mob-drawer-title">your projects</div>
+      <button class="mob-drawer-new" onclick="closeMobileDrawer();openModal()" title="new project">+</button>
+    </div>
+    <div class="mob-drawer-list" id="mob-project-list"></div>
+  </div>
+</div>
 <div id="drag-overlay">
   <div class="drag-overlay-ring"></div>
   <div class="drag-overlay-ring"></div>
@@ -1253,7 +1818,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </button>
     </div>
   </div>
-  <button class="fs-close" onclick="toggleFullscreen()">
+  <button class="fs-close" onclick="event.stopPropagation();toggleFullscreen()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
 </div>
@@ -1305,19 +1870,17 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 <div class="modal-overlay" id="ps-modal" onclick="closeProjectSettings(event)">
   <div class="modal" style="width:400px" onclick="event.stopPropagation()">
     <div class="modal-title">project settings</div>
-    <div style="display:flex;gap:16px;margin-bottom:18px;align-items:flex-start">
-      <div id="ps-cover-wrap" style="width:90px;height:90px;flex-shrink:0;border-radius:6px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--dim);cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+    <div style="display:flex;gap:14px;margin-bottom:20px;align-items:center">
+      <div id="ps-cover-wrap" style="width:72px;height:72px;flex-shrink:0;border-radius:10px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--dim);cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
         <input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">
       </div>
-      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
-        <div class="m-field">
-          <div class="m-label">project name</div>
-          <input class="m-input" id="ps-name">
-        </div>
+      <div class="m-field" style="flex:1;margin:0">
+        <div class="m-label">project name</div>
+        <input class="m-input" id="ps-name">
       </div>
     </div>
-    <div style="display:flex;gap:10px;margin-bottom:18px">
-      <div class="m-field">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="m-field" style="margin:0">
         <div class="m-label">type</div>
         <select class="m-input" id="ps-type" style="cursor:pointer">
           <option value="single">single</option>
@@ -1329,16 +1892,12 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
           <option value="soundtrack">soundtrack</option>
         </select>
       </div>
-      <div class="m-field">
+      <div class="m-field" style="margin:0">
         <div class="m-label">year</div>
         <input class="m-input" id="ps-year" maxlength="4">
       </div>
-      <div class="m-field">
-        <div class="m-label">deadline</div>
-        <input class="m-input" id="ps-deadline" type="date" style="cursor:pointer;color-scheme:dark">
-      </div>
     </div>
-    <div class="m-field" style="margin-bottom:18px">
+    <div class="m-field" style="margin-bottom:14px">
       <div class="m-label">project notes</div>
       <textarea class="m-input" id="ps-notes" rows="3" style="resize:vertical;min-height:72px;font-family:'DM Mono',monospace;line-height:1.6" placeholder="ideas, references, goals..."></textarea>
     </div>
@@ -1376,7 +1935,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     </div>
     <div class="m-field" style="margin-bottom:6px">
       <div class="m-label">display name</div>
-      <input class="m-input" id="us-name" oninput="checkNameAvailability(this.value)" onkeydown="if(event.key==='Enter')saveUserSettings()">
+      <input class="m-input" id="us-name" maxlength="20" placeholder="3–20 chars, letters, numbers, _" oninput="checkNameAvailability(this.value)" onkeydown="if(event.key==='Enter')saveUserSettings()">
     </div>
     <div id="us-name-status" style="font-size:9px;letter-spacing:0.06em;margin-bottom:16px;min-height:14px"></div>
     <div style="display:flex;gap:12px;margin-bottom:20px">
@@ -1396,6 +1955,17 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <div style="display:flex;gap:8px">
         <button class="btn-cancel" onclick="closeUserSettings()">cancel</button>
         <button class="btn-confirm" id="us-save-btn" onclick="saveUserSettings()">done</button>
+      </div>
+    </div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.6</span>
+      </div>
+      <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
+        Found a bug? Send a message on Instagram
+        <a href="https://instagram.com/Talmadee" target="_blank"
+           style="color:var(--accent);text-decoration:none;letter-spacing:0.02em">@Talmadee</a>
       </div>
     </div>
   </div>
@@ -1470,6 +2040,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="btn-cancel" style="color:#ff5555;border-color:#ff5555;opacity:0.7" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7" onclick="deleteFromSettings()">delete</button>
       <div style="display:flex;gap:8px">
         <button class="btn-cancel" onclick="closeTrackSettings()">cancel</button>
+        <button class="btn-confirm" id="ts-lyrics-btn" onclick="openLyricsFromSettings()" style="display:none;background:none;border:1px solid var(--border);color:var(--mid)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          lyrics
+        </button>
         <button class="btn-confirm" onclick="saveTrackSettings()">done</button>
       </div>
     </div>
@@ -1822,6 +2396,7 @@ function openUserSettings() {
   if (pcEl) pcEl.textContent = projects.length;
   if (tcEl) tcEl.textContent = projects.reduce((a, p) => a + p.tracks.length, 0);
 
+  resetModalTransform('us-modal');
   document.getElementById('us-modal').classList.add('open');
   setTimeout(() => document.getElementById('us-name')?.focus(), 80);
 }
@@ -1833,17 +2408,35 @@ async function checkNameAvailability(val) {
   const current = DB.preferredName || currentGoogleUser?.displayName || '';
   if (!statusEl) return;
   val = val.trim();
+
   if (!val || val === current) { statusEl.textContent = ''; if (saveBtn) saveBtn.disabled = false; return; }
+
+  // Validate format
+  if (val.length < 3) {
+    statusEl.style.color = '#ff5555';
+    statusEl.textContent = 'at least 3 characters required';
+    if (saveBtn) saveBtn.disabled = true; return;
+  }
+  if (val.length > 20) {
+    statusEl.style.color = '#ff5555';
+    statusEl.textContent = 'max 20 characters';
+    if (saveBtn) saveBtn.disabled = true; return;
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(val)) {
+    statusEl.style.color = '#ff5555';
+    statusEl.textContent = 'letters, numbers and _ only';
+    if (saveBtn) saveBtn.disabled = true; return;
+  }
+
   statusEl.style.color = 'var(--dim)';
   statusEl.textContent = 'checking...';
   clearTimeout(_nameCheckTimer);
   _nameCheckTimer = setTimeout(async () => {
     try {
-      const col = window._fbCollection(window._fbDb, 'usernames');
       const snap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'usernames', val.toLowerCase()));
       if (snap.exists() && snap.data().uid !== DB.currentUser) {
         statusEl.style.color = '#ff5555';
-        statusEl.textContent = `"${val}" is taken`;
+        statusEl.textContent = `"${val}" is not available`;
         if (saveBtn) saveBtn.disabled = true;
       } else {
         statusEl.style.color = 'var(--accent)';
@@ -1893,15 +2486,30 @@ async function saveUserSettings() {
 
   const current = DB.preferredName || currentGoogleUser?.displayName || '';
   const saveBtn = document.getElementById('us-save-btn');
-  if (saveBtn?.disabled) return; // name taken
+  const statusEl = document.getElementById('us-name-status');
 
-  // Check uniqueness if name changed
+  // If name changed, do a definitive server-side availability check before touching anything
   if (newName !== current && window._fbReady) {
-    // Release old name, claim new one
+    if (saveBtn) saveBtn.disabled = true;
+    if (statusEl) { statusEl.style.color = 'var(--dim)'; statusEl.textContent = 'checking...'; }
     try {
+      const snap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'usernames', newName.toLowerCase()));
+      if (snap.exists() && snap.data().uid !== DB.currentUser) {
+        // Taken by someone else — abort
+        if (statusEl) { statusEl.style.color = '#ff5555'; statusEl.textContent = `"${newName}" is not available`; }
+        if (saveBtn) saveBtn.disabled = true;
+        return;
+      }
+      // Available — release old name first, then claim new one
       if (current) await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'usernames', current.toLowerCase())).catch(() => {});
       await window._fbSetDoc(window._fbDoc(window._fbDb, 'usernames', newName.toLowerCase()), { uid: DB.currentUser, name: newName });
-    } catch(e) { console.warn('username claim failed', e); }
+    } catch(e) {
+      console.warn('username claim failed', e);
+      if (saveBtn) saveBtn.disabled = false;
+      toast('could not verify username, try again');
+      return;
+    }
+    if (saveBtn) saveBtn.disabled = false;
   }
 
   document.getElementById('us-modal').classList.remove('open');
@@ -2314,6 +2922,7 @@ function openModal() {
   document.getElementById('m-artist').value = DB.preferredName || currentGoogleUser?.displayName || DB.currentUser || '';
   document.getElementById('m-year').value = new Date().getFullYear();
   document.querySelectorAll('.type-btn').forEach((b,i) => b.classList.toggle('selected', i === 0));
+  resetModalTransform('mo');
   document.getElementById('mo').classList.add('open');
   setTimeout(() => document.getElementById('m-title').focus(), 120);
 }
@@ -2580,41 +3189,14 @@ function shareTrack(tid) {
 function handleCoverUpload(e) {
   const f = e.target.files[0]; if (!f) return;
   const p = curP(); if (!p) return;
-  compressAndSaveCover(f, p);
-}
-
-function handlePsCoverUpload(e) {
-  const f = e.target.files[0]; if (!f) return;
-  const pid = psProjectId;
-  const p = curAlbums().find(x => x.id === pid); if (!p) return;
-  compressAndSaveCover(f, p, true);
-}
-
-function compressAndSaveCover(file, p, inSettings) {
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      const SIZE = 400;
-      const canvas = document.createElement('canvas');
-      canvas.width = SIZE; canvas.height = SIZE;
-      const ctx = canvas.getContext('2d');
-      // Center crop
-      const s = Math.min(img.width, img.height);
-      const sx = (img.width - s) / 2, sy = (img.height - s) / 2;
-      ctx.drawImage(img, sx, sy, s, s, 0, 0, SIZE, SIZE);
-      const compressed = canvas.toDataURL('image/jpeg', 0.72);
-      p.cover = compressed;
-      saveDB(); renderMain(); renderSidebar();
-      if (inSettings) {
-        // update preview in ps modal
-        const wrap = document.getElementById('ps-cover-wrap');
-        if (wrap) wrap.innerHTML = `<img src="${compressed}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">`;
-      }
-    };
-    img.src = ev.target.result;
+  const r = new FileReader();
+  r.onload = async ev => {
+    const dataUrl = ev.target.result;
+    p.cover = dataUrl;
+    saveDB(); renderMain(); renderSidebar();
+    await uploadCoverToStorage(p, dataUrl);
   };
-  reader.readAsDataURL(file);
+  r.readAsDataURL(f);
 }
 function playTrack(tid) {
   if (S.curTid === tid) { togglePlay(); return; }
@@ -2625,6 +3207,11 @@ function playTrack(tid) {
   audio.src = t.url; audio.play();
   S.queue = p.tracks.map(x => x.id);
   updatePlayerUI(t, p); renderTrackList();
+
+  // Fire notification if track belongs to another user
+  if (p._isShared && p._ownerUid && p._ownerUid !== DB.currentUser) {
+    sendListenNotification(p._ownerUid, t.name, p.name);
+  }
 
   // If lyrics panel is open, follow the playing track
   if (document.getElementById('lyrics-panel').classList.contains('open')) {
@@ -2711,12 +3298,12 @@ function openProjectSettings(pid) {
   // artist is not editable in settings — stays as set on creation
   document.getElementById('ps-year').value = p.year || '';
   document.getElementById('ps-type').value = p.type || 'single';
-  document.getElementById('ps-deadline').value = p.deadline || '';
   document.getElementById('ps-notes').value = p.notes || '';
 
   const wrap = document.getElementById('ps-cover-wrap');
-  wrap.innerHTML = p.cover
-    ? `<img src="${p.cover}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">`
+  const _pCover = getCover(p);
+  wrap.innerHTML = _pCover
+    ? `<img src="${_pCover}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">`
     : `<input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">◈`;
 
   const tick = () => {
@@ -2727,6 +3314,7 @@ function openProjectSettings(pid) {
   clearInterval(psTimerInterval);
   psTimerInterval = setInterval(tick, 1000);
 
+  resetModalTransform('ps-modal');
   document.getElementById('ps-modal').classList.add('open');
   // Update auto-save button
   const asBtn = document.getElementById('ps-autosave-btn');
@@ -2771,7 +3359,6 @@ function saveProjectSettings() {
   // artist stays as-is — set at creation from Google displayName
   p.year     = document.getElementById('ps-year').value.trim() || p.year;
   p.type     = document.getElementById('ps-type').value;
-  p.deadline = document.getElementById('ps-deadline').value || '';
   p.notes    = document.getElementById('ps-notes').value || '';
   document.getElementById('ps-modal').classList.remove('open');
   clearInterval(psTimerInterval);
@@ -2779,6 +3366,52 @@ function saveProjectSettings() {
   saveDB(); renderSidebar(); renderMain();
 }
 
+function handlePsCoverUpload(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const p = curAlbums().find(x => x.id === psProjectId); if (!p) return;
+  const r = new FileReader();
+  r.onload = async ev => {
+    const dataUrl = ev.target.result;
+    p.cover = dataUrl; // local preview immediately
+    saveDB();
+    const wrap = document.getElementById('ps-cover-wrap');
+    if (wrap) wrap.innerHTML = `<img src="${dataUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">`;
+    renderMain(); renderSidebar();
+    // Upload to Firebase Storage for cross-device sync
+    await uploadCoverToStorage(p, dataUrl);
+  };
+  r.readAsDataURL(f);
+}
+
+async function uploadCoverToStorage(p, dataUrl) {
+  // Compress cover to ~200x200 JPEG (~15-30KB) and store in Firestore directly
+  // This avoids Firebase Storage rules issues
+  try {
+    const compressed = await compressCover(dataUrl, 300, 0.72);
+    p.coverUrl = compressed; // use as the cross-device cover URL
+    p.cover = compressed;    // update local too
+    saveDB();
+  } catch(e) { console.warn('[WIP] cover compress failed:', e); }
+}
+
+function compressCover(dataUrl, size, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const s = Math.min(img.width, img.height);
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      // Center-crop
+      const sx = (img.width - s) / 2;
+      const sy = (img.height - s) / 2;
+      ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
 
 function exportFromSettings() {
   const pid = psProjectId;
@@ -2837,6 +3470,11 @@ function confirmDeleteProject() {
 }
 let tsTrackId = null;
 
+function resetModalTransform(id) {
+  const modal = document.getElementById(id)?.querySelector('.modal');
+  if (modal) modal.style.transform = '';
+}
+
 function openTrackSettings(tid) {
   tsTrackId = tid;
   const p = findPByTrack(tid); if (!p) return;
@@ -2847,8 +3485,18 @@ function openTrackSettings(tid) {
   document.getElementById('ts-filetype').textContent = t.fileType || '—';
   const bpmEl = document.getElementById('ts-bpm-display');
   if (bpmEl) bpmEl.textContent = t.bpm && t.bpm !== 'analyzing' ? t.bpm + ' bpm' : (t.bpm === 'analyzing' ? '···' : '—');
+  // Show lyrics button on mobile — hidden now
+  // const lyrBtn = document.getElementById('ts-lyrics-btn');
+  // if (lyrBtn && isMobile()) lyrBtn.style.display = 'flex';
+  resetModalTransform('ts-modal');
   document.getElementById('ts-modal').classList.add('open');
   setTimeout(() => document.getElementById('ts-name').focus(), 80);
+}
+
+function openLyricsFromSettings() {
+  const tid = tsTrackId;
+  saveTrackSettings(); // save before closing
+  setTimeout(() => openLyricsPanel(tid), 80);
 }
 
 function editTrackBPM() {
@@ -2959,10 +3607,10 @@ function toggleFullscreen() {
   const v = document.getElementById('fs-view');
   v.classList.toggle('open', fsOpen);
   if (fsOpen) {
-    document.documentElement.requestFullscreen?.();
+    if (!isMobile()) document.documentElement.requestFullscreen?.();
     updateFsView();
   } else {
-    document.exitFullscreen?.();
+    if (!isMobile()) document.exitFullscreen?.();
   }
 }
 
@@ -2973,11 +3621,12 @@ function updateFsView() {
 
   // cover
   const fc = document.getElementById('fs-cover');
-  fc.innerHTML = p?.cover ? `<img src="${p.cover}">` : '♩';
+  const _fsCover = getCover(p);
+  fc.innerHTML = _fsCover ? `<img src="${_fsCover}">` : '♩';
 
   // bg blur from cover
   const bg = document.getElementById('fs-bg');
-  bg.style.backgroundImage = p?.cover ? `url(${p.cover})` : 'none';
+  bg.style.backgroundImage = _fsCover ? `url(${_fsCover})` : 'none';
 
   // text
   document.getElementById('fs-track').textContent  = t ? t.name : '—';
@@ -3073,6 +3722,12 @@ audio.addEventListener('pause', () => {
 
 const PLAY_SVG  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
 const PAUSE_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>`;
+const PLAY_SVG_LG  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+const PAUSE_SVG_LG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>`;
+const PLAY_SVG_MD  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+const PAUSE_SVG_MD = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>`;
+const PLAY_SVG_SM  = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
+const PAUSE_SVG_SM = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="13" y="4" width="4" height="16" rx="1"/></svg>`;
 
 function updBtn() {
   document.getElementById('pp-btn').innerHTML = S.playing ? PAUSE_SVG : PLAY_SVG;
@@ -3080,7 +3735,7 @@ function updBtn() {
 
 function syncAlbumPlayBtn() {
   const btn = document.getElementById('album-play-btn');
-  if (btn) btn.textContent = S.playing ? '⏸' : '▶';
+  if (btn) btn.innerHTML = S.playing ? PAUSE_SVG_MD : PLAY_SVG_MD;
 }
 function updatePlayerUI(t, p) {
   if (!t) {
@@ -3094,7 +3749,7 @@ function updatePlayerUI(t, p) {
   document.getElementById('pl-name').textContent = t.name;
   document.getElementById('pl-artist').textContent = p ? (p.artist || p.name) : '';
   const thumb = document.getElementById('pl-thumb');
-  thumb.innerHTML = p && p.cover ? `<img src="${p.cover}">` : '♪';
+  thumb.innerHTML = p && getCover(p) ? `<img src="${getCover(p)}">` : '♪';
   updBtn();
   // Draw waveform after a small delay (let audio start first)
   setTimeout(() => drawWaveform(t), 200);
@@ -3126,43 +3781,68 @@ function extractCoverColor(imgSrc, callback) {
   img.src = imgSrc;
 }
 
+// Helper — always use local base64 first, then cloud URL
+function getCover(p) { return p?.cover || p?.coverUrl || null; }
+
 function updateHeroBackground(p) {
+  const cover = getCover(p);
   const blurEl = document.getElementById('hero-blur');
   const ambientEl = document.getElementById('main-ambient');
-  if (!p || !p.cover) {
+  if (!cover) {
     if (blurEl) { blurEl.classList.remove('visible'); blurEl.style.backgroundImage = ''; blurEl.style.background = ''; }
     if (ambientEl) { ambientEl.classList.remove('visible'); ambientEl.style.backgroundImage = ''; }
+    hideMobAmbient();
     return;
   }
   if (blurEl) {
-    blurEl.style.backgroundImage = `url(${p.cover})`;
+    blurEl.style.backgroundImage = `url(${cover})`;
     requestAnimationFrame(() => blurEl.classList.add('visible'));
   }
-  // Extract color and apply as ambient glow
-  extractCoverColor(p.cover, rgb => {
+  // Desktop ambient
+  extractCoverColor(cover, rgb => {
     if (ambientEl) {
       if (rgb) {
         ambientEl.style.backgroundImage = '';
         ambientEl.style.background = `radial-gradient(ellipse at 50% 0%, rgba(${rgb},0.28) 0%, transparent 70%)`;
       } else {
-        ambientEl.style.backgroundImage = `url(${p.cover})`;
+        ambientEl.style.backgroundImage = `url(${cover})`;
       }
       requestAnimationFrame(() => ambientEl.classList.add('visible'));
     }
+    // Mobile ambient
+    if (isMobile()) showMobAmbient(cover, rgb);
   });
 }
 
-function deadlineBadge(dateStr) {
-  if (!dateStr) return '';
-  const now = new Date(); now.setHours(0,0,0,0);
-  const dl = new Date(dateStr + 'T00:00:00');
-  const diff = Math.round((dl - now) / 86400000);
-  let cls = '', label = '';
-  if (diff < 0) { cls = 'overdue'; label = `${Math.abs(diff)}d overdue`; }
-  else if (diff === 0) { cls = 'soon'; label = 'due today'; }
-  else if (diff <= 7) { cls = 'soon'; label = `${diff}d left`; }
-  else { cls = ''; label = `due ${dl.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`; }
-  return `<span class="deadline-badge ${cls}">⏳ ${label}</span>`;
+function showMobAmbient(coverUrl, rgb) {
+  const el = document.getElementById('mob-ambient');
+  const img = document.getElementById('mob-ambient-img');
+  const glow = document.getElementById('mob-ambient-glow');
+  if (!el) return;
+  if (img) img.style.backgroundImage = `url(${coverUrl})`;
+  if (glow && rgb) {
+    glow.style.background = `radial-gradient(ellipse at 50% 40%, rgba(${rgb},0.18) 0%, transparent 70%)`;
+  }
+
+  // Move ambient inside .album-hero so it scrolls with content
+  const hero = document.querySelector('.album-hero');
+  if (hero && el.parentNode !== hero) hero.insertBefore(el, hero.firstChild);
+
+  requestAnimationFrame(() => el.classList.add('visible'));
+
+  // Fixed cover hero
+  const heroBg = document.getElementById('mob-hero-bg');
+  if (heroBg) {
+    heroBg.style.backgroundImage = `url(${coverUrl})`;
+    requestAnimationFrame(() => heroBg.classList.add('visible'));
+  }
+}
+
+function hideMobAmbient() {
+  const el = document.getElementById('mob-ambient');
+  if (el) el.classList.remove('visible');
+  const heroBg = document.getElementById('mob-hero-bg');
+  if (heroBg) { heroBg.classList.remove('visible'); heroBg.style.backgroundImage = ''; }
 }
 
 // ─── RENDER SIDEBAR ───
@@ -3175,7 +3855,7 @@ function renderSidebar() {
     const el = document.createElement('div');
     el.className = 'project-item' + (p.id === S.curPid ? ' active' : '');
     el.innerHTML = `
-      <div class="p-thumb-sm">${p.cover ? `<img src="${p.cover}">` : '◈'}</div>
+      <div class="p-thumb-sm">${getCover(p) ? `<img src="${getCover(p)}">` : '◈'}</div>
       <div class="p-meta-sm">
         <div class="p-name-sm">${p.name}</div>
         <div class="p-artist-sm">${p.artist || '—'}</div>
@@ -3199,7 +3879,7 @@ function renderSidebar() {
       const el = document.createElement('div');
       el.className = 'project-item' + (p.id === S.curPid ? ' active' : '');
       el.innerHTML = `
-        <div class="p-thumb-sm" style="border-color:rgba(200,255,50,0.2)">${p.cover ? `<img src="${p.cover}">` : '◈'}</div>
+        <div class="p-thumb-sm" style="border-color:rgba(200,255,50,0.2)">${getCover(p) ? `<img src="${getCover(p)}">` : '◈'}</div>
         <div class="p-meta-sm">
           <div class="p-name-sm">${p.name}</div>
           <div class="p-artist-sm" style="color:var(--accent);opacity:0.6">${p._ownerName || p.artist || '—'}</div>
@@ -3224,7 +3904,7 @@ function renderMain() {
       <div class="hero-cover-blur" id="hero-blur"></div>
       <div class="hero-bg"></div>
       <div class="album-cover">
-        ${p.cover ? `<img src="${p.cover}">` : '◈'}
+        ${getCover(p) ? `<img src="${getCover(p)}">` : '◈'}
         <div class="cover-overlay">
           <span class="co-text">change cover</span>
         </div>
@@ -3243,12 +3923,11 @@ function renderMain() {
           <span id="meta-tracks">${p.tracks.length} track${p.tracks.length !== 1 ? 's' : ''}</span>
           <span class="msep">·</span>
           <span id="meta-dur">${totalDur(p.tracks)}</span>
-          ${p.deadline ? `<span class="msep">·</span>${deadlineBadge(p.deadline)}` : ''}
           ${fileHandles[p.id] ? `<span class="msep">·</span><span id="autosave-indicator" style="display:inline-flex;align-items:center"><span style="color:var(--dim);font-size:9px;letter-spacing:0.08em">auto-save on</span></span>` : ''}
           ${!p._isShared ? `<span class="msep">·</span><span id="meta-saves" style="font-size:9px;color:var(--dim);letter-spacing:0.06em">— saves</span>` : ''}
         </div>
         <div class="album-actions">
-          <button class="btn-play-album" id="album-play-btn" onclick="playAlbum()">${S.playing && findPByTrack(S.curTid)?.id === p.id ? '⏸' : '▶'}</button>
+          <button class="btn-play-album" id="album-play-btn" onclick="playAlbum()">${S.playing && findPByTrack(S.curTid)?.id === p.id ? PAUSE_SVG_MD : PLAY_SVG_MD}</button>
           ${p._isShared ? `
             <button id="shared-save-btn" onclick="saveSharedProject('${p._shareId}','${p._ownerUid}','${p.id.replace('__shared__','')}','${DB.currentUser}')"
               class="btn-outline" style="gap:5px;${p._alreadySaved?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}">
@@ -3333,7 +4012,7 @@ function renderTrackList() {
            oncontextmenu="openTrackCtxMenu(event,'${t.id}')">
         <div class="num-wrap">
           <span class="t-num">${i+1}</span>
-          <span class="t-play">${ip ? '⏸' : '▶'}</span>
+          <span class="t-play">${ip ? PAUSE_SVG_SM : PLAY_SVG_SM}</span>
         </div>
         <div class="track-info">
           <div class="t-name">${t.name}</div>
@@ -3343,7 +4022,12 @@ function renderTrackList() {
           t.bpm === 'analyzing' ? '···' : (t.bpm ? t.bpm : '—')
         }</div>
         <div class="t-date">${fdate(t.added)}</div>
-        <div class="t-dur">${fmt(t.dur)}</div>
+        <div class="t-dur-cell">
+          <span class="t-dur">${fmt(t.dur)}</span>
+          <button class="t-mob-btn" onclick="event.stopPropagation();openTrackSettings('${t.id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
         <div class="t-actions" onclick="event.stopPropagation()">
           <button class="ibtn lyrics ${t.lyrics?.length ? 'has-lyrics' : ''}" onclick="openLyricsPanel('${t.id}')" title="write lyrics">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -3619,6 +4303,8 @@ async function changeSaveLocation() {
   else { renderMain(); openProjectSettings(pid); }
 }
 
+let _lastSelfSaveTs = 0; // used by initLiveSync to detect self-saves
+
 function saveDB() {
   try {
     const albumsToSave = {};
@@ -3628,6 +4314,8 @@ function saveDB() {
         tracks: p.tracks.map(t => ({ ...t, url: null }))
       }));
     }
+    const now = Date.now();
+    _lastSelfSaveTs = now; // track for self-save detection in onSnapshot
     const payload = {
       albums: albumsToSave,
       currentUser: DB.currentUser,
@@ -3635,72 +4323,51 @@ function saveDB() {
       customAvatar: DB.customAvatar || null,
       displayName: currentGoogleUser?.displayName || DB.currentUser,
       photoURL: currentGoogleUser?.photoURL || null,
-      updatedAt: Date.now()
+      updatedAt: now
     };
     localStorage.setItem('wip_db', JSON.stringify(payload));
     scheduleAutoSave();
     saveDBToFirebase(payload);
-  } catch(e) { console.warn('saveDB failed', e); }
+  } catch(e) { console.error('[WIP] saveDB failed:', e); }
 }
 
 async function saveDBToFirebase(payload) {
-  if (!window._fbReady || !currentGoogleUser) return;
+  if (!window._fbReady || !currentGoogleUser) {
+    console.warn('[WIP] saveDBToFirebase skipped — fbReady:', window._fbReady, 'user:', !!currentGoogleUser);
+    return;
+  }
   try {
     const uid = currentGoogleUser.uid;
-    // Filter out __shared__ keys (Firebase doesn't allow __ prefix/suffix)
-    const albumsToSend = {};
-    for (const [k, v] of Object.entries(payload.albums || {})) {
-      if (!k.startsWith('__')) albumsToSend[k] = v;
-    }
     const docRef = window._fbDoc(window._fbDb, 'users', uid);
-    window._lastFirebaseSaveAt = Date.now();
-    await window._fbSetDoc(docRef, { ...payload, albums: albumsToSend }, { merge: true });
-  } catch(e) { console.warn('Firebase save failed', e); }
-}
 
-function initLiveSync(uid) {
-  const docRef = window._fbDoc(window._fbDb, 'users', uid);
-  window._fbOnSnapshot(docRef, async (snap) => {
-    if (!snap.exists()) return;
-    // Skip if this update is from our own save (within 4s)
-    if (Date.now() - (window._lastFirebaseSaveAt || 0) < 4000) return;
-
-    const data = snap.data();
-    if (!data.albums) return;
-
-    // Merge remote albums into local — keep local audio urls + __shared__
-    for (const [key, projects] of Object.entries(data.albums)) {
-      if (!DB.albums[key]) DB.albums[key] = [];
-      projects.forEach(remoteP => {
-        const localP = DB.albums[key].find(p => p.id === remoteP.id);
-        if (localP) {
-          // Update all fields but keep local audio urls
-          const localTracks = localP.tracks;
-          Object.assign(localP, remoteP);
-          localP.tracks = remoteP.tracks.map(rt => {
-            const lt = localTracks.find(t => t.id === rt.id);
-            return { ...rt, url: lt?.url || rt.cloudUrl || null };
-          });
-        } else {
-          DB.albums[key].push({
-            ...remoteP,
-            tracks: remoteP.tracks.map(t => ({ ...t, url: t.cloudUrl || null }))
-          });
-        }
-      });
-      // Remove projects deleted remotely
-      DB.albums[key] = DB.albums[key].filter(lp =>
-        projects.some(rp => rp.id === lp.id)
-      );
+    // Strip base64 covers + filter out internal __shared__ key (Firebase rejects __ fields)
+    const safeAlbums = {};
+    for (const [user, projects] of Object.entries(payload.albums || {})) {
+      if (user.startsWith('__') && user.endsWith('__')) continue; // skip __shared__ etc.
+      safeAlbums[user] = projects.map(p => ({
+        ...p,
+        cover: p.cover?.startsWith('data:') ? null : (p.cover || null),
+        // coverUrl is compressed (~20KB) — safe to store in Firestore
+        coverUrl: p.coverUrl || null,
+        tracks: (p.tracks || []).map(t => ({ ...t, url: null }))
+      }));
     }
 
-    if (data.preferredName) DB.preferredName = data.preferredName;
-    if (data.customAvatar) DB.customAvatar = data.customAvatar;
+    const fullPayload = {
+      ...payload,
+      albums: safeAlbums,
+      preferredName: DB.preferredName || payload.preferredName || '',
+      customAvatar: DB.customAvatar || payload.customAvatar || null,
+    };
 
-    renderSidebar();
-    renderMain();
-    updateSidebarUser();
-  });
+    const payloadSize = JSON.stringify(fullPayload).length;
+    console.log('[WIP] saving to Firebase, size:', Math.round(payloadSize/1024) + 'KB');
+
+    await window._fbSetDoc(docRef, fullPayload, { merge: true });
+    console.log('[WIP] Firebase save OK');
+  } catch(e) {
+    console.error('[WIP] Firebase save FAILED:', e.code, e.message);
+  }
 }
 
 function savePlayerState() {
@@ -3728,6 +4395,8 @@ function loadDB() {
     const saved = JSON.parse(raw);
     DB.albums = saved.albums || {};
     DB.currentUser = saved.currentUser || null;
+    if (saved.preferredName) DB.preferredName = saved.preferredName;
+    if (saved.customAvatar) DB.customAvatar = saved.customAvatar;
   } catch(e) {
     console.warn('loadDB failed', e);
     DB.albums = {}; DB.currentUser = null;
@@ -4148,14 +4817,34 @@ const waitForFb = setInterval(() => {
       const cloudData = await loadDBFromFirebase(user.uid);
       if (cloudData && cloudData.albums) {
         const albums = cloudData.albums;
+        // Load local covers from localStorage (since we don't store base64 in Firebase)
+        let localCovers = {};
+        try {
+          const raw = localStorage.getItem('wip_db');
+          if (raw) {
+            const local = JSON.parse(raw);
+            for (const projects of Object.values(local.albums || {})) {
+              for (const p of projects) {
+                if (p.cover && p.cover.startsWith('data:')) localCovers[p.id] = p.cover;
+              }
+            }
+          }
+        } catch(e) {}
+
         if (albums[user.uid]) {
-          DB.albums[user.uid] = albums[user.uid];
+          DB.albums[user.uid] = albums[user.uid].map(p => ({
+            ...p,
+            cover: localCovers[p.id] || p.coverUrl || p.cover || null
+          }));
         } else {
           const firstKey = Object.keys(albums)[0];
-          if (firstKey) DB.albums[user.uid] = albums[firstKey];
+          if (firstKey) DB.albums[user.uid] = albums[firstKey].map(p => ({
+            ...p,
+            cover: localCovers[p.id] || p.coverUrl || p.cover || null
+          }));
         }
         if (cloudData.preferredName) DB.preferredName = cloudData.preferredName;
-          if (cloudData.customAvatar) DB.customAvatar = cloudData.customAvatar;
+        if (cloudData.customAvatar) DB.customAvatar = cloudData.customAvatar;
       }
       if (!DB.albums[user.uid]) DB.albums[user.uid] = [];
 
@@ -4179,12 +4868,12 @@ const waitForFb = setInterval(() => {
       document.getElementById('app').style.display = 'grid';
       updateSidebarUser();
       renderSidebar();
+      updateMobileNav();
+      initNotifications(user.uid);
+      initLiveSync(user.uid);
 
       // טען פרויקטים שמורים מאחרים
       loadSavedProjects(user);
-
-      // Live sync — כל שינוי ממכשיר אחר מתעדכן אוטומטית
-      initLiveSync(user.uid);
 
       // Handle share link — open the project if it belongs to this user
       const shareId = getShareParam();
@@ -4334,15 +5023,565 @@ async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect, a
       const idx = (DB.albums['__shared__'] || []).findIndex(p => p.id === fakeId);
       if (idx >= 0) {
         const existing = DB.albums['__shared__'][idx];
-        DB.albums['__shared__'][idx] = { ...existing, ...updated, id: fakeId,
+        const cloudCoverUrl = updated.coverUrl || null;
+        const coverChanged = cloudCoverUrl && cloudCoverUrl !== existing.coverUrl;
+        DB.albums['__shared__'][idx] = {
+          ...existing, ...updated, id: fakeId,
           _isShared: true, _shareId: shareId, _ownerUid: ownerUid,
           _ownerName: ownerName, _alreadySaved: existing._alreadySaved,
-          tracks: updated.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null })) };
+          cover: coverChanged ? cloudCoverUrl : (cloudCoverUrl || updated.cover || existing.cover || null),
+          coverUrl: cloudCoverUrl,
+          tracks: updated.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
+        };
         if (S.curPid === fakeId) renderMain();
-        renderSidebar();
+        renderSidebar(); renderMobileDrawer();
       }
     });
   } catch(e) { console.warn('_loadSharedEntry failed', e); }
+}
+
+// ══════════════════════════════════════
+// MOBILE FUNCTIONS (v3.0.0)
+// ══════════════════════════════════════
+
+function isMobile() { return window.innerWidth <= 640; }
+
+// ── Drawer ──
+function toggleMobileDrawer() {
+  const overlay = document.getElementById('mobile-drawer-overlay');
+  if (overlay.classList.contains('open')) closeMobileDrawer();
+  else openMobileDrawer();
+}
+function openMobileDrawer() {
+  renderMobileDrawer();
+  const overlay = document.getElementById('mobile-drawer-overlay');
+  const drawer = document.getElementById('mobile-drawer');
+  overlay.style.display = 'block';
+  drawer.style.transform = 'translateY(100%)'; // reset before animate
+  drawer.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+  requestAnimationFrame(() => {
+    overlay.classList.add('open');
+    drawer.style.transform = 'translateY(0)';
+  });
+  document.getElementById('bnav-library').classList.add('active');
+}
+function closeMobileDrawer() {
+  const overlay = document.getElementById('mobile-drawer-overlay');
+  const drawer = document.getElementById('mobile-drawer');
+  drawer.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+  drawer.style.transform = 'translateY(100%)';
+  overlay.classList.remove('open');
+  document.getElementById('bnav-library')?.classList.remove('active');
+  setTimeout(() => { if (!overlay.classList.contains('open')) overlay.style.display = 'none'; }, 320);
+}
+
+function renderMobileDrawer() {
+  const list = document.getElementById('mob-project-list');
+  if (!list) return;
+  const own = curAlbums();
+  const saved = (DB.albums['__shared__'] || []);
+
+  let html = '';
+
+  // Own projects
+  if (own.length) {
+    html += `<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);padding:10px 18px 6px">my projects</div>`;
+    html += own.map(p => {
+      const isActive = S.curPid === p.id;
+      const coverSrc = p.cover || p.coverUrl || null;
+      return `<div class="mob-proj-item${isActive ? ' active' : ''}" onclick="mobileProjSelect('${p.id}')">
+        <div class="mob-proj-thumb">${coverSrc ? `<img src="${coverSrc}">` : '🎵'}</div>
+        <div class="mob-proj-info">
+          <div class="mob-proj-name">${p.name || 'untitled'}</div>
+          <div class="mob-proj-sub">${(p.type || 'project').toUpperCase()} · ${p.tracks?.length || 0} track${p.tracks?.length !== 1 ? 's' : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    html += `<div class="mob-empty-proj"><div class="mob-empty-proj-icon">◈</div><div class="mob-empty-proj-txt">no projects yet</div></div>`;
+  }
+
+  // Saved / library section
+  if (saved.length) {
+    html += `<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);padding:14px 18px 6px;border-top:1px solid var(--border);margin-top:6px">your library</div>`;
+    html += saved.map(p => {
+      const isActive = S.curPid === p.id;
+      const coverSrc = p.cover || p.coverUrl || null;
+      return `<div class="mob-proj-item${isActive ? ' active' : ''}" onclick="mobileProjSelect('${p.id}')">
+        <div class="mob-proj-thumb">${coverSrc ? `<img src="${coverSrc}">` : '🎵'}</div>
+        <div class="mob-proj-info">
+          <div class="mob-proj-name">${p.name || 'untitled'}</div>
+          <div class="mob-proj-sub" style="display:flex;align-items:center;gap:6px">
+            <span>${p._ownerName || 'shared'}</span>
+            <span style="color:var(--accent);font-size:8px">✓ saved</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  list.innerHTML = html;
+}
+
+function mobileProjSelect(id) {
+  selectProject(id);
+  closeMobileDrawer();
+}
+
+// ── Bottom nav avatar sync ──
+function updateMobileNav() {
+  if (!isMobile()) return;
+  const name = DB.preferredName || currentGoogleUser?.displayName || '';
+  const photo = DB.customAvatar || currentGoogleUser?.photoURL || null;
+  const av = document.getElementById('bnav-avatar');
+  if (!av) return;
+  const existingImg = av.querySelector('img');
+  if (existingImg) existingImg.remove();
+  if (photo) {
+    const img = document.createElement('img');
+    img.src = photo;
+    av.appendChild(img);
+    av.textContent = '';
+    av.appendChild(img);
+  } else {
+    av.textContent = name ? name[0].toUpperCase() : '?';
+  }
+}
+
+// ── Mobile player: tap bar → fullscreen, show/hide mob-play-btn ──
+function initMobilePlayer() {
+  const player = document.getElementById('player');
+  const mobBtn = document.getElementById('mob-play-btn');
+  if (!player || !mobBtn) return;
+  player.addEventListener('click', (e) => {
+    if (!isMobile()) return;
+    if (e.target.closest('#mob-play-btn')) return;
+    toggleFullscreen();
+  });
+}
+
+// ── Update mobile progress bar + play icon ──
+const _origUpdateProgress = typeof updateProgress === 'function' ? updateProgress : null;
+function updateMobileProgress(pct, playing) {
+  const fill = document.getElementById('mob-progress-fill');
+  if (fill) fill.style.width = (pct * 100) + '%';
+  const icon = document.getElementById('mob-pp-icon');
+  if (icon) icon.innerHTML = playing ? PAUSE_SVG_LG : PLAY_SVG_LG;
+}
+
+// ── Show mobile play button only on mobile ──
+function syncMobilePlayBtn() {
+  const btn = document.getElementById('mob-play-btn');
+  if (btn) btn.style.display = isMobile() ? 'flex' : 'none';
+}
+
+// Hook into existing updatePlayerUI
+const _origUpdatePlayerUI = typeof updatePlayerUI === 'function' ? updatePlayerUI : null;
+(function patchMobileHooks() {
+  const orig = window.updatePlayerUI;
+  if (!orig) { setTimeout(patchMobileHooks, 200); return; }
+  window.updatePlayerUI = function(t, p) {
+    orig(t, p);
+    syncMobilePlayBtn();
+    updateMobileNav();
+  };
+})();
+
+// Patch audio timeupdate for mobile progress
+(function patchAudioProgress() {
+  const chk = setInterval(() => {
+    if (typeof audio === 'undefined') return;
+    clearInterval(chk);
+    audio.addEventListener('timeupdate', () => {
+      if (!audio.duration) return;
+      updateMobileProgress(audio.currentTime / audio.duration, !audio.paused);
+    });
+    audio.addEventListener('play',  () => updateMobileProgress(audio.currentTime / (audio.duration || 1), true));
+    audio.addEventListener('pause', () => updateMobileProgress(audio.currentTime / (audio.duration || 1), false));
+  }, 300);
+})();
+
+window.addEventListener('resize', syncMobilePlayBtn);
+
+// ══════════════════════════════════════
+// LIVE CROSS-DEVICE SYNC
+// ══════════════════════════════════════
+let _liveSyncUnsub = null;
+
+function initLiveSync(uid) {
+  if (_liveSyncUnsub) _liveSyncUnsub();
+  if (!window._fbReady) return;
+
+  const docRef = window._fbDoc(window._fbDb, 'users', uid);
+  _liveSyncUnsub = window._fbOnSnapshot(docRef, async (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    if (!data.albums) return;
+
+    // Skip if this is our own save (same updatedAt timestamp)
+    if (data.updatedAt && data.updatedAt === _lastSelfSaveTs) return;
+
+    // Preserve local base64 covers
+    const localCovers = {};
+    try {
+      const raw = localStorage.getItem('wip_db');
+      if (raw) {
+        const local = JSON.parse(raw);
+        for (const projects of Object.values(local.albums || {})) {
+          for (const p of projects) {
+            if (p.cover?.startsWith('data:')) localCovers[p.id] = p.cover;
+          }
+        }
+      }
+    } catch(e) {}
+
+    // Merge cloud albums
+    // Build a map of existing coverUrls so we can detect changes
+    const existingCoverUrls = {};
+    (DB.albums[uid] || []).forEach(p => { existingCoverUrls[p.id] = p.coverUrl; });
+
+    const cloudAlbums = data.albums[uid] || data.albums[Object.keys(data.albums)[0]] || [];
+    DB.albums[uid] = cloudAlbums.map(p => {
+      const cloudCoverUrl = p.coverUrl || null;
+      const localCover = localCovers[p.id] || null;
+      const prevCoverUrl = existingCoverUrls[p.id] || null;
+      // If cloud coverUrl changed, always use the new cloud cover (user updated it on another device)
+      // Otherwise prefer local base64 if available (faster, no flicker)
+      const coverChanged = cloudCoverUrl && cloudCoverUrl !== prevCoverUrl;
+      const cover = coverChanged ? cloudCoverUrl : (localCover || cloudCoverUrl || p.cover || null);
+      return { ...p, cover, coverUrl: cloudCoverUrl };
+    });
+
+    if (data.preferredName) DB.preferredName = data.preferredName;
+    if (data.customAvatar) DB.customAvatar = data.customAvatar;
+
+    await restoreAudioUrls();
+
+    renderSidebar(); renderMobileDrawer();
+    updateSidebarUser(); updateMobileNav();
+    if (S.curPid) {
+      const stillExists = curAlbums().find(p => p.id === S.curPid);
+      if (stillExists) renderMain();
+      else { S.curPid = null; renderMain(); }
+    }
+    console.log('[WIP] live sync ← remote update');
+  });
+}
+
+// ══════════════════════════════════════
+// NOTIFICATIONS SYSTEM
+
+// ══════════════════════════════════════
+// MOBILE SWIPE SEEK
+// ══════════════════════════════════════
+function initMobileSwipeSeek() {
+  // Mini player progress bar (top strip)
+  const mobBar = document.getElementById('mob-progress-bar');
+  if (mobBar) {
+    let seeking = false;
+    const seek = (e) => {
+      const touch = e.touches ? e.touches[0] : e;
+      const r = mobBar.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
+      if (audio.duration) audio.currentTime = pct * audio.duration;
+      updateMobileProgress(pct, !audio.paused);
+    };
+    mobBar.addEventListener('touchstart', (e) => { seeking = true; seek(e); e.stopPropagation(); }, { passive: true });
+    mobBar.addEventListener('touchmove',  (e) => { if (seeking) seek(e); }, { passive: true });
+    mobBar.addEventListener('touchend',   () => { seeking = false; });
+  }
+
+  // Fullscreen progress bar
+  const fsBar = document.querySelector('.fs-prog-bar');
+  if (fsBar) {
+    let fsSeek = false;
+    const seekFs = (e) => {
+      const touch = e.touches ? e.touches[0] : e;
+      const r = fsBar.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
+      if (audio.duration) {
+        audio.currentTime = pct * audio.duration;
+        document.getElementById('fs-pf').style.width = (pct * 100) + '%';
+      }
+    };
+    fsBar.addEventListener('touchstart', (e) => { fsSeek = true; seekFs(e); }, { passive: true });
+    fsBar.addEventListener('touchmove',  (e) => { if (fsSeek) seekFs(e); }, { passive: true });
+    fsBar.addEventListener('touchend',   () => { fsSeek = false; });
+  }
+}
+
+// ══ SWIPE DOWN TO CLOSE ══
+function addSwipeToClose(el, closeFn) {
+  if (!el) return;
+  let startY = 0, lastY = 0, active = false;
+
+  el.addEventListener('touchstart', (e) => {
+    startY = lastY = e.touches[0].clientY;
+    active = true;
+    el.style.transition = 'none';
+  }, { passive: true });
+
+  el.addEventListener('touchmove', (e) => {
+    if (!active) return;
+    lastY = e.touches[0].clientY;
+    const dy = Math.max(0, lastY - startY);
+    el.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+
+  el.addEventListener('touchend', () => {
+    if (!active) return;
+    active = false;
+    el.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+    if (lastY - startY > 80) {
+      closeFn();
+    } else {
+      el.style.transform = 'translateY(0)';
+    }
+  });
+}
+
+// Modal swipe: attach to .modal inside overlay
+function addModalSwipeToClose(overlayId, closeFn) {
+  // Wait until modal is in DOM
+  const overlay = document.getElementById(overlayId);
+  if (!overlay) return;
+  const modal = overlay.querySelector('.modal');
+  if (!modal) return;
+  addSwipeToClose(modal, () => {
+    modal.style.transform = 'translateY(100%)';
+    setTimeout(closeFn, 280);
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  syncMobilePlayBtn();
+  initMobilePlayer();
+  if (isMobile()) {
+    initMobileSwipeSeek();
+    addSwipeToClose(document.getElementById('mobile-drawer'), closeMobileDrawer);
+    addSwipeToClose(document.getElementById('notif-drawer'), closeNotifDrawer);
+    // Modals - attach after a tick so they're rendered
+    setTimeout(() => {
+      addModalSwipeToClose('ps-modal', closeProjectSettings);
+      addModalSwipeToClose('us-modal', closeUserSettings);
+      addModalSwipeToClose('ts-modal', closeTrackSettings);
+      addModalSwipeToClose('mo', closeModal);
+    }, 500);
+  }
+});
+// ══════════════════════════════════════
+
+let _notifUnsubscribe = null;
+const _profileUnsubs = {}; // uid → unsubscribe fn
+let _cachedNotifItems = [];
+const _cachedProfiles = {};
+
+function initNotifications(userUid) {
+  if (!window._fbReady) return;
+  if (_notifUnsubscribe) _notifUnsubscribe();
+
+  const col = window._fbCollection(window._fbDb, 'notifications', userUid, 'items');
+  _notifUnsubscribe = window._fbOnSnapshot(col, (snap) => {
+    _cachedNotifItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 50);
+
+    const unread = _cachedNotifItems.filter(x => !x.read).length;
+    const badge = document.getElementById('notif-badge');
+    if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+    const sbBadge = document.getElementById('sb-notif-badge');
+    if (sbBadge) sbBadge.style.display = unread > 0 ? 'inline-block' : 'none';
+
+    // Subscribe to each unique listener's profile with onSnapshot (live updates)
+    const uids = [...new Set(_cachedNotifItems.map(x => x.listenerUid).filter(Boolean))];
+    uids.forEach(uid => {
+      if (_profileUnsubs[uid]) return; // already watching
+      _profileUnsubs[uid] = window._fbOnSnapshot(
+        window._fbDoc(window._fbDb, 'users', uid),
+        (profileSnap) => {
+          if (profileSnap.exists()) _cachedProfiles[uid] = profileSnap.data();
+          renderNotifList(_cachedNotifItems, _cachedProfiles);
+        }
+      );
+    });
+
+    renderNotifList(_cachedNotifItems, _cachedProfiles);
+  });
+}
+
+async function sendListenNotification(ownerUid, trackName, projectName) {
+  if (!window._fbReady || !DB.currentUser) return;
+  try {
+    const notifId = `${DB.currentUser}_${Date.now()}`;
+    await window._fbSetDoc(
+      window._fbDoc(window._fbDb, 'notifications', ownerUid, 'items', notifId),
+      {
+        listenerUid: DB.currentUser,
+        trackName,
+        projectName,
+        timestamp: Date.now(),
+        read: false
+      }
+    );
+  } catch(e) { console.warn('notif send failed', e); }
+}
+
+function initNotifications(userUid) {
+  if (!window._fbReady) return;
+  if (_notifUnsubscribe) _notifUnsubscribe();
+  const col = window._fbCollection(window._fbDb, 'notifications', userUid, 'items');
+  _notifUnsubscribe = window._fbOnSnapshot(col, async (snap) => {
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 50);
+    const unread = items.filter(x => !x.read).length;
+
+    // Update badges
+    const badge = document.getElementById('notif-badge');
+    if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+    const sbBadge = document.getElementById('sb-notif-badge');
+    if (sbBadge) sbBadge.style.display = unread > 0 ? 'inline-block' : 'none';
+
+    // Fetch listener profiles (live)
+    const uids = [...new Set(items.map(x => x.listenerUid).filter(Boolean))];
+    const profiles = {};
+    await Promise.all(uids.map(async uid => {
+      try {
+        const snap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', uid));
+        if (snap.exists()) profiles[uid] = snap.data();
+      } catch(e) {}
+    }));
+
+    renderNotifList(items, profiles);
+  });
+}
+
+function renderNotifList(items, profiles) {
+  const html = !items.length
+    ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:10px;color:var(--dim)">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div style="font-size:11px;letter-spacing:0.08em">no notifications yet</div>
+      </div>`
+    : items.map(n => {
+        const profile = profiles[n.listenerUid] || {};
+        const name = profile.preferredName || profile.displayName || 'someone';
+        const photo = profile.customAvatar || profile.photoURL || null;
+        const avatarHtml = photo
+          ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`
+          : `<span style="font-size:14px;font-weight:500;color:var(--accent)">${name[0]?.toUpperCase() || '?'}</span>`;
+        const timeStr = formatNotifTime(n.timestamp);
+        return `<div onclick="markNotifRead('${n.id}')" style="display:flex;align-items:flex-start;gap:14px;padding:13px 18px;cursor:pointer;transition:background 0.1s;${n.read ? '' : 'background:rgba(200,255,50,0.04);'}" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='${n.read ? 'none' : 'rgba(200,255,50,0.04)'}'">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">${avatarHtml}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text);line-height:1.4;letter-spacing:0.01em">
+              <span style="font-weight:500">${name}</span>
+              <span style="color:var(--mid)"> listened to </span>
+              <span style="font-weight:500">${n.trackName}</span>
+              <span style="color:var(--mid)"> off </span>
+              <span style="color:var(--accent)">${n.projectName}</span>
+            </div>
+            <div style="font-size:10px;color:var(--dim);margin-top:4px;letter-spacing:0.04em">${timeStr}</div>
+          </div>
+          ${!n.read ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px"></div>` : ''}
+        </div>`;
+      }).join('');
+
+  const mobileList = document.getElementById('notif-list');
+  if (mobileList) mobileList.innerHTML = html;
+  const desktopList = document.getElementById('desktop-notif-list');
+  if (desktopList) desktopList.innerHTML = html;
+}
+
+let _desktopNotifOpen = false;
+function toggleDesktopNotif() {
+  const panel = document.getElementById('desktop-notif-panel');
+  const btn = document.getElementById('sb-notif-btn');
+  if (!panel || !btn) return;
+  _desktopNotifOpen = !_desktopNotifOpen;
+
+  if (_desktopNotifOpen) {
+    const r = btn.getBoundingClientRect();
+    panel.style.display = 'flex';
+    panel.style.top = Math.max(8, r.top - 8) + 'px';
+    panel.style.left = (r.right + 10) + 'px';
+    panel.style.bottom = 'auto';
+    btn.style.color = 'var(--accent)';
+    markAllNotifsRead();
+    // Close on outside click
+    setTimeout(() => document.addEventListener('click', _closeNotifOutside), 0);
+  } else {
+    panel.style.display = 'none';
+    btn.style.color = 'var(--dim)';
+    document.removeEventListener('click', _closeNotifOutside);
+  }
+}
+function _closeNotifOutside(e) {
+  const panel = document.getElementById('desktop-notif-panel');
+  const btn = document.getElementById('sb-notif-btn');
+  if (panel && !panel.contains(e.target) && !btn.contains(e.target)) {
+    _desktopNotifOpen = false;
+    panel.style.display = 'none';
+    btn.style.color = 'var(--dim)';
+    document.removeEventListener('click', _closeNotifOutside);
+  }
+}
+
+function formatNotifTime(ts) {
+  const now = Date.now();
+  const diff = Math.floor((now - ts) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  const d = new Date(ts);
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
+async function markNotifRead(notifId) {
+  if (!window._fbReady || !DB.currentUser) return;
+  try {
+    await window._fbSetDoc(
+      window._fbDoc(window._fbDb, 'notifications', DB.currentUser, 'items', notifId),
+      { read: true }, { merge: true }
+    );
+  } catch(e) {}
+}
+
+async function markAllNotifsRead() {
+  if (!window._fbReady || !DB.currentUser) return;
+  try {
+    const col = window._fbCollection(window._fbDb, 'notifications', DB.currentUser, 'items');
+    const snap = await window._fbGetDocs(col);
+    await Promise.all(snap.docs
+      .filter(d => !d.data().read)
+      .map(d => window._fbSetDoc(d.ref, { read: true }, { merge: true }))
+    );
+  } catch(e) {}
+}
+
+function toggleNotifDrawer() {
+  const overlay = document.getElementById('notif-drawer-overlay');
+  if (overlay.classList.contains('open')) closeNotifDrawer();
+  else openNotifDrawer();
+}
+function openNotifDrawer() {
+  closeMobileDrawer();
+  const overlay = document.getElementById('notif-drawer-overlay');
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => {
+    overlay.style.opacity = '1';
+    overlay.classList.add('open');
+    document.getElementById('notif-drawer').style.transform = 'translateY(0)';
+  });
+  document.getElementById('bnav-notif').classList.add('active');
+  markAllNotifsRead();
+}
+function closeNotifDrawer() {
+  const overlay = document.getElementById('notif-drawer-overlay');
+  overlay.style.opacity = '0';
+  document.getElementById('notif-drawer').style.transform = 'translateY(100%)';
+  overlay.classList.remove('open');
+  document.getElementById('bnav-notif')?.classList.remove('active');
+  setTimeout(() => { if (!overlay.classList.contains('open')) overlay.style.display = 'none'; }, 300);
 }
 
 </script>
