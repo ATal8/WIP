@@ -1583,7 +1583,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <aside id="sidebar">
     <div class="sb-top">
       <div class="sb-logo">WIP</div>
-      <div class="sb-sub">work in progress · v3.2.0</div>
+      <div class="sb-sub">work in progress · v3.2.1</div>
     </div>
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
@@ -1595,9 +1595,29 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.2.0</div>
+      <button id="sb-notif-btn" onclick="toggleDesktopNotif()" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;cursor:pointer;padding:6px 0;color:var(--dim);transition:color 0.12s;position:relative" onmouseenter="this.style.color='var(--mid)'" onmouseleave="this.style.color='var(--dim)'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500">notifications</span>
+        <span id="sb-notif-badge" style="display:none;width:6px;height:6px;background:#ff5555;border-radius:50%;margin-left:2px"></span>
+      </button>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5;margin-top:6px">v3.2.1</div>
     </div>
   </aside>
+
+  <!-- DESKTOP NOTIFICATIONS PANEL -->
+  <div id="desktop-notif-panel" style="display:none;position:fixed;left:var(--sidebar-w);bottom:0;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:0 12px 0 0;box-shadow:4px -4px 24px rgba(0,0,0,0.4);z-index:300;flex-direction:column;max-height:480px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--mid)">notifications</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="markAllNotifsRead()" style="font-size:9px;letter-spacing:0.06em;color:var(--dim);background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:3px;transition:color 0.1s" onmouseenter="this.style.color='var(--mid)'" onmouseleave="this.style.color='var(--dim)'">mark all read</button>
+        <button onclick="toggleDesktopNotif()" style="width:20px;height:20px;background:none;border:none;cursor:pointer;color:var(--dim);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:14px;transition:color 0.1s" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--dim)'">×</button>
+      </div>
+    </div>
+    <div id="desktop-notif-list" style="flex:1;overflow-y:auto;padding:6px 0 12px"></div>
+  </div>
 
   <main id="main">
     <div id="main-ambient"></div>
@@ -1711,7 +1731,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </svg>
       <span id="notif-badge" style="display:none;position:absolute;top:-3px;right:-4px;width:8px;height:8px;background:#ff5555;border-radius:50%;border:1.5px solid var(--bg)"></span>
     </div>
-    <span class="bnav-label">alerts</span>
+    <span class="bnav-label">notifications</span>
   </button>
 </nav>
 
@@ -1935,7 +1955,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.2.0</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.2.1</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5061,9 +5081,11 @@ function initNotifications(userUid) {
       .slice(0, 50);
     const unread = items.filter(x => !x.read).length;
 
-    // Update badge
+    // Update badges
     const badge = document.getElementById('notif-badge');
     if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+    const sbBadge = document.getElementById('sb-notif-badge');
+    if (sbBadge) sbBadge.style.display = unread > 0 ? 'inline-block' : 'none';
 
     // Fetch listener profiles (live)
     const uids = [...new Set(items.map(x => x.listenerUid).filter(Boolean))];
@@ -5080,41 +5102,50 @@ function initNotifications(userUid) {
 }
 
 function renderNotifList(items, profiles) {
-  const list = document.getElementById('notif-list');
-  if (!list) return;
+  const html = !items.length
+    ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:10px;color:var(--dim)">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div style="font-size:11px;letter-spacing:0.08em">no notifications yet</div>
+      </div>`
+    : items.map(n => {
+        const profile = profiles[n.listenerUid] || {};
+        const name = profile.preferredName || profile.displayName || 'someone';
+        const photo = profile.customAvatar || profile.photoURL || null;
+        const avatarHtml = photo
+          ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`
+          : `<span style="font-size:14px;font-weight:500;color:var(--accent)">${name[0]?.toUpperCase() || '?'}</span>`;
+        const timeStr = formatNotifTime(n.timestamp);
+        return `<div onclick="markNotifRead('${n.id}')" style="display:flex;align-items:flex-start;gap:14px;padding:13px 18px;cursor:pointer;transition:background 0.1s;${n.read ? '' : 'background:rgba(200,255,50,0.04);'}" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='${n.read ? 'none' : 'rgba(200,255,50,0.04)'}'">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">${avatarHtml}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text);line-height:1.4;letter-spacing:0.01em">
+              <span style="font-weight:500">${name}</span>
+              <span style="color:var(--mid)"> listened to </span>
+              <span style="font-weight:500">${n.trackName}</span>
+              <span style="color:var(--mid)"> off </span>
+              <span style="color:var(--accent)">${n.projectName}</span>
+            </div>
+            <div style="font-size:10px;color:var(--dim);margin-top:4px;letter-spacing:0.04em">${timeStr}</div>
+          </div>
+          ${!n.read ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px"></div>` : ''}
+        </div>`;
+      }).join('');
 
-  if (!items.length) {
-    list.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:10px;color:var(--dim)">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <div style="font-size:11px;letter-spacing:0.08em">no notifications yet</div>
-    </div>`;
-    return;
-  }
+  const mobileList = document.getElementById('notif-list');
+  if (mobileList) mobileList.innerHTML = html;
+  const desktopList = document.getElementById('desktop-notif-list');
+  if (desktopList) desktopList.innerHTML = html;
+}
 
-  list.innerHTML = items.map(n => {
-    const profile = profiles[n.listenerUid] || {};
-    const name = profile.preferredName || profile.displayName || 'someone';
-    const photo = profile.customAvatar || profile.photoURL || null;
-    const avatarHtml = photo
-      ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`
-      : `<span style="font-size:14px;font-weight:500;color:var(--accent)">${name[0]?.toUpperCase() || '?'}</span>`;
-    const timeStr = formatNotifTime(n.timestamp);
-
-    return `<div onclick="markNotifRead('${n.id}')" style="display:flex;align-items:flex-start;gap:14px;padding:13px 18px;cursor:pointer;transition:background 0.1s;${n.read ? '' : 'background:rgba(200,255,50,0.04);'}" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='${n.read ? 'none' : 'rgba(200,255,50,0.04)'}'">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">${avatarHtml}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;color:var(--text);line-height:1.4;letter-spacing:0.01em">
-          <span style="font-weight:500">${name}</span>
-          <span style="color:var(--mid)"> listened to </span>
-          <span style="font-weight:500">${n.trackName}</span>
-          <span style="color:var(--mid)"> off </span>
-          <span style="color:var(--accent)">${n.projectName}</span>
-        </div>
-        <div style="font-size:10px;color:var(--dim);margin-top:4px;letter-spacing:0.04em">${timeStr}</div>
-      </div>
-      ${!n.read ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px"></div>` : ''}
-    </div>`;
-  }).join('');
+let _desktopNotifOpen = false;
+function toggleDesktopNotif() {
+  const panel = document.getElementById('desktop-notif-panel');
+  if (!panel) return;
+  _desktopNotifOpen = !_desktopNotifOpen;
+  panel.style.display = _desktopNotifOpen ? 'flex' : 'none';
+  const btn = document.getElementById('sb-notif-btn');
+  if (btn) btn.style.color = _desktopNotifOpen ? 'var(--accent)' : '';
+  if (_desktopNotifOpen) markAllNotifsRead();
 }
 
 function formatNotifTime(ts) {
@@ -5164,6 +5195,7 @@ function openNotifDrawer() {
     document.getElementById('notif-drawer').style.transform = 'translateY(0)';
   });
   document.getElementById('bnav-notif').classList.add('active');
+  markAllNotifsRead();
 }
 function closeNotifDrawer() {
   const overlay = document.getElementById('notif-drawer-overlay');
