@@ -1071,6 +1071,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <div class="ob-title">work in progress</div>
       <div class="ob-sub">your music project manager</div>
     </div>
+
+    <!-- Google button -->
     <button id="google-signin-btn" onclick="signInWithGoogle()" style="
       display:flex;align-items:center;justify-content:center;gap:12px;
       width:100%;padding:14px 20px;
@@ -1093,6 +1095,37 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </svg>
       continue with Google
     </button>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:12px;width:100%">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,0.1)"></div>
+      <span style="font-size:10px;color:var(--dim);letter-spacing:0.1em">or</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,0.1)"></div>
+    </div>
+
+    <!-- Phone sign-in -->
+    <div id="phone-step-1" style="width:100%;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px">
+        <input id="phone-input" class="ob-input" placeholder="+972 50 000 0000"
+          style="flex:1;text-align:left;letter-spacing:0.04em"
+          onkeydown="if(event.key==='Enter')sendPhoneCode()">
+        <button onclick="sendPhoneCode()" class="ob-go" style="width:auto;padding:0 16px;flex-shrink:0;letter-spacing:0.06em">→</button>
+      </div>
+      <div id="recaptcha-container"></div>
+    </div>
+
+    <!-- OTP step -->
+    <div id="phone-step-2" style="width:100%;display:none;flex-direction:column;gap:10px">
+      <div style="font-size:10px;color:var(--mid);text-align:center;letter-spacing:0.06em" id="phone-sent-label">code sent</div>
+      <div style="display:flex;gap:8px">
+        <input id="otp-input" class="ob-input" placeholder="6-digit code" maxlength="6"
+          style="flex:1;text-align:center;letter-spacing:0.2em;font-size:18px"
+          onkeydown="if(event.key==='Enter')verifyOTP()">
+        <button onclick="verifyOTP()" class="ob-go" style="width:auto;padding:0 16px;flex-shrink:0;letter-spacing:0.06em">✓</button>
+      </div>
+      <button onclick="resetPhoneStep()" style="background:none;border:none;color:var(--dim);font-size:10px;cursor:pointer;letter-spacing:0.06em;font-family:'DM Mono',monospace">← back</button>
+    </div>
+
     <div id="ob-error" style="font-size:10px;color:#ff5555;letter-spacing:0.06em;display:none;text-align:center">sign-in failed — try again</div>
   </div>
 </div>
@@ -1114,7 +1147,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.6</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.0</div>
     </div>
   </aside>
 
@@ -1511,7 +1544,8 @@ import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSn
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  RecaptchaVerifier, signInWithPhoneNumber }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1547,6 +1581,8 @@ window._fbGoogleProvider = googleProvider;
 window._fbSignInWithPopup = signInWithPopup;
 window._fbSignOut = signOut;
 window._fbOnAuthStateChanged = onAuthStateChanged;
+window._fbRecaptchaVerifier = RecaptchaVerifier;
+window._fbSignInWithPhoneNumber = signInWithPhoneNumber;
 window._fbReady = true;
 </script>
 
@@ -1629,6 +1665,75 @@ async function signOutGoogle() {
       </svg>
       continue with Google`;
   }
+}
+
+// ─── PHONE AUTH ───
+let phoneConfirmationResult = null;
+
+async function sendPhoneCode() {
+  const phone = document.getElementById('phone-input')?.value.trim();
+  const errEl = document.getElementById('ob-error');
+  if (!phone) return;
+  if (errEl) errEl.style.display = 'none';
+
+  try {
+    // Init reCAPTCHA (invisible)
+    if (!window._recaptchaVerifier) {
+      window._recaptchaVerifier = new window._fbRecaptchaVerifier(
+        window._fbAuth,
+        'recaptcha-container',
+        { size: 'invisible', callback: () => {} }
+      );
+    }
+    const btn = document.querySelector('#phone-step-1 button');
+    if (btn) { btn.textContent = '...'; btn.disabled = true; }
+
+    phoneConfirmationResult = await window._fbSignInWithPhoneNumber(
+      window._fbAuth, phone, window._recaptchaVerifier
+    );
+
+    // Show OTP step
+    document.getElementById('phone-step-1').style.display = 'none';
+    const step2 = document.getElementById('phone-step-2');
+    step2.style.display = 'flex';
+    const label = document.getElementById('phone-sent-label');
+    if (label) label.textContent = `code sent to ${phone}`;
+    setTimeout(() => document.getElementById('otp-input')?.focus(), 100);
+  } catch(e) {
+    console.warn('phone send failed', e);
+    if (errEl) { errEl.textContent = 'failed to send code — check the number'; errEl.style.display = 'block'; }
+    const btn = document.querySelector('#phone-step-1 button');
+    if (btn) { btn.textContent = '→'; btn.disabled = false; }
+    // Reset reCAPTCHA
+    if (window._recaptchaVerifier) { window._recaptchaVerifier.clear?.(); window._recaptchaVerifier = null; }
+  }
+}
+
+async function verifyOTP() {
+  const code = document.getElementById('otp-input')?.value.trim();
+  const errEl = document.getElementById('ob-error');
+  if (!code || !phoneConfirmationResult) return;
+  if (errEl) errEl.style.display = 'none';
+
+  const btn = document.querySelector('#phone-step-2 button');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+
+  try {
+    await phoneConfirmationResult.confirm(code);
+    // onAuthStateChanged will handle the rest
+  } catch(e) {
+    console.warn('OTP verify failed', e);
+    if (errEl) { errEl.textContent = 'incorrect code — try again'; errEl.style.display = 'block'; }
+    if (btn) { btn.textContent = '✓'; btn.disabled = false; }
+  }
+}
+
+function resetPhoneStep() {
+  document.getElementById('phone-step-2').style.display = 'none';
+  document.getElementById('phone-step-1').style.display = 'flex';
+  document.getElementById('otp-input').value = '';
+  phoneConfirmationResult = null;
+  if (window._recaptchaVerifier) { window._recaptchaVerifier.clear?.(); window._recaptchaVerifier = null; }
 }
 
 function updateSidebarUser() {
@@ -4071,7 +4176,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.4.6</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.0</div>
       </div>
     </div>
 
