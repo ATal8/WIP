@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.4</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.5</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3384,14 +3384,33 @@ function handlePsCoverUpload(e) {
 }
 
 async function uploadCoverToStorage(p, dataUrl) {
-  if (!window._fbReady || !window._fbStorage || !currentGoogleUser) return;
+  // Compress cover to ~200x200 JPEG (~15-30KB) and store in Firestore directly
+  // This avoids Firebase Storage rules issues
   try {
-    const ref = window._fbRef(window._fbStorage, `covers/${currentGoogleUser.uid}/${p.id}`);
-    const snap = await window._fbUploadString(ref, dataUrl, 'data_url');
-    const url = await window._fbGetDownloadURL(snap.ref);
-    p.coverUrl = url;
+    const compressed = await compressCover(dataUrl, 300, 0.72);
+    p.coverUrl = compressed; // use as the cross-device cover URL
+    p.cover = compressed;    // update local too
     saveDB();
-  } catch(e) { console.warn('cover upload failed', e); }
+  } catch(e) { console.warn('[WIP] cover compress failed:', e); }
+}
+
+function compressCover(dataUrl, size, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const s = Math.min(img.width, img.height);
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      // Center-crop
+      const sx = (img.width - s) / 2;
+      const sy = (img.height - s) / 2;
+      ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
 }
 
 function exportFromSettings() {
@@ -4328,6 +4347,7 @@ async function saveDBToFirebase(payload) {
       safeAlbums[user] = projects.map(p => ({
         ...p,
         cover: p.cover?.startsWith('data:') ? null : (p.cover || null),
+        // coverUrl is compressed (~20KB) — safe to store in Firestore
         coverUrl: p.coverUrl || null,
         tracks: (p.tracks || []).map(t => ({ ...t, url: null }))
       }));
