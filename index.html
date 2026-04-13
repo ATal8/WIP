@@ -952,15 +952,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 /* When panel is open, shift main content */
 #app.lyrics-open #main { margin-right: 500px; transition: margin-right 0.22s cubic-bezier(0.4,0,0.2,1); }
 #app:not(.lyrics-open) #main { margin-right: 0; transition: margin-right 0.22s cubic-bezier(0.4,0,0.2,1); }
-.deadline-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 10px; letter-spacing: 0.08em; padding: 3px 9px;
-  border-radius: 20px; border: 1px solid var(--border);
-  color: var(--dim); transition: color 0.2s, border-color 0.2s;
-}
-.deadline-badge.soon { color: #ffaa44; border-color: rgba(255,170,68,0.4); }
-.deadline-badge.overdue { color: #ff5555; border-color: rgba(255,85,85,0.4); }
-.deadline-badge.done { color: var(--accent); border-color: rgba(200,255,50,0.3); }
 
 /* ─── PROJECT NOTES ─── */
 .project-notes-wrap {
@@ -1421,7 +1412,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   .btn-confirm, .btn-cancel { font-size: 13px; padding: 10px 18px; border-radius: 8px; }
 
   /* Deadline row — already full width in redesigned modal */
-  #ps-deadline { width: 100%; max-width: 100%; box-sizing: border-box; }
 
   /* Track settings */
   #ts-modal .modal-btns { flex-wrap: wrap; gap: 8px; }
@@ -1607,6 +1597,13 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
       <span class="sb-uname" id="sb-uname">—</span>
+      <button id="sb-notif-btn" onclick="toggleDesktopNotif()" title="notifications" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color 0.12s,background 0.12s;position:relative" onmouseenter="this.style.color='var(--mid)';this.style.background='var(--surface2)'" onmouseleave="this.style.color='var(--dim)';this.style.background='none'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span id="sb-notif-badge" style="display:none;position:absolute;top:4px;right:4px;width:6px;height:6px;background:#ff5555;border-radius:50%;border:1.5px solid var(--surface)"></span>
+      </button>
     </div>
     <div class="sb-section">
       <div class="sb-label">projects</div>
@@ -1614,14 +1611,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <button id="sb-notif-btn" onclick="toggleDesktopNotif()" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;cursor:pointer;padding:6px 0;color:var(--dim);transition:color 0.12s;position:relative" onmouseenter="this.style.color='var(--mid)'" onmouseleave="this.style.color='var(--dim)'">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
-        <span style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500">notifications</span>
-        <span id="sb-notif-badge" style="display:none;width:6px;height:6px;background:#ff5555;border-radius:50%;margin-left:2px"></span>
-      </button>
       <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5;margin-top:6px"></div>
     </div>
   </aside>
@@ -1906,10 +1895,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       </div>
     </div>
     <div class="m-field" style="margin-bottom:14px">
-      <div class="m-label">deadline</div>
-      <input class="m-input" id="ps-deadline" type="date" style="cursor:pointer;color-scheme:dark">
-    </div>
-    <div class="m-field" style="margin-bottom:14px">
       <div class="m-label">project notes</div>
       <textarea class="m-input" id="ps-notes" rows="3" style="resize:vertical;min-height:72px;font-family:'DM Mono',monospace;line-height:1.6" placeholder="ideas, references, goals..."></textarea>
     </div>
@@ -1972,7 +1957,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.3</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.4</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3305,7 +3290,6 @@ function openProjectSettings(pid) {
   // artist is not editable in settings — stays as set on creation
   document.getElementById('ps-year').value = p.year || '';
   document.getElementById('ps-type').value = p.type || 'single';
-  document.getElementById('ps-deadline').value = p.deadline || '';
   document.getElementById('ps-notes').value = p.notes || '';
 
   const wrap = document.getElementById('ps-cover-wrap');
@@ -3366,7 +3350,6 @@ function saveProjectSettings() {
   // artist stays as-is — set at creation from Google displayName
   p.year     = document.getElementById('ps-year').value.trim() || p.year;
   p.type     = document.getElementById('ps-type').value;
-  p.deadline = document.getElementById('ps-deadline').value || '';
   p.notes    = document.getElementById('ps-notes').value || '';
   document.getElementById('ps-modal').classList.remove('open');
   clearInterval(psTimerInterval);
@@ -3814,19 +3797,6 @@ function hideMobAmbient() {
   if (heroBg) { heroBg.classList.remove('visible'); heroBg.style.backgroundImage = ''; }
 }
 
-function deadlineBadge(dateStr) {
-  if (!dateStr) return '';
-  const now = new Date(); now.setHours(0,0,0,0);
-  const dl = new Date(dateStr + 'T00:00:00');
-  const diff = Math.round((dl - now) / 86400000);
-  let cls = '', label = '';
-  if (diff < 0) { cls = 'overdue'; label = `${Math.abs(diff)}d overdue`; }
-  else if (diff === 0) { cls = 'soon'; label = 'due today'; }
-  else if (diff <= 7) { cls = 'soon'; label = `${diff}d left`; }
-  else { cls = ''; label = `due ${dl.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`; }
-  return `<span class="deadline-badge ${cls}">⏳ ${label}</span>`;
-}
-
 // ─── RENDER SIDEBAR ───
 function renderSidebar() {
   const list = document.getElementById('project-list');
@@ -3905,7 +3875,6 @@ function renderMain() {
           <span id="meta-tracks">${p.tracks.length} track${p.tracks.length !== 1 ? 's' : ''}</span>
           <span class="msep">·</span>
           <span id="meta-dur">${totalDur(p.tracks)}</span>
-          ${p.deadline ? `<span class="msep">·</span>${deadlineBadge(p.deadline)}` : ''}
           ${fileHandles[p.id] ? `<span class="msep">·</span><span id="autosave-indicator" style="display:inline-flex;align-items:center"><span style="color:var(--dim);font-size:9px;letter-spacing:0.08em">auto-save on</span></span>` : ''}
           ${!p._isShared ? `<span class="msep">·</span><span id="meta-saves" style="font-size:9px;color:var(--dim);letter-spacing:0.06em">— saves</span>` : ''}
         </div>
