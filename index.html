@@ -1228,19 +1228,37 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   }
   /* Full-width cover banner */
   .album-cover {
-    width: 100%;
-    height: 240px;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    cursor: default;
-    -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+    display: none; /* hidden — replaced by fixed #mob-hero-bg */
   }
-  .album-cover:hover { transform: none; }
   .cover-overlay { display: none; }
   .cover-input { display: none; }
   .album-cover::after { display: none; }
+
+  /* Fixed cover bg — stays put while content scrolls */
+  #mob-hero-bg {
+    display: block;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 260px;
+    background-size: cover;
+    background-position: center top;
+    z-index: 1;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, black 35%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 35%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.6s ease, background-image 0.5s ease;
+  }
+  #mob-hero-bg.visible { opacity: 1; }
+
+  /* Hero: top padding so info starts below the fixed cover */
+  .album-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 220px 20px 20px;
+    gap: 0;
+    position: relative;
+  }
   /* Album info below cover */
   .album-info {
     width: 100%;
@@ -1563,7 +1581,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <aside id="sidebar">
     <div class="sb-top">
       <div class="sb-logo">WIP</div>
-      <div class="sb-sub">work in progress · v3.0.9</div>
+      <div class="sb-sub">work in progress · v3.1.0</div>
     </div>
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
@@ -1575,7 +1593,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.0.9</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.1.0</div>
     </div>
   </aside>
 
@@ -1667,6 +1685,9 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <div id="mob-ambient-img"></div>
   <div id="mob-ambient-glow"></div>
 </div>
+
+<!-- MOBILE FIXED COVER (stays in place while content scrolls) -->
+<div id="mob-hero-bg" aria-hidden="true"></div>
 
 <!-- BOTTOM NAV (mobile only) -->
 <nav id="bottom-nav">
@@ -3670,18 +3691,25 @@ function showMobAmbient(coverUrl, rgb) {
   const img = document.getElementById('mob-ambient-img');
   const glow = document.getElementById('mob-ambient-glow');
   if (!el) return;
-  // Blurred cover image layer
   if (img) img.style.backgroundImage = `url(${coverUrl})`;
-  // Subtle color glow in middle
   if (glow && rgb) {
     glow.style.background = `radial-gradient(ellipse at 50% 40%, rgba(${rgb},0.18) 0%, transparent 70%)`;
   }
   requestAnimationFrame(() => el.classList.add('visible'));
+
+  // Fixed cover hero
+  const heroBg = document.getElementById('mob-hero-bg');
+  if (heroBg) {
+    heroBg.style.backgroundImage = `url(${coverUrl})`;
+    requestAnimationFrame(() => heroBg.classList.add('visible'));
+  }
 }
 
 function hideMobAmbient() {
   const el = document.getElementById('mob-ambient');
   if (el) el.classList.remove('visible');
+  const heroBg = document.getElementById('mob-hero-bg');
+  if (heroBg) { heroBg.classList.remove('visible'); heroBg.style.backgroundImage = ''; }
 }
 
 function deadlineBadge(dateStr) {
