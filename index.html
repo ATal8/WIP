@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.1</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.2</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4012,7 +4012,7 @@ function renderTrackList() {
       <div class="track-row ${S.curTid === t.id ? (ip ? 'playing' : 'current') : ''}"
            draggable="true"
            data-id="${t.id}"
-           onclick="playTrack('${t.id}')"
+           data-play="${t.id}"
            oncontextmenu="openTrackCtxMenu(event,'${t.id}')">
         <div class="num-wrap">
           <span class="t-num">${i+1}</span>
@@ -4099,6 +4099,34 @@ let dragSrcId = null;
 
 function setupTrackDrag() {
   const area = document.getElementById('tracks-area'); if (!area) return;
+
+  // Desktop click to play
+  area.addEventListener('click', e => {
+    const row = e.target.closest('[data-play]'); if (!row) return;
+    // Ignore if clicking on buttons/interactive elements
+    if (e.target.closest('button,select,input')) return;
+    playTrack(row.dataset.play);
+  });
+
+  // Mobile: tap vs scroll detection
+  let _touchStartY = 0, _touchStartX = 0, _touchMoved = false;
+  area.addEventListener('touchstart', e => {
+    _touchStartY = e.touches[0].clientY;
+    _touchStartX = e.touches[0].clientX;
+    _touchMoved = false;
+  }, { passive: true });
+  area.addEventListener('touchmove', e => {
+    const dy = Math.abs(e.touches[0].clientY - _touchStartY);
+    const dx = Math.abs(e.touches[0].clientX - _touchStartX);
+    if (dy > 6 || dx > 6) _touchMoved = true;
+  }, { passive: true });
+  area.addEventListener('touchend', e => {
+    if (_touchMoved) return; // was a scroll — ignore
+    const row = e.target.closest('[data-play]'); if (!row) return;
+    if (e.target.closest('button,select,input')) return;
+    e.preventDefault();
+    playTrack(row.dataset.play);
+  });
 
   area.addEventListener('dragstart', e => {
     const row = e.target.closest('[data-id]'); if (!row) return;
