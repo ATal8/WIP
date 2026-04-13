@@ -1216,6 +1216,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   #main { padding-bottom: calc(var(--mobile-player-h) + var(--bottom-nav-h)); }
   #main-content { max-width: 100%; }
   #main-ambient { display: none; }
+  /* Mobile ambient: separate fixed element added via JS */
 
   /* ══ ALBUM HERO — mobile redesign ══ */
   .album-hero {
@@ -1447,6 +1448,50 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   .lp-section-btn { flex-shrink: 0; }
   .lp-sep { flex-shrink: 0; }
 
+  /* ══ MOBILE AMBIENT MODE ══ */
+  #mob-ambient {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 100dvh;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  #mob-ambient.visible { opacity: 1; }
+  #mob-ambient-img {
+    position: absolute;
+    top: -20px; left: -20px; right: -20px;
+    height: 70%;
+    background-size: cover;
+    background-position: center top;
+    filter: blur(48px) saturate(2.4) brightness(0.38);
+    -webkit-mask-image: linear-gradient(to bottom,
+      rgba(0,0,0,0.92) 0%,
+      rgba(0,0,0,0.80) 30%,
+      rgba(0,0,0,0.30) 65%,
+      transparent 100%);
+    mask-image: linear-gradient(to bottom,
+      rgba(0,0,0,0.92) 0%,
+      rgba(0,0,0,0.80) 30%,
+      rgba(0,0,0,0.30) 65%,
+      transparent 100%);
+  }
+  #mob-ambient-glow {
+    position: absolute;
+    inset: 0;
+    transition: background 0.9s ease;
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 20%,
+      rgba(0,0,0,0.25) 50%,
+      transparent 100%);
+    mask-image: linear-gradient(to bottom,
+      transparent 20%,
+      rgba(0,0,0,0.25) 50%,
+      transparent 100%);
+  }
+  #main { position: relative; z-index: 1; }
+
   /* ══ MISC ══ */
   .ob-box { width: 90%; max-width: 360px; }
   .no-sel-hint { display: none; }
@@ -1525,7 +1570,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <aside id="sidebar">
     <div class="sb-top">
       <div class="sb-logo">WIP</div>
-      <div class="sb-sub">work in progress · v3.0.6</div>
+      <div class="sb-sub">work in progress · v3.0.7</div>
     </div>
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
@@ -1537,7 +1582,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.0.6</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.0.7</div>
     </div>
   </aside>
 
@@ -1622,6 +1667,12 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <svg id="mob-pp-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
     </button>
   </footer>
+</div>
+
+<!-- MOBILE AMBIENT (YouTube-style glow) -->
+<div id="mob-ambient" aria-hidden="true">
+  <div id="mob-ambient-img"></div>
+  <div id="mob-ambient-glow"></div>
 </div>
 
 <!-- BOTTOM NAV (mobile only) -->
@@ -3598,13 +3649,14 @@ function updateHeroBackground(p) {
   if (!p || !p.cover) {
     if (blurEl) { blurEl.classList.remove('visible'); blurEl.style.backgroundImage = ''; blurEl.style.background = ''; }
     if (ambientEl) { ambientEl.classList.remove('visible'); ambientEl.style.backgroundImage = ''; }
+    hideMobAmbient();
     return;
   }
   if (blurEl) {
     blurEl.style.backgroundImage = `url(${p.cover})`;
     requestAnimationFrame(() => blurEl.classList.add('visible'));
   }
-  // Extract color and apply as ambient glow
+  // Desktop ambient
   extractCoverColor(p.cover, rgb => {
     if (ambientEl) {
       if (rgb) {
@@ -3615,7 +3667,28 @@ function updateHeroBackground(p) {
       }
       requestAnimationFrame(() => ambientEl.classList.add('visible'));
     }
+    // Mobile ambient
+    if (isMobile()) showMobAmbient(p.cover, rgb);
   });
+}
+
+function showMobAmbient(coverUrl, rgb) {
+  const el = document.getElementById('mob-ambient');
+  const img = document.getElementById('mob-ambient-img');
+  const glow = document.getElementById('mob-ambient-glow');
+  if (!el) return;
+  // Blurred cover image layer
+  if (img) img.style.backgroundImage = `url(${coverUrl})`;
+  // Subtle color glow in middle
+  if (glow && rgb) {
+    glow.style.background = `radial-gradient(ellipse at 50% 40%, rgba(${rgb},0.18) 0%, transparent 70%)`;
+  }
+  requestAnimationFrame(() => el.classList.add('visible'));
+}
+
+function hideMobAmbient() {
+  const el = document.getElementById('mob-ambient');
+  if (el) el.classList.remove('visible');
 }
 
 function deadlineBadge(dateStr) {
