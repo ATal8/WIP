@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.6</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.7</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4831,17 +4831,16 @@ const waitForFb = setInterval(() => {
           }
         } catch(e) {}
 
+        const mergeAuthCover = (p) => {
+          // coverUrl from Firestore is always authoritative (it's the compressed cross-device version)
+          // Only fall back to local base64 if Firestore has no coverUrl at all
+          return p.coverUrl || localCovers[p.id] || p.cover || null;
+        };
         if (albums[user.uid]) {
-          DB.albums[user.uid] = albums[user.uid].map(p => ({
-            ...p,
-            cover: localCovers[p.id] || p.coverUrl || p.cover || null
-          }));
+          DB.albums[user.uid] = albums[user.uid].map(p => ({ ...p, cover: mergeAuthCover(p) }));
         } else {
           const firstKey = Object.keys(albums)[0];
-          if (firstKey) DB.albums[user.uid] = albums[firstKey].map(p => ({
-            ...p,
-            cover: localCovers[p.id] || p.coverUrl || p.cover || null
-          }));
+          if (firstKey) DB.albums[user.uid] = albums[firstKey].map(p => ({ ...p, cover: mergeAuthCover(p) }));
         }
         if (cloudData.preferredName) DB.preferredName = cloudData.preferredName;
         if (cloudData.customAvatar) DB.customAvatar = cloudData.customAvatar;
@@ -5236,19 +5235,12 @@ function initLiveSync(uid) {
     } catch(e) {}
 
     // Merge cloud albums
-    // Build a map of existing coverUrls so we can detect changes
-    const existingCoverUrls = {};
-    (DB.albums[uid] || []).forEach(p => { existingCoverUrls[p.id] = p.coverUrl; });
-
     const cloudAlbums = data.albums[uid] || data.albums[Object.keys(data.albums)[0]] || [];
     DB.albums[uid] = cloudAlbums.map(p => {
       const cloudCoverUrl = p.coverUrl || null;
       const localCover = localCovers[p.id] || null;
-      const prevCoverUrl = existingCoverUrls[p.id] || null;
-      // If cloud coverUrl changed, always use the new cloud cover (user updated it on another device)
-      // Otherwise prefer local base64 if available (faster, no flicker)
-      const coverChanged = cloudCoverUrl && cloudCoverUrl !== prevCoverUrl;
-      const cover = coverChanged ? cloudCoverUrl : (localCover || cloudCoverUrl || p.cover || null);
+      // coverUrl from Firestore is always authoritative - prefer it over stale local
+      const cover = cloudCoverUrl || localCover || p.cover || null;
       return { ...p, cover, coverUrl: cloudCoverUrl };
     });
 
