@@ -1408,6 +1408,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     transform: translateY(24px);
     max-height: 90dvh;
     overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
   .modal-overlay.open .modal { transform: translateY(0); }
 
@@ -1419,7 +1421,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   .btn-confirm, .btn-cancel { font-size: 13px; padding: 10px 18px; border-radius: 8px; }
 
   /* Deadline row — already full width in redesigned modal */
-  #ps-deadline { width: 100%; }
+  #ps-deadline { width: 100%; max-width: 100%; box-sizing: border-box; }
 
   /* Track settings */
   #ts-modal .modal-btns { flex-wrap: wrap; gap: 8px; }
@@ -1970,7 +1972,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.2</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.3</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2406,6 +2408,7 @@ function openUserSettings() {
   if (pcEl) pcEl.textContent = projects.length;
   if (tcEl) tcEl.textContent = projects.reduce((a, p) => a + p.tracks.length, 0);
 
+  resetModalTransform('us-modal');
   document.getElementById('us-modal').classList.add('open');
   setTimeout(() => document.getElementById('us-name')?.focus(), 80);
 }
@@ -2931,6 +2934,7 @@ function openModal() {
   document.getElementById('m-artist').value = DB.preferredName || currentGoogleUser?.displayName || DB.currentUser || '';
   document.getElementById('m-year').value = new Date().getFullYear();
   document.querySelectorAll('.type-btn').forEach((b,i) => b.classList.toggle('selected', i === 0));
+  resetModalTransform('mo');
   document.getElementById('mo').classList.add('open');
   setTimeout(() => document.getElementById('m-title').focus(), 120);
 }
@@ -3317,6 +3321,7 @@ function openProjectSettings(pid) {
   clearInterval(psTimerInterval);
   psTimerInterval = setInterval(tick, 1000);
 
+  resetModalTransform('ps-modal');
   document.getElementById('ps-modal').classList.add('open');
   // Update auto-save button
   const asBtn = document.getElementById('ps-autosave-btn');
@@ -3439,6 +3444,11 @@ function confirmDeleteProject() {
 }
 let tsTrackId = null;
 
+function resetModalTransform(id) {
+  const modal = document.getElementById(id)?.querySelector('.modal');
+  if (modal) modal.style.transform = '';
+}
+
 function openTrackSettings(tid) {
   tsTrackId = tid;
   const p = findPByTrack(tid); if (!p) return;
@@ -3452,6 +3462,7 @@ function openTrackSettings(tid) {
   // Show lyrics button on mobile
   const lyrBtn = document.getElementById('ts-lyrics-btn');
   if (lyrBtn && isMobile()) lyrBtn.style.display = 'flex';
+  resetModalTransform('ts-modal');
   document.getElementById('ts-modal').classList.add('open');
   setTimeout(() => document.getElementById('ts-name').focus(), 80);
 }
