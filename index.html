@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.2</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.3</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2740,11 +2740,30 @@ let beatRaf = null;
 function startBeatGrid(bpm) {
   stopBeatGrid();
   if (!bpm || bpm === 'analyzing') return;
-  const beatDur = 60 / bpm;
+  const beatDur = 60 / bpm; // seconds per beat
+  const beatDurMs = beatDur * 1000;
   document.getElementById('lp-bpm-label').textContent = `${Math.round(bpm)} bpm`;
 
-  function tick() {
-    const beat = Math.floor(audio.currentTime / beatDur) % 4;
+  // Use performance.now() anchored to audio.currentTime for drift-free beat tracking
+  let anchorAudioTime = audio.currentTime;
+  let anchorWallTime = performance.now();
+
+  function tick(now) {
+    // Re-anchor if audio was seeked or paused/resumed (currentTime jumped)
+    const wallElapsed = (now - anchorWallTime) / 1000;
+    const expectedAudioTime = anchorAudioTime + (audio.paused ? 0 : wallElapsed);
+    const drift = Math.abs(audio.currentTime - expectedAudioTime);
+    if (drift > 0.15) {
+      // Audio was seeked or there's real drift — re-anchor
+      anchorAudioTime = audio.currentTime;
+      anchorWallTime = now;
+    }
+
+    const currentTime = audio.paused
+      ? audio.currentTime
+      : anchorAudioTime + (now - anchorWallTime) / 1000;
+
+    const beat = Math.floor(currentTime / beatDur) % 4;
     for (let i = 0; i < 4; i++) {
       document.getElementById(`beat-${i}`)?.classList.toggle('active-beat', i === beat);
     }
