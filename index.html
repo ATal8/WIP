@@ -1121,7 +1121,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.3</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.4</div>
     </div>
   </aside>
 
@@ -3142,8 +3142,7 @@ function renderMain() {
           <button class="btn-play-album" id="album-play-btn" onclick="playAlbum()">${S.playing && findPByTrack(S.curTid)?.id === p.id ? '⏸' : '▶'}</button>
           ${p._isShared ? `
             <button id="shared-save-btn" onclick="saveSharedProject('${p._shareId}','${p._ownerUid}','${p.id.replace('__shared__','')}','${DB.currentUser}')"
-              class="btn-outline" style="gap:5px;${p._alreadySaved?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}"
-              ${p._alreadySaved?'disabled':''}>
+              class="btn-outline" style="gap:5px;${p._alreadySaved?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}">
               ${p._alreadySaved ? '✓ saved' : '+ save to library'}
             </button>
           ` : `
@@ -4049,34 +4048,56 @@ const waitForFb = setInterval(() => {
 
 async function saveSharedProject(shareId, ownerUid, projectId, viewerUid) {
   const btn = document.getElementById('shared-save-btn');
-  if (btn) { btn.textContent = 'saving...'; btn.disabled = true; }
-  try {
-    // שמור reference ב-Firestore
-    const savedRef = window._fbDoc(window._fbDb, 'savedProjects', `${viewerUid}_${shareId}`);
-    await window._fbSetDoc(savedRef, { shareId, ownerUid, projectId, viewerUid, savedAt: Date.now() });
-    // עדכן כפתור
-    if (btn) {
-      btn.textContent = '✓ saved';
-      btn.style.background = 'var(--accent)';
-      btn.style.color = 'var(--bg)';
-      btn.style.borderColor = 'var(--accent)';
+  const fakeId = '__shared__' + shareId;
+  const p = (DB.albums['__shared__'] || []).find(p => p.id === fakeId);
+  const isCurrentlySaved = p?._alreadySaved;
+
+  if (isCurrentlySaved) {
+    // Unsave
+    if (btn) { btn.textContent = 'removing...'; btn.disabled = true; }
+    try {
+      await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'savedProjects', `${viewerUid}_${shareId}`));
+      if (p) p._alreadySaved = false;
+      if (btn) {
+        btn.textContent = '+ save to library';
+        btn.disabled = false;
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }
+      toast('removed from library');
+    } catch(e) {
+      console.warn('unsave failed', e);
+      if (btn) { btn.textContent = '✓ saved'; btn.disabled = false; }
+      toast('failed to remove');
     }
-    // סמן כשמור בזיכרון
-    const fakeId = '__shared__' + shareId;
-    const p = (DB.albums['__shared__'] || []).find(p => p.id === fakeId);
-    if (p) p._alreadySaved = true;
-    toast('saved to library ✓');
-    // עדכן count אצל הבעלים
-    const ownerEl = document.getElementById('meta-saves');
-    if (ownerEl) {
-      const cur = parseInt(ownerEl.textContent) || 0;
-      const n = cur + 1;
-      ownerEl.textContent = n === 1 ? '1 save' : `${n} saves`;
+  } else {
+    // Save
+    if (btn) { btn.textContent = 'saving...'; btn.disabled = true; }
+    try {
+      await window._fbSetDoc(window._fbDoc(window._fbDb, 'savedProjects', `${viewerUid}_${shareId}`), {
+        shareId, ownerUid, projectId, viewerUid, savedAt: Date.now()
+      });
+      if (p) p._alreadySaved = true;
+      if (btn) {
+        btn.textContent = '✓ saved';
+        btn.disabled = false;
+        btn.style.background = 'var(--accent)';
+        btn.style.color = 'var(--bg)';
+        btn.style.borderColor = 'var(--accent)';
+      }
+      toast('saved to library ✓');
+      const ownerEl = document.getElementById('meta-saves');
+      if (ownerEl) {
+        const cur = parseInt(ownerEl.textContent) || 0;
+        const n = cur + 1;
+        ownerEl.textContent = n === 1 ? '1 save' : `${n} saves`;
+      }
+    } catch(e) {
+      console.warn('save failed', e);
+      if (btn) { btn.textContent = '+ save to library'; btn.disabled = false; }
+      toast('save failed');
     }
-  } catch(e) {
-    console.warn('save failed', e);
-    if (btn) { btn.textContent = '+ save to library'; btn.disabled = false; }
-    toast('save failed');
   }
 }
 
