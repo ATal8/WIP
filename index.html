@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.7</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.8</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2946,16 +2946,21 @@ function selectType(btn, type) {
   btn.classList.add('selected');
 }
 
-function createAlbum() {
+async function createAlbum() {
   const name = document.getElementById('m-title').value.trim() || 'untitled project';
   const artist = document.getElementById('m-artist').value.trim() || DB.preferredName || currentGoogleUser?.displayName || 'unknown artist';
   const year = document.getElementById('m-year').value.trim() || String(new Date().getFullYear());
   const genre = '';
   const type = mCoverType || 'single';
-  const p = { id: uid(), name, artist, year, genre, type, cover: mCover, tracks: [], created: Date.now() };
+  const p = { id: uid(), name, artist, year, genre, type, cover: mCover || null, coverUrl: null, tracks: [], created: Date.now() };
   if (!DB.albums[DB.currentUser]) DB.albums[DB.currentUser] = [];
   DB.albums[DB.currentUser].push(p);
-  saveDB(); closeModal(); renderSidebar(); selectProject(p.id);
+  closeModal(); renderSidebar(); selectProject(p.id);
+  if (mCover) {
+    await uploadCoverToStorage(p, mCover);
+  } else {
+    saveDB();
+  }
 }
 
 // ─── PROJECTS ───
@@ -4362,6 +4367,9 @@ async function saveDBToFirebase(payload) {
 
     const payloadSize = JSON.stringify(fullPayload).length;
     console.log('[WIP] saving to Firebase, size:', Math.round(payloadSize/1024) + 'KB');
+    // Debug: log coverUrl presence per project
+    for (const [u, projs] of Object.entries(safeAlbums)) {
+    }
 
     await window._fbSetDoc(docRef, fullPayload, { merge: true });
     console.log('[WIP] Firebase save OK');
@@ -4832,9 +4840,8 @@ const waitForFb = setInterval(() => {
         } catch(e) {}
 
         const mergeAuthCover = (p) => {
-          // coverUrl from Firestore is always authoritative (it's the compressed cross-device version)
-          // Only fall back to local base64 if Firestore has no coverUrl at all
-          return p.coverUrl || localCovers[p.id] || p.cover || null;
+          const result = p.coverUrl || localCovers[p.id] || p.cover || null;
+          return result;
         };
         if (albums[user.uid]) {
           DB.albums[user.uid] = albums[user.uid].map(p => ({ ...p, cover: mergeAuthCover(p) }));
@@ -5234,7 +5241,6 @@ function initLiveSync(uid) {
       }
     } catch(e) {}
 
-    // Merge cloud albums
     const cloudAlbums = data.albums[uid] || data.albums[Object.keys(data.albums)[0]] || [];
     DB.albums[uid] = cloudAlbums.map(p => {
       const cloudCoverUrl = p.coverUrl || null;
