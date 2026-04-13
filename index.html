@@ -49,7 +49,11 @@ body {
   z-index: 400; opacity: 0; pointer-events: none; transition: opacity 0.3s;
 }
 #onboarding.open { opacity: 1; pointer-events: all; }
-#onboarding.loading { opacity: 1; pointer-events: none; }
+#onboarding.loading { opacity: 0; pointer-events: none; }
+
+/* Hide everything until auth resolves */
+body.auth-loading #app,
+body.auth-loading #onboarding { opacity: 0; pointer-events: none; }
 .ob-box {
   display: flex; flex-direction: column; align-items: center;
   gap: 24px; width: 320px;
@@ -1061,7 +1065,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 .no-sel-hint { font-size: 9px; opacity: 0.5; letter-spacing: 0.07em; }
 </style>
 </head>
-<body>
+<body class="auth-loading">
 
 <!-- ONBOARDING — Google Sign-In -->
 <div id="onboarding" class="loading">
@@ -1096,59 +1100,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       continue with Google
     </button>
 
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:12px;width:100%">
-      <div style="flex:1;height:1px;background:rgba(255,255,255,0.1)"></div>
-      <span style="font-size:10px;color:var(--dim);letter-spacing:0.1em">or</span>
-      <div style="flex:1;height:1px;background:rgba(255,255,255,0.1)"></div>
-    </div>
-
-    <!-- Phone sign-in -->
-    <div id="phone-step-1" style="width:100%;display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;gap:8px">
-        <select id="phone-country" class="ob-input" style="width:90px;flex-shrink:0;padding:13px 8px;cursor:pointer;text-align:center">
-          <option value="+972">🇮🇱 +972</option>
-          <option value="+1">🇺🇸 +1</option>
-          <option value="+44">🇬🇧 +44</option>
-          <option value="+49">🇩🇪 +49</option>
-          <option value="+33">🇫🇷 +33</option>
-          <option value="+39">🇮🇹 +39</option>
-          <option value="+34">🇪🇸 +34</option>
-          <option value="+31">🇳🇱 +31</option>
-          <option value="+7">🇷🇺 +7</option>
-          <option value="+86">🇨🇳 +86</option>
-          <option value="+91">🇮🇳 +91</option>
-          <option value="+55">🇧🇷 +55</option>
-          <option value="+52">🇲🇽 +52</option>
-          <option value="+27">🇿🇦 +27</option>
-          <option value="+61">🇦🇺 +61</option>
-          <option value="+81">🇯🇵 +81</option>
-          <option value="+82">🇰🇷 +82</option>
-          <option value="+90">🇹🇷 +90</option>
-          <option value="+20">🇪🇬 +20</option>
-          <option value="+971">🇦🇪 +971</option>
-        </select>
-        <input id="phone-input" class="ob-input" placeholder="50 000 0000"
-          style="flex:1;text-align:left;letter-spacing:0.04em"
-          onkeydown="if(event.key==='Enter')sendPhoneCode()"
-          oninput="this.value=this.value.replace(/[^0-9 ]/g,'')">
-      </div>
-      <button onclick="sendPhoneCode()" class="ob-go" style="letter-spacing:0.08em">send code →</button>
-      <div id="recaptcha-container"></div>
-    </div>
-
-    <!-- OTP step -->
-    <div id="phone-step-2" style="width:100%;display:none;flex-direction:column;gap:10px">
-      <div style="font-size:10px;color:var(--mid);text-align:center;letter-spacing:0.06em" id="phone-sent-label">code sent</div>
-      <div style="display:flex;gap:8px">
-        <input id="otp-input" class="ob-input" placeholder="6-digit code" maxlength="6"
-          style="flex:1;text-align:center;letter-spacing:0.2em;font-size:18px"
-          onkeydown="if(event.key==='Enter')verifyOTP()">
-        <button onclick="verifyOTP()" class="ob-go" style="width:auto;padding:0 16px;flex-shrink:0;letter-spacing:0.06em">✓</button>
-      </div>
-      <button onclick="resetPhoneStep()" style="background:none;border:none;color:var(--dim);font-size:10px;cursor:pointer;letter-spacing:0.06em;font-family:'DM Mono',monospace">← back</button>
-    </div>
-
     <div id="ob-error" style="font-size:10px;color:#ff5555;letter-spacing:0.06em;display:none;text-align:center">sign-in failed — try again</div>
   </div>
 </div>
@@ -1170,7 +1121,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.1</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.3</div>
     </div>
   </aside>
 
@@ -1567,8 +1518,7 @@ import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSn
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  RecaptchaVerifier, signInWithPhoneNumber }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1604,8 +1554,6 @@ window._fbGoogleProvider = googleProvider;
 window._fbSignInWithPopup = signInWithPopup;
 window._fbSignOut = signOut;
 window._fbOnAuthStateChanged = onAuthStateChanged;
-window._fbRecaptchaVerifier = RecaptchaVerifier;
-window._fbSignInWithPhoneNumber = signInWithPhoneNumber;
 window._fbReady = true;
 </script>
 
@@ -1690,83 +1638,6 @@ async function signOutGoogle() {
   }
 }
 
-// ─── PHONE AUTH ───
-let phoneConfirmationResult = null;
-
-async function sendPhoneCode() {
-  const countryCode = document.getElementById('phone-country')?.value || '+972';
-  const localNumber = document.getElementById('phone-input')?.value.trim().replace(/\s/g, '');
-  const errEl = document.getElementById('ob-error');
-  if (!localNumber) return;
-  if (errEl) errEl.style.display = 'none';
-
-  // Build full number — remove leading 0 if present
-  const cleaned = localNumber.startsWith('0') ? localNumber.slice(1) : localNumber;
-  const fullPhone = `${countryCode}${cleaned}`;
-
-  try {
-    // Init reCAPTCHA (invisible)
-    if (!window._recaptchaVerifier) {
-      window._recaptchaVerifier = new window._fbRecaptchaVerifier(
-        window._fbAuth,
-        'recaptcha-container',
-        { size: 'invisible', callback: () => {} }
-      );
-      await window._recaptchaVerifier.render();
-    }
-    const btn = document.querySelector('#phone-step-1 button');
-    if (btn) { btn.textContent = 'sending...'; btn.disabled = true; }
-
-    phoneConfirmationResult = await window._fbSignInWithPhoneNumber(
-      window._fbAuth, fullPhone, window._recaptchaVerifier
-    );
-
-    // Show OTP step
-    document.getElementById('phone-step-1').style.display = 'none';
-    const step2 = document.getElementById('phone-step-2');
-    step2.style.display = 'flex';
-    const label = document.getElementById('phone-sent-label');
-    if (label) label.textContent = `code sent to ${fullPhone}`;
-    setTimeout(() => document.getElementById('otp-input')?.focus(), 100);
-  } catch(e) {
-    console.warn('phone send failed:', e.code, e.message);
-    const msg = e.code === 'auth/invalid-phone-number' ? 'invalid phone number'
-      : e.code === 'auth/too-many-requests' ? 'too many attempts — try later'
-      : e.code === 'auth/captcha-check-failed' ? 'captcha failed — try again'
-      : 'failed to send code — try again';
-    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
-    const btn = document.querySelector('#phone-step-1 button');
-    if (btn) { btn.textContent = 'send code →'; btn.disabled = false; }
-    if (window._recaptchaVerifier) { window._recaptchaVerifier.clear?.(); window._recaptchaVerifier = null; }
-  }
-}
-
-async function verifyOTP() {
-  const code = document.getElementById('otp-input')?.value.trim();
-  const errEl = document.getElementById('ob-error');
-  if (!code || !phoneConfirmationResult) return;
-  if (errEl) errEl.style.display = 'none';
-
-  const btn = document.querySelector('#phone-step-2 button');
-  if (btn) { btn.textContent = '...'; btn.disabled = true; }
-
-  try {
-    await phoneConfirmationResult.confirm(code);
-    // onAuthStateChanged will handle the rest
-  } catch(e) {
-    console.warn('OTP verify failed', e);
-    if (errEl) { errEl.textContent = 'incorrect code — try again'; errEl.style.display = 'block'; }
-    if (btn) { btn.textContent = '✓'; btn.disabled = false; }
-  }
-}
-
-function resetPhoneStep() {
-  document.getElementById('phone-step-2').style.display = 'none';
-  document.getElementById('phone-step-1').style.display = 'flex';
-  document.getElementById('otp-input').value = '';
-  phoneConfirmationResult = null;
-  if (window._recaptchaVerifier) { window._recaptchaVerifier.clear?.(); window._recaptchaVerifier = null; }
-}
 
 function updateSidebarUser() {
   const name = DB.preferredName || currentGoogleUser?.displayName || DB.currentUser || '';
@@ -4208,7 +4079,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.1</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.3</div>
       </div>
     </div>
 
@@ -4841,6 +4712,7 @@ checkShareMode().then(isShareMode => {
         await restoreAudioUrls();
 
         // הסתר onboarding, הצג אפליקציה
+        document.body.classList.remove('auth-loading');
         const ob = document.getElementById('onboarding');
         ob.classList.remove('open');
         ob.classList.remove('loading');
@@ -4858,6 +4730,7 @@ checkShareMode().then(isShareMode => {
       } else {
         // לא מחובר — הצג onboarding
         document.getElementById('app').style.display = 'none';
+        document.body.classList.remove('auth-loading');
         const ob = document.getElementById('onboarding');
         ob.classList.remove('loading');
         ob.classList.add('open');
