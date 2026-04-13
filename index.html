@@ -1893,15 +1893,30 @@ async function saveUserSettings() {
 
   const current = DB.preferredName || currentGoogleUser?.displayName || '';
   const saveBtn = document.getElementById('us-save-btn');
-  if (saveBtn?.disabled) return; // name taken
+  const statusEl = document.getElementById('us-name-status');
 
-  // Check uniqueness if name changed
+  // If name changed, do a definitive server-side availability check before touching anything
   if (newName !== current && window._fbReady) {
-    // Release old name, claim new one
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'checking...'; }
+    if (statusEl) { statusEl.style.color = 'var(--dim)'; statusEl.textContent = 'checking...'; }
     try {
+      const snap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'usernames', newName.toLowerCase()));
+      if (snap.exists() && snap.data().uid !== DB.currentUser) {
+        // Taken by someone else — abort
+        if (statusEl) { statusEl.style.color = '#ff5555'; statusEl.textContent = `"${newName}" is not available`; }
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'save'; }
+        return;
+      }
+      // Available — release old name first, then claim new one atomically
       if (current) await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'usernames', current.toLowerCase())).catch(() => {});
       await window._fbSetDoc(window._fbDoc(window._fbDb, 'usernames', newName.toLowerCase()), { uid: DB.currentUser, name: newName });
-    } catch(e) { console.warn('username claim failed', e); }
+    } catch(e) {
+      console.warn('username claim failed', e);
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'save'; }
+      toast('could not verify username, try again');
+      return;
+    }
+    if (saveBtn) saveBtn.textContent = 'save';
   }
 
   document.getElementById('us-modal').classList.remove('open');
