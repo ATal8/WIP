@@ -1121,7 +1121,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.1</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.2</div>
     </div>
   </aside>
 
@@ -3145,7 +3145,6 @@ function renderMain() {
               ${p._alreadySaved?'disabled':''}>
               ${p._alreadySaved ? '✓ saved' : '+ save to library'}
             </button>
-            <div style="font-size:9px;color:var(--dim);letter-spacing:0.06em">by ${p._ownerName||p.artist||'unknown'}</div>
           ` : `
           <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -4066,7 +4065,9 @@ async function loadAndShowSharedProject(shareId, user) {
     const shareSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'shared', shareId));
     if (!shareSnap.exists()) { renderMain(); return; }
     const { ownerUid, projectId } = shareSnap.data();
-    await _loadSharedEntry(shareId, ownerUid, projectId, user, true);
+    // Check if already saved
+    const savedSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'savedProjects', `${user.uid}_${shareId}`));
+    await _loadSharedEntry(shareId, ownerUid, projectId, user, true, savedSnap.exists());
   } catch(e) {
     console.warn('loadAndShowSharedProject failed', e);
     renderMain();
@@ -4081,13 +4082,13 @@ async function loadSavedProjects(user) {
     const mine = snaps.docs.filter(d => d.id.startsWith(user.uid + '_'));
     await Promise.all(mine.map(async (d) => {
       const { shareId, ownerUid, projectId } = d.data();
-      await _loadSharedEntry(shareId, ownerUid, projectId, user, false);
+      await _loadSharedEntry(shareId, ownerUid, projectId, user, false, true);
     }));
     if ((DB.albums['__shared__'] || []).length > 0) renderSidebar();
   } catch(e) { console.warn('loadSavedProjects failed', e); }
 }
 
-async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect) {
+async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect, alreadySaved) {
   try {
     const ownerSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
     if (!ownerSnap.exists()) return;
@@ -4107,7 +4108,7 @@ async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect) {
       _shareId: shareId,
       _ownerUid: ownerUid,
       _ownerName: ownerName,
-      _alreadySaved: true,
+      _alreadySaved: !!alreadySaved,
       tracks: project.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
     });
 
@@ -4123,7 +4124,7 @@ async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect) {
         const existing = DB.albums['__shared__'][idx];
         DB.albums['__shared__'][idx] = { ...existing, ...updated, id: fakeId,
           _isShared: true, _shareId: shareId, _ownerUid: ownerUid,
-          _ownerName: ownerName, _alreadySaved: true,
+          _ownerName: ownerName, _alreadySaved: existing._alreadySaved,
           tracks: updated.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null })) };
         if (S.curPid === fakeId) renderMain();
         renderSidebar();
