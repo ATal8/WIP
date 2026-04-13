@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.2</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.3</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3190,7 +3190,12 @@ function handleCoverUpload(e) {
   const f = e.target.files[0]; if (!f) return;
   const p = curP(); if (!p) return;
   const r = new FileReader();
-  r.onload = ev => { p.cover = ev.target.result; saveDB(); renderMain(); renderSidebar(); };
+  r.onload = async ev => {
+    const dataUrl = ev.target.result;
+    p.cover = dataUrl;
+    saveDB(); renderMain(); renderSidebar();
+    await uploadCoverToStorage(p, dataUrl);
+  };
   r.readAsDataURL(f);
 }
 function playTrack(tid) {
@@ -4279,6 +4284,8 @@ async function changeSaveLocation() {
   else { renderMain(); openProjectSettings(pid); }
 }
 
+let _lastSelfSaveTs = 0; // used by initLiveSync to detect self-saves
+
 function saveDB() {
   try {
     const albumsToSave = {};
@@ -4288,6 +4295,8 @@ function saveDB() {
         tracks: p.tracks.map(t => ({ ...t, url: null }))
       }));
     }
+    const now = Date.now();
+    _lastSelfSaveTs = now; // track for self-save detection in onSnapshot
     const payload = {
       albums: albumsToSave,
       currentUser: DB.currentUser,
@@ -4295,7 +4304,7 @@ function saveDB() {
       customAvatar: DB.customAvatar || null,
       displayName: currentGoogleUser?.displayName || DB.currentUser,
       photoURL: currentGoogleUser?.photoURL || null,
-      updatedAt: Date.now()
+      updatedAt: now
     };
     localStorage.setItem('wip_db', JSON.stringify(payload));
     scheduleAutoSave();
@@ -4994,12 +5003,16 @@ async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect, a
       const idx = (DB.albums['__shared__'] || []).findIndex(p => p.id === fakeId);
       if (idx >= 0) {
         const existing = DB.albums['__shared__'][idx];
-        DB.albums['__shared__'][idx] = { ...existing, ...updated, id: fakeId,
+        DB.albums['__shared__'][idx] = {
+          ...existing, ...updated, id: fakeId,
           _isShared: true, _shareId: shareId, _ownerUid: ownerUid,
           _ownerName: ownerName, _alreadySaved: existing._alreadySaved,
-          tracks: updated.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null })) };
+          cover: updated.coverUrl || updated.cover || existing.cover || null,
+          coverUrl: updated.coverUrl || null,
+          tracks: updated.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
+        };
         if (S.curPid === fakeId) renderMain();
-        renderSidebar();
+        renderSidebar(); renderMobileDrawer();
       }
     });
   } catch(e) { console.warn('_loadSharedEntry failed', e); }
@@ -5172,14 +5185,7 @@ window.addEventListener('resize', syncMobilePlayBtn);
 // LIVE CROSS-DEVICE SYNC
 // ══════════════════════════════════════
 let _liveSyncUnsub = null;
-let _lastSelfSave = 0; // timestamp of last local save
-
-// Patch saveDBToFirebase to track self-saves
-const _origSaveDBToFirebase = saveDBToFirebase;
-saveDBToFirebase = async function(payload) {
-  _lastSelfSave = Date.now();
-  return _origSaveDBToFirebase(payload);
-};
+let _lastSelfSaveTs = 0; // updatedAt of last local save
 
 function initLiveSync(uid) {
   if (_liveSyncUnsub) _liveSyncUnsub();
@@ -5187,14 +5193,14 @@ function initLiveSync(uid) {
 
   const docRef = window._fbDoc(window._fbDb, 'users', uid);
   _liveSyncUnsub = window._fbOnSnapshot(docRef, async (snap) => {
-    // Skip if this fired within 3s of our own save (self-triggered)
-    if (Date.now() - _lastSelfSave < 3000) return;
     if (!snap.exists()) return;
-
     const data = snap.data();
     if (!data.albums) return;
 
-    // Preserve local covers (base64 not stored in Firebase)
+    // Skip if this is our own save (same updatedAt timestamp)
+    if (data.updatedAt && data.updatedAt === _lastSelfSaveTs) return;
+
+    // Preserve local base64 covers
     const localCovers = {};
     try {
       const raw = localStorage.getItem('wip_db');
@@ -5208,7 +5214,7 @@ function initLiveSync(uid) {
       }
     } catch(e) {}
 
-    // Merge cloud albums into DB (only own albums, not __shared__)
+    // Merge cloud albums
     const cloudAlbums = data.albums[uid] || data.albums[Object.keys(data.albums)[0]] || [];
     DB.albums[uid] = cloudAlbums.map(p => ({
       ...p,
@@ -5218,20 +5224,16 @@ function initLiveSync(uid) {
     if (data.preferredName) DB.preferredName = data.preferredName;
     if (data.customAvatar) DB.customAvatar = data.customAvatar;
 
-    // Restore audio URLs for any new tracks
     await restoreAudioUrls();
 
-    // Re-render
-    renderSidebar();
-    updateSidebarUser();
-    updateMobileNav();
+    renderSidebar(); renderMobileDrawer();
+    updateSidebarUser(); updateMobileNav();
     if (S.curPid) {
       const stillExists = curAlbums().find(p => p.id === S.curPid);
       if (stillExists) renderMain();
       else { S.curPid = null; renderMain(); }
     }
-
-    console.log('[WIP] live sync updated from another device');
+    console.log('[WIP] live sync ← remote update');
   });
 }
 
