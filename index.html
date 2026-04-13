@@ -1619,7 +1619,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   </aside>
 
   <!-- DESKTOP NOTIFICATIONS PANEL -->
-  <div id="desktop-notif-panel" style="display:none;position:fixed;left:var(--sidebar-w);bottom:60px;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:0 12px 12px 0;box-shadow:4px 0 24px rgba(0,0,0,0.4);z-index:300;flex-direction:column;max-height:520px">
+  <div id="desktop-notif-panel" style="display:none;position:fixed;width:320px;background:var(--surface);border:1px solid var(--border-h);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3);z-index:300;flex-direction:column;max-height:480px;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
       <div style="font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--mid)">notifications</div>
       <div style="display:flex;gap:8px;align-items:center">
@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.6</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.3.7</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5345,12 +5345,35 @@ function renderNotifList(items, profiles) {
 let _desktopNotifOpen = false;
 function toggleDesktopNotif() {
   const panel = document.getElementById('desktop-notif-panel');
-  if (!panel) return;
-  _desktopNotifOpen = !_desktopNotifOpen;
-  panel.style.display = _desktopNotifOpen ? 'flex' : 'none';
   const btn = document.getElementById('sb-notif-btn');
-  if (btn) btn.style.color = _desktopNotifOpen ? 'var(--accent)' : 'var(--dim)';
-  if (_desktopNotifOpen) markAllNotifsRead();
+  if (!panel || !btn) return;
+  _desktopNotifOpen = !_desktopNotifOpen;
+
+  if (_desktopNotifOpen) {
+    const r = btn.getBoundingClientRect();
+    panel.style.display = 'flex';
+    panel.style.top = Math.max(8, r.top - 8) + 'px';
+    panel.style.left = (r.right + 10) + 'px';
+    panel.style.bottom = 'auto';
+    btn.style.color = 'var(--accent)';
+    markAllNotifsRead();
+    // Close on outside click
+    setTimeout(() => document.addEventListener('click', _closeNotifOutside), 0);
+  } else {
+    panel.style.display = 'none';
+    btn.style.color = 'var(--dim)';
+    document.removeEventListener('click', _closeNotifOutside);
+  }
+}
+function _closeNotifOutside(e) {
+  const panel = document.getElementById('desktop-notif-panel');
+  const btn = document.getElementById('sb-notif-btn');
+  if (panel && !panel.contains(e.target) && !btn.contains(e.target)) {
+    _desktopNotifOpen = false;
+    panel.style.display = 'none';
+    btn.style.color = 'var(--dim)';
+    document.removeEventListener('click', _closeNotifOutside);
+  }
 }
 
 function formatNotifTime(ts) {
