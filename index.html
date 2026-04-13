@@ -1960,7 +1960,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.1</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.4.2</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3296,8 +3296,9 @@ function openProjectSettings(pid) {
   document.getElementById('ps-notes').value = p.notes || '';
 
   const wrap = document.getElementById('ps-cover-wrap');
-  wrap.innerHTML = p.cover
-    ? `<img src="${p.cover}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">`
+  const _pCover = getCover(p);
+  wrap.innerHTML = _pCover
+    ? `<img src="${_pCover}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">`
     : `<input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handlePsCoverUpload(event)">◈`;
 
   const tick = () => {
@@ -3596,11 +3597,12 @@ function updateFsView() {
 
   // cover
   const fc = document.getElementById('fs-cover');
-  fc.innerHTML = p?.cover ? `<img src="${p.cover}">` : '♩';
+  const _fsCover = getCover(p);
+  fc.innerHTML = _fsCover ? `<img src="${_fsCover}">` : '♩';
 
   // bg blur from cover
   const bg = document.getElementById('fs-bg');
-  bg.style.backgroundImage = p?.cover ? `url(${p.cover})` : 'none';
+  bg.style.backgroundImage = _fsCover ? `url(${_fsCover})` : 'none';
 
   // text
   document.getElementById('fs-track').textContent  = t ? t.name : '—';
@@ -3723,7 +3725,7 @@ function updatePlayerUI(t, p) {
   document.getElementById('pl-name').textContent = t.name;
   document.getElementById('pl-artist').textContent = p ? (p.artist || p.name) : '';
   const thumb = document.getElementById('pl-thumb');
-  thumb.innerHTML = p && p.cover ? `<img src="${p.cover}">` : '♪';
+  thumb.innerHTML = p && getCover(p) ? `<img src="${getCover(p)}">` : '♪';
   updBtn();
   // Draw waveform after a small delay (let audio start first)
   setTimeout(() => drawWaveform(t), 200);
@@ -3755,32 +3757,36 @@ function extractCoverColor(imgSrc, callback) {
   img.src = imgSrc;
 }
 
+// Helper — always use local base64 first, then cloud URL
+function getCover(p) { return p?.cover || p?.coverUrl || null; }
+
 function updateHeroBackground(p) {
+  const cover = getCover(p);
   const blurEl = document.getElementById('hero-blur');
   const ambientEl = document.getElementById('main-ambient');
-  if (!p || !p.cover) {
+  if (!cover) {
     if (blurEl) { blurEl.classList.remove('visible'); blurEl.style.backgroundImage = ''; blurEl.style.background = ''; }
     if (ambientEl) { ambientEl.classList.remove('visible'); ambientEl.style.backgroundImage = ''; }
     hideMobAmbient();
     return;
   }
   if (blurEl) {
-    blurEl.style.backgroundImage = `url(${p.cover})`;
+    blurEl.style.backgroundImage = `url(${cover})`;
     requestAnimationFrame(() => blurEl.classList.add('visible'));
   }
   // Desktop ambient
-  extractCoverColor(p.cover, rgb => {
+  extractCoverColor(cover, rgb => {
     if (ambientEl) {
       if (rgb) {
         ambientEl.style.backgroundImage = '';
         ambientEl.style.background = `radial-gradient(ellipse at 50% 0%, rgba(${rgb},0.28) 0%, transparent 70%)`;
       } else {
-        ambientEl.style.backgroundImage = `url(${p.cover})`;
+        ambientEl.style.backgroundImage = `url(${cover})`;
       }
       requestAnimationFrame(() => ambientEl.classList.add('visible'));
     }
     // Mobile ambient
-    if (isMobile()) showMobAmbient(p.cover, rgb);
+    if (isMobile()) showMobAmbient(cover, rgb);
   });
 }
 
@@ -3825,7 +3831,7 @@ function renderSidebar() {
     const el = document.createElement('div');
     el.className = 'project-item' + (p.id === S.curPid ? ' active' : '');
     el.innerHTML = `
-      <div class="p-thumb-sm">${p.cover ? `<img src="${p.cover}">` : '◈'}</div>
+      <div class="p-thumb-sm">${getCover(p) ? `<img src="${getCover(p)}">` : '◈'}</div>
       <div class="p-meta-sm">
         <div class="p-name-sm">${p.name}</div>
         <div class="p-artist-sm">${p.artist || '—'}</div>
@@ -3849,7 +3855,7 @@ function renderSidebar() {
       const el = document.createElement('div');
       el.className = 'project-item' + (p.id === S.curPid ? ' active' : '');
       el.innerHTML = `
-        <div class="p-thumb-sm" style="border-color:rgba(200,255,50,0.2)">${p.cover ? `<img src="${p.cover}">` : '◈'}</div>
+        <div class="p-thumb-sm" style="border-color:rgba(200,255,50,0.2)">${getCover(p) ? `<img src="${getCover(p)}">` : '◈'}</div>
         <div class="p-meta-sm">
           <div class="p-name-sm">${p.name}</div>
           <div class="p-artist-sm" style="color:var(--accent);opacity:0.6">${p._ownerName || p.artist || '—'}</div>
@@ -3874,7 +3880,7 @@ function renderMain() {
       <div class="hero-cover-blur" id="hero-blur"></div>
       <div class="hero-bg"></div>
       <div class="album-cover">
-        ${p.cover ? `<img src="${p.cover}">` : '◈'}
+        ${getCover(p) ? `<img src="${getCover(p)}">` : '◈'}
         <div class="cover-overlay">
           <span class="co-text">change cover</span>
         </div>
