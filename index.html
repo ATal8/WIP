@@ -1106,11 +1106,34 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <!-- Phone sign-in -->
     <div id="phone-step-1" style="width:100%;display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;gap:8px">
-        <input id="phone-input" class="ob-input" placeholder="+972 50 000 0000"
+        <select id="phone-country" class="ob-input" style="width:90px;flex-shrink:0;padding:13px 8px;cursor:pointer;text-align:center">
+          <option value="+972">🇮🇱 +972</option>
+          <option value="+1">🇺🇸 +1</option>
+          <option value="+44">🇬🇧 +44</option>
+          <option value="+49">🇩🇪 +49</option>
+          <option value="+33">🇫🇷 +33</option>
+          <option value="+39">🇮🇹 +39</option>
+          <option value="+34">🇪🇸 +34</option>
+          <option value="+31">🇳🇱 +31</option>
+          <option value="+7">🇷🇺 +7</option>
+          <option value="+86">🇨🇳 +86</option>
+          <option value="+91">🇮🇳 +91</option>
+          <option value="+55">🇧🇷 +55</option>
+          <option value="+52">🇲🇽 +52</option>
+          <option value="+27">🇿🇦 +27</option>
+          <option value="+61">🇦🇺 +61</option>
+          <option value="+81">🇯🇵 +81</option>
+          <option value="+82">🇰🇷 +82</option>
+          <option value="+90">🇹🇷 +90</option>
+          <option value="+20">🇪🇬 +20</option>
+          <option value="+971">🇦🇪 +971</option>
+        </select>
+        <input id="phone-input" class="ob-input" placeholder="50 000 0000"
           style="flex:1;text-align:left;letter-spacing:0.04em"
-          onkeydown="if(event.key==='Enter')sendPhoneCode()">
-        <button onclick="sendPhoneCode()" class="ob-go" style="width:auto;padding:0 16px;flex-shrink:0;letter-spacing:0.06em">→</button>
+          onkeydown="if(event.key==='Enter')sendPhoneCode()"
+          oninput="this.value=this.value.replace(/[^0-9 ]/g,'')">
       </div>
+      <button onclick="sendPhoneCode()" class="ob-go" style="letter-spacing:0.08em">send code →</button>
       <div id="recaptcha-container"></div>
     </div>
 
@@ -1147,7 +1170,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.0</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.1</div>
     </div>
   </aside>
 
@@ -1671,10 +1694,15 @@ async function signOutGoogle() {
 let phoneConfirmationResult = null;
 
 async function sendPhoneCode() {
-  const phone = document.getElementById('phone-input')?.value.trim();
+  const countryCode = document.getElementById('phone-country')?.value || '+972';
+  const localNumber = document.getElementById('phone-input')?.value.trim().replace(/\s/g, '');
   const errEl = document.getElementById('ob-error');
-  if (!phone) return;
+  if (!localNumber) return;
   if (errEl) errEl.style.display = 'none';
+
+  // Build full number — remove leading 0 if present
+  const cleaned = localNumber.startsWith('0') ? localNumber.slice(1) : localNumber;
+  const fullPhone = `${countryCode}${cleaned}`;
 
   try {
     // Init reCAPTCHA (invisible)
@@ -1684,12 +1712,13 @@ async function sendPhoneCode() {
         'recaptcha-container',
         { size: 'invisible', callback: () => {} }
       );
+      await window._recaptchaVerifier.render();
     }
     const btn = document.querySelector('#phone-step-1 button');
-    if (btn) { btn.textContent = '...'; btn.disabled = true; }
+    if (btn) { btn.textContent = 'sending...'; btn.disabled = true; }
 
     phoneConfirmationResult = await window._fbSignInWithPhoneNumber(
-      window._fbAuth, phone, window._recaptchaVerifier
+      window._fbAuth, fullPhone, window._recaptchaVerifier
     );
 
     // Show OTP step
@@ -1697,14 +1726,17 @@ async function sendPhoneCode() {
     const step2 = document.getElementById('phone-step-2');
     step2.style.display = 'flex';
     const label = document.getElementById('phone-sent-label');
-    if (label) label.textContent = `code sent to ${phone}`;
+    if (label) label.textContent = `code sent to ${fullPhone}`;
     setTimeout(() => document.getElementById('otp-input')?.focus(), 100);
   } catch(e) {
-    console.warn('phone send failed', e);
-    if (errEl) { errEl.textContent = 'failed to send code — check the number'; errEl.style.display = 'block'; }
+    console.warn('phone send failed:', e.code, e.message);
+    const msg = e.code === 'auth/invalid-phone-number' ? 'invalid phone number'
+      : e.code === 'auth/too-many-requests' ? 'too many attempts — try later'
+      : e.code === 'auth/captcha-check-failed' ? 'captcha failed — try again'
+      : 'failed to send code — try again';
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
     const btn = document.querySelector('#phone-step-1 button');
-    if (btn) { btn.textContent = '→'; btn.disabled = false; }
-    // Reset reCAPTCHA
+    if (btn) { btn.textContent = 'send code →'; btn.disabled = false; }
     if (window._recaptchaVerifier) { window._recaptchaVerifier.clear?.(); window._recaptchaVerifier = null; }
   }
 }
@@ -4176,7 +4208,7 @@ function showSharedProject(p) {
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.0</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.1</div>
       </div>
     </div>
 
