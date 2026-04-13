@@ -585,27 +585,34 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   position: fixed; inset: 0; z-index: 400;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity 0.4s ease;
+  background: #060608;
 }
 #fs-view.open { opacity: 1; pointer-events: all; }
 .fs-bg {
-  position: absolute; inset: 0;
-  background: #0a0a0b;
+  position: absolute; inset: -40px;
+  background-color: #060608;
   background-size: cover; background-position: center;
-  filter: blur(60px) brightness(0.25) saturate(1.6);
-  transform: scale(1.1);
-  transition: background-image 0.4s ease;
+  filter: blur(90px) brightness(0.16) saturate(2.8);
+  transform: scale(1.05);
+  transition: background-image 0.7s ease;
 }
-/* Fallback dark overlay so it always looks deep/dark */
+/* Top vignette */
 #fs-view::before {
   content: '';
   position: absolute; inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.5) 0%,
+    transparent 25%,
+    transparent 65%,
+    rgba(0,0,0,0.7) 100%
+  );
+  z-index: 1;
   pointer-events: none;
 }
 .fs-content {
-  position: relative; z-index: 1;
+  position: relative; z-index: 2;
   display: flex; flex-direction: column; align-items: center; gap: 20px;
   width: 340px;
 }
@@ -664,7 +671,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 }
 .fs-btn.fs-play:hover { background: #d4ff50; }
 .fs-close {
-  position: absolute; top: 24px; right: 28px; z-index: 2;
+  position: absolute; top: 24px; right: 28px; z-index: 3;
   width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.08);
   border-radius: 50%; cursor: pointer; color: rgba(255,255,255,0.5);
   display: flex; align-items: center; justify-content: center;
@@ -1427,8 +1434,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   /* ══ FULLSCREEN — mobile optimized ══ */
   #fs-view { z-index: 500; }
   .fs-bg {
-    filter: blur(50px) brightness(0.2) saturate(1.8);
-    transform: scale(1.2);
+    filter: blur(70px) brightness(0.14) saturate(3);
+    inset: -60px;
   }
   .fs-content {
     width: 100%;
@@ -1496,7 +1503,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <aside id="sidebar">
     <div class="sb-top">
       <div class="sb-logo">WIP</div>
-      <div class="sb-sub">work in progress · v3.0.4</div>
+      <div class="sb-sub">work in progress · v3.0.5</div>
     </div>
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
@@ -1508,7 +1515,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.0.4</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v3.0.5</div>
     </div>
   </aside>
 
