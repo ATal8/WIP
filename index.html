@@ -37,11 +37,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-weight: 300;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
-
-/* ─── ONBOARDING (first time only) ─── */
 #onboarding {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
   backdrop-filter: blur(8px);
@@ -84,7 +82,7 @@ body.auth-loading #onboarding { opacity: 0; pointer-events: none; }
 /* ─── APP LAYOUT ─── */
 #app {
   display: none;
-  height: 100vh;
+  height: 100dvh;
   display: grid;
   grid-template-rows: 1fr var(--player-h);
   grid-template-columns: var(--sidebar-w) 1fr;
@@ -1156,89 +1154,75 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 /* ══════════════════════════════════════
    @MEDIA MOBILE ≤640px
    ══════════════════════════════════════ */
+/* ══════════════════════════════════════
+   @MEDIA MOBILE ≤640px
+   ══════════════════════════════════════ */
 @media (max-width: 640px) {
   :root {
     --bottom-nav-h: 60px;
     --mobile-player-h: 64px;
   }
 
-  /* ── App grid: no sidebar ── */
+  /* ── Body: dynamic viewport height ── */
+  body { height: 100dvh; }
+
+  /* ── App: single column, main fills all, no sidebar ── */
   #app {
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr var(--mobile-player-h) var(--bottom-nav-h);
-    grid-template-areas: "main" "player" "botnav";
+    grid-template-rows: 1fr;
+    grid-template-areas: "main";
+    height: 100dvh;
   }
   #sidebar { display: none; }
 
-  /* ── Main content full width ── */
+  /* ── Main: leave room for fixed player + nav at bottom ── */
+  #main { padding-bottom: calc(var(--mobile-player-h) + var(--bottom-nav-h)); }
   #main-content { max-width: 100%; }
 
-  /* ── Album hero: vertical stack ── */
-  .album-hero {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 24px 16px 18px;
-    gap: 16px;
-  }
-  .album-cover { width: 140px; height: 140px; }
-  .album-info { width: 100%; }
-  .album-title { font-size: 26px; }
-  .album-actions { justify-content: center; }
-  .hero-bg, .hero-cover-blur { display: none; }
-
-  /* ── Track list: 3 columns ── */
-  .tbl-head { grid-template-columns: 36px 1fr 52px; padding: 5px 10px; }
-  .track-row { grid-template-columns: 36px 1fr 52px; padding: 10px 10px; }
-  .t-bpm, .t-date, .t-actions { display: none; }
-  .t-dur { text-align: right; }
-  .tbl-head > .th:nth-child(3),
-  .tbl-head > .th:nth-child(4),
-  .tbl-head > .th:nth-child(5) { display: none; }
-
-  /* ── Tracks section padding ── */
-  .tracks-section { padding: 0 12px 20px; }
-
-  /* ── Mini player ── */
+  /* ── Player: fixed bar above bottom nav ── */
   #player {
+    position: fixed;
+    bottom: var(--bottom-nav-h);
+    left: 0; right: 0;
     height: var(--mobile-player-h);
     padding: 0 16px;
     cursor: pointer;
-    border-radius: 10px 10px 0 0;
-    border-left: none; border-right: none;
-    position: relative;
+    z-index: 200;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
   .pl-center { display: none; }
-  .pl-right { display: none; }
-  .pl-left { flex: 1; min-width: 0; }
+  .pl-right  { display: none; }
+  .pl-left   { flex: 1; min-width: 0; }
   #mob-play-btn {
-    display: flex; align-items: center; justify-content: center;
+    display: flex !important;
+    align-items: center; justify-content: center;
     width: 40px; height: 40px; flex-shrink: 0;
     border: none; background: none; cursor: pointer;
-    color: var(--text); font-size: 20px;
+    color: var(--text);
     border-radius: 50%;
-    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
   }
-  #mob-play-btn:active { background: var(--surface2); }
   #mob-progress-bar {
     position: absolute; top: 0; left: 0; right: 0; height: 2px;
     background: var(--border-h);
-    border-radius: 2px 2px 0 0;
   }
   #mob-progress-fill {
     height: 100%; background: var(--accent);
-    border-radius: 2px 2px 0 0;
     transition: width 0.5s linear;
   }
 
-  /* ── Bottom nav ── */
+  /* ── Bottom nav: fixed at very bottom ── */
   #bottom-nav {
-    display: flex;
-    grid-area: botnav;
+    display: flex !important;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--bottom-nav-h);
     align-items: center;
     justify-content: space-around;
     border-top: 1px solid var(--border);
     background: var(--surface);
+    z-index: 200;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .bnav-btn {
@@ -1261,6 +1245,30 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   }
   .bnav-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 
+  /* ── Album hero: vertical stack ── */
+  .album-hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 16px 18px;
+    gap: 16px;
+  }
+  .album-cover { width: 140px; height: 140px; }
+  .album-info { width: 100%; }
+  .album-title { font-size: 26px; }
+  .album-actions { justify-content: center; }
+  .hero-bg, .hero-cover-blur { display: none; }
+
+  /* ── Track list: 3 columns only ── */
+  .tbl-head { grid-template-columns: 36px 1fr 52px; padding: 5px 10px; }
+  .track-row { grid-template-columns: 36px 1fr 52px; padding: 10px 10px; }
+  .t-bpm, .t-date, .t-actions { display: none; }
+  .t-dur { text-align: right; }
+  .tbl-head > .th:nth-child(3),
+  .tbl-head > .th:nth-child(4),
+  .tbl-head > .th:nth-child(5) { display: none; }
+  .tracks-section { padding: 0 12px 20px; }
+
   /* ── Modals: bottom sheet ── */
   .modal-overlay { align-items: flex-end; }
   .modal-overlay .modal {
@@ -1269,22 +1277,14 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     border-radius: 20px 20px 0 0 !important;
     padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0px));
     transform: translateY(20px);
-    max-height: 90vh;
+    max-height: 90dvh;
     overflow-y: auto;
   }
   .modal-overlay.open .modal { transform: translateY(0); }
 
-  /* ── No-sel hint on mobile ── */
+  /* ── Misc ── */
   .no-sel-hint { display: none; }
-  .no-sel-txt { font-size: 11px; }
-
-  /* ── Fullscreen: hide close btn text ── */
-  .fs-close { top: 16px; right: 16px; }
-
-  /* ── Onboarding box wider ── */
   .ob-box { width: 90%; max-width: 360px; }
-
-  /* ── Mobile drawer overlay shown ── */
   #mobile-drawer-overlay { display: block; pointer-events: none; }
   #mobile-drawer-overlay.open { pointer-events: all; }
 }
