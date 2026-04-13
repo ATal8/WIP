@@ -1121,7 +1121,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.2</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.8.3</div>
     </div>
   </aside>
 
@@ -3136,6 +3136,7 @@ function renderMain() {
           <span id="meta-dur">${totalDur(p.tracks)}</span>
           ${p.deadline ? `<span class="msep">·</span>${deadlineBadge(p.deadline)}` : ''}
           ${fileHandles[p.id] ? `<span class="msep">·</span><span id="autosave-indicator" style="display:inline-flex;align-items:center"><span style="color:var(--dim);font-size:9px;letter-spacing:0.08em">auto-save on</span></span>` : ''}
+          ${!p._isShared ? `<span class="msep">·</span><span id="meta-saves" style="font-size:9px;color:var(--dim);letter-spacing:0.06em">— saves</span>` : ''}
         </div>
         <div class="album-actions">
           <button class="btn-play-album" id="album-play-btn" onclick="playAlbum()">${S.playing && findPByTrack(S.curTid)?.id === p.id ? '⏸' : '▶'}</button>
@@ -3183,6 +3184,18 @@ function renderMain() {
     </div>` : ''}
     `;
   renderTrackList(); setupDrop(); updateHeroBackground(p);
+  // Fetch saves count in background
+  if (!p._isShared && window._fbReady) fetchSavesCount(p.id);
+}
+
+async function fetchSavesCount(projectId) {
+  try {
+    const col = window._fbCollection(window._fbDb, 'savedProjects');
+    const snaps = await window._fbGetDocs(col);
+    const count = snaps.docs.filter(d => d.data().projectId === projectId).length;
+    const el = document.getElementById('meta-saves');
+    if (el) el.textContent = count === 1 ? '1 save' : `${count} saves`;
+  } catch(e) {}
 }
 
 function updateMetaRow() {
@@ -4053,6 +4066,13 @@ async function saveSharedProject(shareId, ownerUid, projectId, viewerUid) {
     const p = (DB.albums['__shared__'] || []).find(p => p.id === fakeId);
     if (p) p._alreadySaved = true;
     toast('saved to library ✓');
+    // עדכן count אצל הבעלים
+    const ownerEl = document.getElementById('meta-saves');
+    if (ownerEl) {
+      const cur = parseInt(ownerEl.textContent) || 0;
+      const n = cur + 1;
+      ownerEl.textContent = n === 1 ? '1 save' : `${n} saves`;
+    }
   } catch(e) {
     console.warn('save failed', e);
     if (btn) { btn.textContent = '+ save to library'; btn.disabled = false; }
