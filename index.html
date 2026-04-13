@@ -1121,7 +1121,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.6.0</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.7.0</div>
     </div>
   </aside>
 
@@ -1594,6 +1594,13 @@ function curAlbums() {
   if (!DB.currentUser) return [];
   if (!DB.albums[DB.currentUser]) DB.albums[DB.currentUser] = [];
   return DB.albums[DB.currentUser];
+}
+
+function allAlbums() {
+  // Own + shared projects combined for sidebar
+  const own = DB.albums[DB.currentUser] || [];
+  const shared = DB.albums['__shared__'] || [];
+  return [...own, ...shared];
 }
 
 // ─── GOOGLE AUTH ───
@@ -2255,7 +2262,11 @@ function createAlbum() {
 
 // ─── PROJECTS ───
 function selectProject(id) { S.curPid = id; savePlayerState(); renderSidebar(); renderMain(); }
-function curP() { return curAlbums().find(p => p.id === S.curPid); }
+function curP() {
+  const own = curAlbums().find(p => p.id === S.curPid);
+  if (own) return own;
+  return (DB.albums['__shared__'] || []).find(p => p.id === S.curPid);
+}
 function findPByTrack(tid) {
   for (const u of Object.values(DB.albums)) {
     const p = u.find(p => p.tracks.some(t => t.id === tid));
@@ -3049,6 +3060,8 @@ function deadlineBadge(dateStr) {
 function renderSidebar() {
   const list = document.getElementById('project-list');
   list.innerHTML = '';
+
+  // Own projects
   curAlbums().forEach(p => {
     const el = document.createElement('div');
     el.className = 'project-item' + (p.id === S.curPid ? ' active' : '');
@@ -3064,6 +3077,29 @@ function renderSidebar() {
     el.oncontextmenu = e => { selectProject(p.id); openCtxMenu(e, p.id); };
     list.appendChild(el);
   });
+
+  // Shared projects (from others)
+  const shared = DB.albums['__shared__'] || [];
+  if (shared.length > 0) {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:8px 16px 4px;font-size:9px;letter-spacing:0.18em;color:var(--dim);text-transform:uppercase;border-top:1px solid var(--border);margin-top:6px';
+    div.textContent = 'saved';
+    list.appendChild(div);
+
+    shared.forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'project-item' + (p.id === S.curPid ? ' active' : '');
+      el.innerHTML = `
+        <div class="p-thumb-sm" style="border-color:rgba(200,255,50,0.2)">${p.cover ? `<img src="${p.cover}">` : '◈'}</div>
+        <div class="p-meta-sm">
+          <div class="p-name-sm">${p.name}</div>
+          <div class="p-artist-sm" style="color:var(--accent);opacity:0.6">${p._ownerName || p.artist || '—'}</div>
+        </div>
+        <span class="p-count-sm">${p.tracks.length}</span>`;
+      el.onclick = () => selectProject(p.id);
+      list.appendChild(el);
+    });
+  }
 }
 
 // ─── RENDER MAIN ───
@@ -3103,6 +3139,14 @@ function renderMain() {
         </div>
         <div class="album-actions">
           <button class="btn-play-album" id="album-play-btn" onclick="playAlbum()">${S.playing && findPByTrack(S.curTid)?.id === p.id ? '⏸' : '▶'}</button>
+          ${p._isShared ? `
+            <button id="shared-save-btn" onclick="saveSharedProject('${p._shareId}','${p._ownerUid}','${p.id.replace('__shared__','')}','${DB.currentUser}')"
+              class="btn-outline" style="gap:5px;${p._alreadySaved?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}"
+              ${p._alreadySaved?'disabled':''}>
+              ${p._alreadySaved ? '✓ saved' : '+ save to library'}
+            </button>
+            <div style="font-size:9px;color:var(--dim);letter-spacing:0.06em">by ${p._ownerName||p.artist||'unknown'}</div>
+          ` : `
           <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             share
@@ -3110,6 +3154,7 @@ function renderMain() {
           <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </button>
+          `}
         </div>
       </div>
     </div>
@@ -3124,12 +3169,13 @@ function renderMain() {
         <div></div>
       </div>
       <div id="tracks-area"></div>
+      ${!p._isShared ? `
       <div style="margin-top: 8px; display: flex; justify-content: center;">
         <button class="btn-add-tracks">
           <input type="file" accept="audio/*" multiple onchange="addTracks(this.files)">
           + add tracks
         </button>
-      </div>
+      </div>` : ''}
     </div>
     ${p.notes ? `
     <div class="project-notes-wrap">
@@ -3923,65 +3969,110 @@ async function checkShareMode() {
 
   try {
     const shareDoc = await window._fbGetDoc(window._fbDoc(window._fbDb, 'shared', shareId));
-    if (!shareDoc.exists()) {
-      document.body.classList.remove('auth-loading');
-      document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:'DM Mono',monospace;background:#0a0a0b;color:#5a5a62"><div style="font-size:32px">◈</div><div style="font-size:12px;letter-spacing:0.1em">project not found</div></div>`;
+    if (!shareDoc.exists()) return false; // invalid link — just load app normally
+
+    const { ownerUid, projectId, ownerName } = shareDoc.data();
+
+    // Wait for auth
+    const user = await new Promise(resolve => {
+      const unsub = window._fbOnAuthStateChanged(window._fbAuth, u => { unsub(); resolve(u); });
+    });
+
+    document.body.classList.remove('auth-loading');
+
+    if (!user) {
+      // Not signed in — show sign-in screen, after sign-in reload with same URL
+      showShareSignIn(ownerName, shareId);
       return true;
     }
 
-    const shareData = shareDoc.data();
-    const { ownerUid, projectId, ownerName } = shareData;
+    // Signed in — init app normally first
+    currentGoogleUser = user;
+    DB.currentUser = user.uid;
 
-    // Wait for auth state
-    await new Promise(resolve => {
-      const unsub = window._fbOnAuthStateChanged(window._fbAuth, user => {
-        unsub();
-        resolve(user);
-      });
-    }).then(async (user) => {
-      document.body.classList.remove('auth-loading');
-
-      if (!user) {
-        // Not logged in — show login screen with share context
-        showShareLoginPrompt(shareId, ownerName);
-        return;
+    const cloudData = await loadDBFromFirebase(user.uid);
+    if (cloudData && cloudData.albums) {
+      const albums = cloudData.albums;
+      if (albums[user.uid]) {
+        DB.albums[user.uid] = albums[user.uid];
+      } else {
+        const firstKey = Object.keys(albums)[0];
+        if (firstKey) DB.albums[user.uid] = albums[firstKey];
       }
+      if (cloudData.preferredName) DB.preferredName = cloudData.preferredName;
+    }
+    if (!DB.albums[user.uid]) DB.albums[user.uid] = [];
 
-      // Logged in — load the owner's project live
-      const ownerDocRef = window._fbDoc(window._fbDb, 'users', ownerUid);
-      const ownerSnap = await window._fbGetDoc(ownerDocRef);
-      if (!ownerSnap.exists()) {
-        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:'DM Mono',monospace;background:#0a0a0b;color:#5a5a62"><div style="font-size:32px">◈</div><div style="font-size:12px;letter-spacing:0.1em">project not found</div></div>`;
-        return;
+    const displayName = DB.preferredName || user.displayName || user.email || 'Artist';
+    DB.albums[user.uid].forEach(p => {
+      if (p.artist === user.uid || !p.artist || p.artist.length > 30) p.artist = displayName;
+    });
+
+    try { idb = await openIDB(); } catch(e) {}
+    await restoreAudioUrls();
+
+    // Is this the owner?
+    if (user.uid === ownerUid) {
+      // Just open their own project
+      const ob = document.getElementById('onboarding');
+      ob.classList.remove('open'); ob.classList.remove('loading');
+      document.getElementById('app').style.display = 'grid';
+      updateSidebarUser(); renderSidebar();
+      const ownProject = curAlbums().find(p => p.id === projectId);
+      if (ownProject) selectProject(projectId);
+      else renderMain();
+      history.replaceState(null, '', location.pathname); // clean URL
+      return true;
+    }
+
+    // Different user — load owner's project data
+    const ownerSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
+    if (!ownerSnap.exists()) {
+      // fallback — just open app normally
+      const ob = document.getElementById('onboarding');
+      ob.classList.remove('open'); ob.classList.remove('loading');
+      document.getElementById('app').style.display = 'grid';
+      updateSidebarUser(); renderSidebar(); renderMain();
+      return true;
+    }
+
+    const ownerData = ownerSnap.data();
+    const ownerAlbums = ownerData.albums || {};
+    const project = Object.values(ownerAlbums).flat().find(p => p.id === projectId);
+
+    if (!project) {
+      const ob = document.getElementById('onboarding');
+      ob.classList.remove('open'); ob.classList.remove('loading');
+      document.getElementById('app').style.display = 'grid';
+      updateSidebarUser(); renderSidebar(); renderMain();
+      return true;
+    }
+
+    // Check if already saved
+    const savedRef = window._fbDoc(window._fbDb, 'savedProjects', `${user.uid}_${shareId}`);
+    const savedSnap = await window._fbGetDoc(savedRef);
+    const alreadySaved = savedSnap.exists();
+
+    // Open app with shared project shown
+    const ob = document.getElementById('onboarding');
+    ob.classList.remove('open'); ob.classList.remove('loading');
+    document.getElementById('app').style.display = 'grid';
+    updateSidebarUser();
+
+    // Add shared project to sidebar as a special entry
+    openSharedProjectInApp(project, ownerName, shareId, ownerUid, user.uid, alreadySaved);
+
+    // Clean URL
+    history.replaceState(null, '', location.pathname);
+
+    // Live updates
+    window._fbOnSnapshot(window._fbDoc(window._fbDb, 'users', ownerUid), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const updated = Object.values(data.albums||{}).flat().find(p => p.id === projectId);
+      if (updated && S.curPid === '__shared__' + shareId) {
+        renderSharedProjectView(updated, ownerName, shareId, ownerUid, user.uid, alreadySaved);
       }
-
-      const ownerData = ownerSnap.data();
-      const ownerAlbums = ownerData.albums || {};
-      const allProjects = Object.values(ownerAlbums).flat();
-      const project = allProjects.find(p => p.id === projectId);
-
-      if (!project) {
-        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:'DM Mono',monospace;background:#0a0a0b;color:#5a5a62"><div style="font-size:32px">◈</div><div style="font-size:12px;letter-spacing:0.1em">project not found</div></div>`;
-        return;
-      }
-
-      // Check if already saved
-      const viewerUid = user.uid;
-      const savedRef = window._fbDoc(window._fbDb, 'savedProjects', `${viewerUid}_${shareId}`);
-      const savedSnap = await window._fbGetDoc(savedRef);
-      const alreadySaved = savedSnap.exists();
-
-      showSharedProject(project, ownerName, shareId, ownerUid, viewerUid, alreadySaved);
-
-      // Live updates — re-fetch owner data when it changes
-      window._fbOnSnapshot(ownerDocRef, (snap) => {
-        if (!snap.exists()) return;
-        const data = snap.data();
-        const albums = data.albums || {};
-        const projects = Object.values(albums).flat();
-        const updated = projects.find(p => p.id === projectId);
-        if (updated) svUpdateLiveProject(updated);
-      });
     });
 
     return true;
@@ -3991,24 +4082,21 @@ async function checkShareMode() {
   }
 }
 
-function showShareLoginPrompt(shareId, ownerName) {
+function showShareSignIn(ownerName, shareId) {
   document.body.innerHTML = `
   <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a0b;font-family:'DM Mono',monospace">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:28px;width:320px;animation:obIn 0.25s ease">
-      <style>@keyframes obIn{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}</style>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:28px;width:320px">
       <div style="font-size:11px;font-weight:500;letter-spacing:0.28em;color:#c8ff32;text-transform:uppercase">◈ wip</div>
       <div style="text-align:center">
-        <div style="font-size:22px;font-weight:500;color:#e8e8ea;letter-spacing:-0.02em;margin-bottom:8px">${ownerName || 'someone'} shared a project</div>
-        <div style="font-size:11px;color:#5a5a62;letter-spacing:0.06em">sign in to listen and save</div>
+        <div style="font-size:22px;font-weight:500;color:#e8e8ea;letter-spacing:-0.02em;margin-bottom:8px">${ownerName||'someone'} shared a project with you</div>
+        <div style="font-size:11px;color:#5a5a62;letter-spacing:0.06em">sign in to listen and save it</div>
       </div>
-      <button onclick="window._shareSignIn('${shareId}')" style="
+      <button onclick="window._fbSignInWithPopup(window._fbAuth,window._fbGoogleProvider).then(()=>location.reload()).catch(e=>console.warn(e))" style="
         display:flex;align-items:center;justify-content:center;gap:12px;
         width:100%;padding:14px 20px;background:#fff;color:#3c4043;
         border:none;border-radius:10px;font-family:'DM Mono',monospace;
         font-size:13px;font-weight:500;letter-spacing:0.06em;cursor:pointer;
-        box-shadow:0 2px 12px rgba(0,0,0,0.3);transition:box-shadow 0.15s,transform 0.1s"
-        onmouseenter="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.4)'"
-        onmouseleave="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.3)'">
+        box-shadow:0 2px 12px rgba(0,0,0,0.3)">
         <svg width="20" height="20" viewBox="0 0 24 24">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
           <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -4019,275 +4107,61 @@ function showShareLoginPrompt(shareId, ownerName) {
       </button>
     </div>
   </div>`;
+}
 
-  window._shareSignIn = async (sid) => {
-    try {
-      await window._fbSignInWithPopup(window._fbAuth, window._fbGoogleProvider);
-      // After sign-in, reload the share page
-      location.reload();
-    } catch(e) { console.warn('sign in failed', e); }
+function openSharedProjectInApp(project, ownerName, shareId, ownerUid, viewerUid, alreadySaved) {
+  // Create a fake project entry in the sidebar
+  const fakeId = '__shared__' + shareId;
+  const sharedP = {
+    ...project,
+    id: fakeId,
+    _isShared: true,
+    _shareId: shareId,
+    _ownerUid: ownerUid,
+    _ownerName: ownerName,
+    _alreadySaved: alreadySaved,
+    tracks: project.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
   };
+
+  // Add to a special _shared bucket
+  if (!DB.albums['__shared__']) DB.albums['__shared__'] = [];
+  // Remove old entry for same shareId if exists
+  DB.albums['__shared__'] = DB.albums['__shared__'].filter(p => p.id !== fakeId);
+  DB.albums['__shared__'].push(sharedP);
+
+  renderSidebar();
+  selectProject(fakeId);
+}
+
+function renderSharedProjectView(project, ownerName, shareId, ownerUid, viewerUid, alreadySaved) {
+  // Update the fake project in memory and re-render
+  const fakeId = '__shared__' + shareId;
+  const bucket = DB.albums['__shared__'] || [];
+  const idx = bucket.findIndex(p => p.id === fakeId);
+  if (idx >= 0) {
+    bucket[idx] = {
+      ...project,
+      id: fakeId,
+      _isShared: true,
+      _shareId: shareId,
+      _ownerUid: ownerUid,
+      _ownerName: ownerName,
+      _alreadySaved: alreadySaved,
+      tracks: project.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
+    };
+    if (S.curPid === fakeId) renderMain();
+  }
 }
 
 async function saveSharedProject(shareId, ownerUid, projectId, viewerUid) {
   try {
     const savedRef = window._fbDoc(window._fbDb, 'savedProjects', `${viewerUid}_${shareId}`);
-    await window._fbSetDoc(savedRef, {
-      shareId, ownerUid, projectId, viewerUid,
-      savedAt: Date.now()
-    });
-    // Show saved state
-    const btn = document.getElementById('sv-save-btn');
-    if (btn) {
-      btn.textContent = '✓ saved';
-      btn.style.background = 'var(--accent)';
-      btn.style.color = 'var(--bg)';
-      btn.onclick = null;
-    }
-    // Add to sidebar
-    svAddToSidebar(shareId, ownerUid, projectId);
-  } catch(e) {
-    console.warn('save failed', e);
-  }
+    await window._fbSetDoc(savedRef, { shareId, ownerUid, projectId, viewerUid, savedAt: Date.now() });
+    const btn = document.getElementById('shared-save-btn');
+    if (btn) { btn.textContent = '✓ saved'; btn.disabled = true; btn.style.background = 'var(--accent)'; btn.style.color = 'var(--bg)'; btn.style.borderColor = 'var(--accent)'; }
+    toast('project saved to your library ✓');
+  } catch(e) { console.warn('save failed', e); toast('save failed'); }
 }
-
-function svAddToSidebar(shareId, ownerUid, projectId) {
-  // Will be loaded on next app init via savedProjects collection
-}
-
-function svUpdateLiveProject(project) {
-  // Update track list when owner changes their project
-  const tracksArea = document.getElementById('sv-tracks-area');
-  if (!tracksArea) return;
-  const fmt2 = s => (!isFinite(s)?'0:00':`${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`);
-  const MONTHS2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const fdate2 = ts => { const d=new Date(ts); return `${MONTHS2[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
-
-  tracksArea.innerHTML = project.tracks.map((t,i) => {
-    const s = t.status;
-    const statusHtml = s ? `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;flex-shrink:0;border:1px solid transparent;${
-      s==='idea'?'color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08)':
-      s==='demo'?'color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08)':
-      s==='mixing'?'color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08)':
-      s==='done'?'color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08)':''
-    }">${s}</span>` : '';
-    return `<div id="sv-row-${i}" style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:background 0.1s;margin-bottom:1px"
-      onclick="svPlay(${i})" onmouseenter="svRowEnter(this,${i})" onmouseleave="svRowLeave(this,${i})">
-      <div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:20px">
-        <span id="sv-num-${i}" style="font-size:10px;color:var(--dim)">${i+1}</span>
-        <span id="sv-ico-${i}" style="position:absolute;font-size:11px;color:var(--accent);opacity:0">▶</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;min-width:0">
-        <span id="sv-tname-${i}" style="font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</span>
-        ${statusHtml}
-      </div>
-      <div style="font-size:10px;color:var(--dim)">${t.bpm && t.bpm!=='analyzing'?`<span style="color:var(--accent);opacity:0.75">${t.bpm}</span>`:'—'}</div>
-      <div style="font-size:9px;color:var(--dim)">${fdate2(t.added||Date.now())}</div>
-      <div style="font-size:10px;color:var(--dim)">${fmt2(t.dur||0)}</div>
-      <div id="sv-acts-${i}" style="display:flex;align-items:center;justify-content:flex-end;gap:3px;opacity:0;transition:opacity 0.1s"></div>
-    </div>`;
-  }).join('');
-
-  // Live badge
-  const badge = document.getElementById('sv-live-badge');
-  if (badge) { badge.style.opacity='1'; setTimeout(()=>badge.style.opacity='0',2500); }
-}
-
-
-
-
-function showSharedProject(project, ownerName, shareId, ownerUid, viewerUid, alreadySaved) {
-  document.title = `${project.name} — WIP`;
-  const isOwn = ownerUid === viewerUid;
-
-  // Reuse existing showSharedProject UI infrastructure
-  // but now with Save button and live updates
-  const fmt = s => (!isFinite(s)?'0:00':`${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`);
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const fdate = ts => { const d=new Date(ts); return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
-  const tracks = project.tracks || [];
-
-  document.body.style.overflow = 'hidden';
-  document.body.style.height = '100vh';
-
-  document.body.innerHTML = `
-  <div id="sv-app" style="display:grid;grid-template-rows:1fr var(--player-h);grid-template-columns:var(--sidebar-w) 1fr;grid-template-areas:'sidebar main' 'player player';height:100vh;">
-    <!-- SIDEBAR -->
-    <div style="grid-area:sidebar;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--surface);">
-      <div style="padding:18px 16px 14px;border-bottom:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:500;letter-spacing:0.28em;color:var(--accent);text-transform:uppercase">WIP</div>
-        <div style="font-size:9px;color:var(--dim);letter-spacing:0.12em;margin-top:2px">shared project</div>
-      </div>
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-        <div style="width:26px;height:26px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent);font-weight:500;flex-shrink:0">${(ownerName||'?')[0].toUpperCase()}</div>
-        <div style="font-size:11px;color:var(--mid);letter-spacing:0.05em;flex:1">${ownerName||'unknown'}</div>
-        <div id="sv-live-badge" style="font-size:8px;letter-spacing:0.14em;color:var(--accent);border:1px solid rgba(200,255,50,0.3);border-radius:20px;padding:2px 7px;opacity:0;transition:opacity 0.4s">● live</div>
-      </div>
-      <div style="padding:12px 0;flex:1;overflow-y:auto">
-        <div style="font-size:9px;font-weight:500;letter-spacing:0.2em;color:var(--dim);text-transform:uppercase;padding:0 16px 8px">project</div>
-        <div style="display:flex;align-items:center;gap:10px;padding:5px 16px;background:var(--surface2);position:relative">
-          <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:16px;width:2px;background:var(--accent);border-radius:0 2px 2px 0"></div>
-          <div style="width:36px;height:36px;border-radius:3px;background:var(--surface3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim);border:1px solid rgba(200,255,50,0.3)">
-            ${project.cover?`<img src="${project.cover}" style="width:100%;height:100%;object-fit:cover">`: '◈'}
-          </div>
-          <div style="min-width:0;flex:1">
-            <div style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${project.name}</div>
-            <div style="font-size:9px;color:var(--dim);margin-top:1px">${ownerName||'—'}</div>
-          </div>
-        </div>
-      </div>
-      <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.6.0</div>
-      </div>
-    </div>
-
-    <!-- MAIN -->
-    <div style="grid-area:main;display:flex;flex-direction:column;overflow:hidden;align-items:center;position:relative" id="sv-main">
-      <div id="sv-ambient" style="position:absolute;inset:0;pointer-events:none;z-index:0;filter:blur(80px) saturate(1.1) brightness(0.07);transform:scale(1.15);opacity:0;transition:opacity 1s;${project.cover?`background:url(${project.cover}) center/cover`:''}"></div>
-      <div style="flex:1;overflow-y:auto;overflow-x:hidden;width:100%;max-width:960px;display:flex;flex-direction:column;position:relative;z-index:1">
-        <!-- HERO -->
-        <div style="padding:44px 40px 32px;display:flex;align-items:flex-end;gap:32px;position:relative;flex-shrink:0">
-          ${project.cover?`<div style="position:absolute;inset:0;background-image:url(${project.cover});background-size:cover;background-position:center;filter:blur(40px) saturate(1.4) brightness(0.28);transform:scale(1.1);pointer-events:none"></div>`:''}
-          <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,10,11,0.5) 0%,transparent 100%);pointer-events:none"></div>
-          <div style="width:160px;height:160px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:44px;color:var(--dim);overflow:hidden;position:relative;box-shadow:0 18px 56px rgba(0,0,0,0.75);flex-shrink:0;z-index:1">
-            ${project.cover?`<img src="${project.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:'◈'}
-          </div>
-          <div style="flex:1;min-width:0;z-index:1">
-            <div style="font-size:9px;letter-spacing:0.22em;color:var(--dim);text-transform:uppercase;margin-bottom:10px">WIP · ${(project.type||'project').toUpperCase()}</div>
-            <div style="font-size:34px;font-weight:500;line-height:1.1;letter-spacing:-0.02em;color:var(--text);font-family:'DM Mono',monospace">${project.name}</div>
-            <div style="font-size:13px;color:var(--text);margin-top:10px">${project.artist||ownerName||'unknown artist'}</div>
-            <div style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:10px;color:var(--dim)">
-              <span>${project.year||new Date().getFullYear()}</span>
-              ${project.genre?`<span style="opacity:0.4">·</span><span>${project.genre}</span>`:''}
-              <span style="opacity:0.4">·</span><span>${tracks.length} track${tracks.length!==1?'s':''}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;margin-top:24px">
-              <button onclick="svPlayAll()" id="sv-play-btn" style="width:48px;height:48px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,background 0.15s">▶</button>
-              ${!isOwn ? `<button id="sv-save-btn" onclick="saveSharedProject('${shareId}','${ownerUid}','${project.id}','${viewerUid}')"
-                style="height:36px;padding:0 18px;background:${alreadySaved?'var(--accent)':'none'};border:1px solid ${alreadySaved?'var(--accent)':'var(--border)'};border-radius:20px;color:${alreadySaved?'var(--bg)':'var(--mid)'};font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.08em;transition:all 0.15s;display:flex;align-items:center;gap:6px"
-                onmouseenter="if(!this.dataset.saved)this.style.borderColor='var(--mid)'" onmouseleave="if(!this.dataset.saved)this.style.borderColor='var(--border)'"
-                ${alreadySaved?"data-saved='1'":''}>
-                ${alreadySaved?'✓ saved':'+ save to library'}
-              </button>` : '<div style="font-size:10px;color:var(--dim);letter-spacing:0.08em">your project</div>'}
-            </div>
-          </div>
-        </div>
-        <!-- TRACKS -->
-        <div style="flex:1;padding:0 40px 28px">
-          <hr style="border:none;border-top:1px solid var(--border);margin-bottom:10px">
-          <div style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:5px 10px;border-bottom:1px solid var(--border);margin-bottom:4px">
-            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">#</div>
-            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">title</div>
-            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">bpm</div>
-            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">date added</div>
-            <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">duration</div>
-            <div></div>
-          </div>
-          <div id="sv-tracks-area">
-            ${tracks.map((t,i) => {
-              const s = t.status;
-              const statusHtml = s ? `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;flex-shrink:0;border:1px solid transparent;${
-                s==='idea'?'color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08)':
-                s==='demo'?'color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08)':
-                s==='mixing'?'color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08)':
-                s==='done'?'color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08)':''
-              }">${s}</span>` : '';
-              return `<div id="sv-row-${i}" style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:background 0.1s;margin-bottom:1px"
-                onclick="svPlay(${i})" onmouseenter="svRowEnter(this,${i})" onmouseleave="svRowLeave(this,${i})">
-                <div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:20px">
-                  <span id="sv-num-${i}" style="font-size:10px;color:var(--dim)">${i+1}</span>
-                  <span id="sv-ico-${i}" style="position:absolute;font-size:11px;color:var(--accent);opacity:0">▶</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;min-width:0">
-                  <span id="sv-tname-${i}" style="font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</span>
-                  ${statusHtml}
-                </div>
-                <div style="font-size:10px;color:var(--dim)">${t.bpm&&t.bpm!=='analyzing'?`<span style="color:var(--accent);opacity:0.75">${t.bpm}</span>`:'—'}</div>
-                <div style="font-size:9px;color:var(--dim)">${fdate(t.added||Date.now())}</div>
-                <div style="font-size:10px;color:var(--dim)">${fmt(t.dur||0)}</div>
-                <div id="sv-acts-${i}" style="opacity:0;display:flex;align-items:center;justify-content:flex-end"></div>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PLAYER -->
-    <div style="grid-area:player;height:var(--player-h);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:0;background:var(--surface);position:relative;z-index:10">
-      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px">
-        <div id="sv-pl-thumb" style="width:40px;height:40px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--dim);flex-shrink:0;overflow:hidden;position:relative">♩</div>
-        <div style="min-width:0">
-          <div id="sv-pl-name" style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em">—</div>
-          <div id="sv-pl-artist" style="font-size:9px;color:var(--dim);margin-top:3px;letter-spacing:0.06em">no track playing</div>
-        </div>
-      </div>
-      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 40px">
-        <div style="display:flex;align-items:center;gap:2px">
-          <button onclick="svSkipPrev()" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:50%;color:var(--mid);display:flex;align-items:center;justify-content:center" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--mid)'">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
-          </button>
-          <button id="sv-pp" onclick="svToggle()" style="width:36px;height:36px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 8px" onmouseenter="this.style.background='#d4ff50'" onmouseleave="this.style.background='var(--accent)'">
-            <svg id="sv-pp-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </button>
-          <button onclick="svSkipNext()" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:50%;color:var(--mid);display:flex;align-items:center;justify-content:center" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--mid)'">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
-          </button>
-        </div>
-        <div style="display:flex;align-items:center;gap:14px;width:280px;margin-top:-4px">
-          <span id="sv-tc" style="font-size:9px;color:var(--dim);width:30px;text-align:center">0:00</span>
-          <div id="sv-wf-wrap" onclick="svSeek(event)" style="flex:1;height:28px;position:relative;cursor:pointer;border-radius:3px;overflow:hidden">
-            <canvas id="sv-wf-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
-            <div id="sv-wf-cursor" style="position:absolute;top:0;bottom:0;width:1.5px;background:var(--accent);left:0%;pointer-events:none;box-shadow:0 0 6px rgba(200,255,50,0.5)"></div>
-            <div id="sv-wf-loading" style="display:none;position:absolute;left:0;right:0;top:20%;bottom:20%"></div>
-          </div>
-          <span id="sv-tt" style="font-size:9px;color:var(--dim);width:30px;text-align:center">0:00</span>
-        </div>
-      </div>
-      <div style="flex:1;display:flex;align-items:center;justify-content:flex-end">
-        <div class="vol-wrap">
-          <span class="vol-icon">🔈</span>
-          <input type="range" class="vol-slider" min="0" max="1" step="0.01" value="0.8" oninput="window.svAudio.volume=this.value">
-        </div>
-      </div>
-    </div>
-  </div>
-  `;
-
-  // Ambient glow
-  if (project.cover) setTimeout(() => { const el=document.getElementById('sv-ambient'); if(el) el.style.opacity='1'; }, 100);
-
-  // Init player with the shared project's tracks (using cloudUrl)
-  const svTracks = tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }));
-
-  // ── waveform, player, lyrics copied from existing sv* infrastructure ──
-  const svWfCache = {};
-  function svDataURLtoArrayBuffer(d){const b=atob(d.split(',')[1]);const buf=new ArrayBuffer(b.length);const v=new Uint8Array(buf);for(let i=0;i<b.length;i++)v[i]=b.charCodeAt(i);return buf;}
-  function svRenderWaveframe(peaks,progress){const canvas=document.getElementById('sv-wf-canvas');const wrap=document.getElementById('sv-wf-wrap');if(!canvas||!wrap||!peaks)return;const dpr=window.devicePixelRatio||1;const W=wrap.getBoundingClientRect().width;const H=wrap.getBoundingClientRect().height;if(!W||!H)return;if(canvas.width!==Math.round(W*dpr)){canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);}const ctx2=canvas.getContext('2d');ctx2.setTransform(dpr,0,0,dpr,0,0);ctx2.clearRect(0,0,W,H);const barW=W/peaks.length,midY=H/2,playedX=(progress||0)*W;for(let i=0;i<peaks.length;i++){const h=Math.max(1.5,peaks[i]*midY*0.92);const x=i*barW,bw=Math.max(barW-0.5,1);ctx2.fillStyle=x<playedX?'#c8ff32':'rgba(255,255,255,0.18)';ctx2.fillRect(x,midY-h,bw,h*2);}}
-  async function svDrawWaveform(url,tid,progress){const wrap=document.getElementById('sv-wf-wrap');if(!wrap||!url)return;const rect=wrap.getBoundingClientRect();const W=rect.width,H=rect.height;if(!W||!H){setTimeout(()=>svDrawWaveform(url,tid,progress),200);return;}let peaks=svWfCache[tid];if(!peaks){const loadEl=document.getElementById('sv-wf-loading');if(loadEl)loadEl.style.display='block';try{const actx=new(window.AudioContext||window.webkitAudioContext)();let buf;if(url.startsWith('data:')){buf=svDataURLtoArrayBuffer(url);}else{const resp=await fetch(url);buf=await resp.arrayBuffer();}const decoded=await actx.decodeAudioData(buf);actx.close();const numBars=Math.max(10,Math.floor(W));const raw=decoded.getChannelData(0);const step=Math.max(1,Math.floor(raw.length/numBars));peaks=new Float32Array(numBars);for(let i=0;i<numBars;i++){let max=0;const off=i*step;for(let j=0;j<step;j++){const v=Math.abs(raw[off+j]||0);if(v>max)max=v;}peaks[i]=max;}const maxP=Math.max(...peaks,0.001);for(let i=0;i<peaks.length;i++)peaks[i]/=maxP;svWfCache[tid]=peaks;}catch(e){console.warn('wf failed',e);}const loadEl2=document.getElementById('sv-wf-loading');if(loadEl2)loadEl2.style.display='none';}if(peaks)svRenderWaveframe(peaks,progress||0);}
-  window.svCurrentWfTid=null;
-  window.svAudio=new Audio();
-  window.svAudio.volume=0.8;
-  let svCur=-1,svPlaying=false,svRaf=null;
-  const fmt2=s=>(!isFinite(s)?'0:00':`${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`);
-  function svUpdateRows(){svTracks.forEach((_,i)=>{const row=document.getElementById(`sv-row-${i}`);const num=document.getElementById(`sv-num-${i}`);const ico=document.getElementById(`sv-ico-${i}`);const name=document.getElementById(`sv-tname-${i}`);const acts=document.getElementById(`sv-acts-${i}`);if(!row)return;const isCur=i===svCur,isPlay=isCur&&svPlaying;row.style.background=isCur?'var(--adim)':'';row.style.borderColor=isCur?'rgba(200,255,50,0.14)':'transparent';if(num)num.style.opacity=isCur?'0':'1';if(ico){ico.style.opacity=isCur?'1':'0';ico.textContent=isPlay?'⏸':'▶';}if(name)name.style.color=isCur?'var(--accent)':'var(--text)';if(acts)acts.style.opacity=isCur?'1':'0';});const btn=document.getElementById('sv-play-btn');if(btn)btn.textContent=svPlaying?'⏸':'▶';const ppIcon=document.getElementById('sv-pp-icon');if(ppIcon)ppIcon.innerHTML=svPlaying?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<polygon points="5 3 19 12 5 21 5 3"/>';}
-  window.svRowEnter=(el,i)=>{if(i!==svCur)el.style.background='var(--surface2)';const acts=document.getElementById(`sv-acts-${i}`);if(acts)acts.style.opacity='1';document.getElementById(`sv-num-${i}`).style.opacity='0';document.getElementById(`sv-ico-${i}`).style.opacity='1';};
-  window.svRowLeave=(el,i)=>{el.style.background=i===svCur?'var(--adim)':'';const acts=document.getElementById(`sv-acts-${i}`);if(acts)acts.style.opacity=i===svCur?'1':'0';document.getElementById(`sv-num-${i}`).style.opacity=i===svCur?'0':'1';document.getElementById(`sv-ico-${i}`).style.opacity=i===svCur?'1':'0';};
-  window.svPlay=async(i)=>{if(!svTracks[i])return;if(svCur===i){svToggle();return;}if(!svTracks[i].url)return;svCur=i;svPlaying=true;window.svAudio.src=svTracks[i].url;window.svAudio.play();document.getElementById('sv-pl-name').textContent=svTracks[i].name;document.getElementById('sv-pl-artist').textContent=project.artist||ownerName||'';const thumb=document.getElementById('sv-pl-thumb');if(thumb)thumb.innerHTML=project.cover?`<img src="${project.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:'♪';svUpdateRows();window.svCurrentWfTid=i;setTimeout(()=>svDrawWaveform(svTracks[i].url,i,0),100);};
-  window.svPlayAll=()=>{if(svCur>=0){svToggle();return;}const first=svTracks.findIndex(t=>t.url);if(first>=0)svPlay(first);};
-  window.svToggle=()=>{if(svCur<0){svPlayAll();return;}if(svPlaying)window.svAudio.pause();else window.svAudio.play();};
-  window.svSkipNext=()=>{let next=svCur+1;while(next<svTracks.length&&!svTracks[next].url)next++;if(next<svTracks.length)svPlay(next);};
-  window.svSkipPrev=()=>{if(window.svAudio.currentTime>3){window.svAudio.currentTime=0;return;}let prev=svCur-1;while(prev>=0&&!svTracks[prev].url)prev--;if(prev>=0)svPlay(prev);};
-  window.svSeek=(e)=>{const wrap=document.getElementById('sv-wf-wrap');const r=wrap.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));if(window.svAudio.duration)window.svAudio.currentTime=pct*window.svAudio.duration;};
-  window.svAudio.addEventListener('play',()=>{svPlaying=true;svUpdateRows();function tick(){if(!window.svAudio.duration){svRaf=requestAnimationFrame(tick);return;}const pct=window.svAudio.currentTime/window.svAudio.duration;if(window.svCurrentWfTid!==null&&svWfCache[window.svCurrentWfTid])svRenderWaveframe(svWfCache[window.svCurrentWfTid],pct);const cursor=document.getElementById('sv-wf-cursor');if(cursor)cursor.style.left=(pct*100)+'%';document.getElementById('sv-tc').textContent=fmt2(window.svAudio.currentTime);document.getElementById('sv-tt').textContent=fmt2(window.svAudio.duration);svRaf=requestAnimationFrame(tick);}if(svRaf)cancelAnimationFrame(svRaf);svRaf=requestAnimationFrame(tick);});
-  window.svAudio.addEventListener('pause',()=>{svPlaying=false;svUpdateRows();if(svRaf)cancelAnimationFrame(svRaf);});
-  window.svAudio.addEventListener('ended',()=>{svPlaying=false;svUpdateRows();if(svRaf)cancelAnimationFrame(svRaf);svSkipNext();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){}});
-}
-
-// ─── INIT ───
-setupGlobalDrag();
-document.getElementById('app').style.display = 'none';
 
 // Check for share mode first
 checkShareMode().then(isShareMode => {
