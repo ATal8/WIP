@@ -1121,7 +1121,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <button class="sb-new-btn" onclick="openModal()">+ new project</button>
     </div>
     <div style="padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:auto">
-      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.3</div>
+      <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.6.0</div>
     </div>
   </aside>
 
@@ -2453,61 +2453,23 @@ function renameTrack(tid, name) {
 async function shareAlbum() {
   const p = curP(); if (!p) return;
   if (!window._fbReady) { toast('firebase not ready yet'); return; }
-
-  toast('preparing share...');
+  toast('generating link...');
   try {
-    const db = window._fbDb;
-    const storage = window._fbStorage;
     const shareId = p.id;
-
-    // ── Delete old files for this project from Storage ──
-    try {
-      const oldDoc = await window._fbGetDoc(window._fbDoc(db, 'shared', shareId));
-      if (oldDoc.exists()) {
-        const oldTracks = oldDoc.data().tracks || [];
-        await Promise.all(oldTracks.map(async t => {
-          if (!t.url) return;
-          try {
-            // Extract path from download URL or use track id
-            const oldRef = window._fbRef(storage, `shared/${shareId}/${t.localId || t.id}`);
-            await window._fbDeleteObject(oldRef);
-          } catch(e) { /* file might not exist, that's fine */ }
-        }));
-      }
-    } catch(e) { console.warn('cleanup failed, continuing...', e); }
-
-    // ── Upload current tracks ──
-    const tracksWithUrls = [];
-    for (let i = 0; i < p.tracks.length; i++) {
-      const t = p.tracks[i];
-      let audioUrl = t.url || await loadAudio(t.id);
-      let cloudUrl = null;
-      if (audioUrl) {
-        toast(`uploading ${i+1}/${p.tracks.length}...`);
-        try {
-          const storageRef = window._fbRef(storage, `shared/${shareId}/${t.id}`);
-          const snapshot = await window._fbUploadString(storageRef, audioUrl, 'data_url');
-          cloudUrl = await window._fbGetDownloadURL(snapshot.ref);
-        } catch(e) { console.warn('upload failed for', t.name, e); }
-      }
-      tracksWithUrls.push({ ...t, url: cloudUrl, localId: t.id });
-    }
-
-    // ── Save to Firestore (overwrites previous) ──
-    const docRef = window._fbDoc(db, 'shared', shareId);
+    const docRef = window._fbDoc(window._fbDb, 'shared', shareId);
     await window._fbSetDoc(docRef, {
-      ...p,
-      tracks: tracksWithUrls,
-      sharedBy: DB.preferredName || currentGoogleUser?.displayName || DB.currentUser,
+      shareId,
+      ownerUid: currentGoogleUser.uid,
+      ownerName: DB.preferredName || currentGoogleUser?.displayName || '',
+      projectId: p.id,
       sharedAt: Date.now()
     });
-
     const url = `${location.origin}${location.pathname}?share=${shareId}`;
     await navigator.clipboard.writeText(url).catch(() => {});
     toast('link copied ✓');
   } catch(e) {
     console.warn('share failed', e);
-    toast('share failed — check console');
+    toast('share failed');
   }
 }
 function shareTrack(tid) {
@@ -3951,108 +3913,205 @@ async function checkShareMode() {
   const shareId = params.get('share');
   if (!shareId) return false;
 
-  // Wait for Firebase to be ready
+  // Wait for Firebase
   let tries = 0;
   while (!window._fbReady && tries < 50) {
     await new Promise(r => setTimeout(r, 100));
     tries++;
   }
-  if (!window._fbReady) { toast('firebase unavailable'); return false; }
+  if (!window._fbReady) return false;
 
   try {
-    const db = window._fbDb;
-    const docRef = window._fbDoc(db, 'shared', shareId);
-
-    // First load
-    const snap = await window._fbGetDoc(docRef);
-    if (!snap.exists()) {
-      document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:'DM Mono',monospace;background:#0a0a0b;color:#5a5a62">
-        <div style="font-size:32px">◈</div>
-        <div style="font-size:12px;letter-spacing:0.1em">project not found</div>
-      </div>`;
+    const shareDoc = await window._fbGetDoc(window._fbDoc(window._fbDb, 'shared', shareId));
+    if (!shareDoc.exists()) {
+      document.body.classList.remove('auth-loading');
+      document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:'DM Mono',monospace;background:#0a0a0b;color:#5a5a62"><div style="font-size:32px">◈</div><div style="font-size:12px;letter-spacing:0.1em">project not found</div></div>`;
       return true;
     }
-    showSharedProject(snap.data());
 
-    // עדכון חי — כשהבעלים מעדכן, רענן הכל
-    window._fbOnSnapshot(docRef, (updatedSnap) => {
-      if (!updatedSnap.exists()) return;
-      const newData = updatedSnap.data();
-      const tracksArea = document.getElementById('sv-tracks-area');
-      if (!tracksArea) return;
+    const shareData = shareDoc.data();
+    const { ownerUid, projectId, ownerName } = shareData;
 
-      const fmt2 = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
-      const MONTHS2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const fdate2 = ts => { const d = new Date(ts); return `${MONTHS2[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
+    // Wait for auth state
+    await new Promise(resolve => {
+      const unsub = window._fbOnAuthStateChanged(window._fbAuth, user => {
+        unsub();
+        resolve(user);
+      });
+    }).then(async (user) => {
+      document.body.classList.remove('auth-loading');
 
-      // עדכן רשימת טראקים מחדש
-      const newTracks = newData.tracks.map(t => ({ ...t, lyrics: [] }));
-      tracksArea.innerHTML = newTracks.map((t, i) => {
-        const s = t.status;
-        const statusHtml = s ? `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;cursor:default;flex-shrink:0;border:1px solid transparent;${
-          s==='idea'?'color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08)':
-          s==='demo'?'color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08)':
-          s==='mixing'?'color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08)':
-          s==='done'?'color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08)':''
-        }">${s}</span>` : '';
-        return `<div id="sv-row-${i}" data-idx="${i}"
-          style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:background 0.1s;margin-bottom:1px"
-          onclick="svPlay(${i})"
-          onmouseenter="svRowEnter(this,${i})"
-          onmouseleave="svRowLeave(this,${i})">
-          <div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:20px">
-            <span id="sv-num-${i}" style="font-size:10px;color:var(--dim)">${i+1}</span>
-            <span id="sv-ico-${i}" style="position:absolute;font-size:11px;color:var(--accent);opacity:0">▶</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;min-width:0">
-            <span id="sv-tname-${i}" style="font-size:12.5px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em">${t.name}</span>
-            ${statusHtml}
-          </div>
-          <div style="font-size:10px;color:var(--dim);letter-spacing:0.04em">${t.bpm && t.bpm!=='analyzing' ? `<span style="color:var(--accent);opacity:0.75">${t.bpm}</span>` : '—'}</div>
-          <div style="font-size:9px;color:var(--dim);letter-spacing:0.04em">${fdate2(t.added||Date.now())}</div>
-          <div style="font-size:10px;color:var(--dim)">${fmt2(t.dur||0)}</div>
-          <div id="sv-acts-${i}" style="display:flex;align-items:center;justify-content:flex-end;gap:3px;opacity:0;transition:opacity 0.1s">
-            <button onclick="event.stopPropagation();svOpenLyrics(${i})" title="כתוב לירקס"
-              style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:4px;font-size:13px"
-              onmouseenter="this.style.background='var(--surface3)';this.style.color='var(--text)'"
-              onmouseleave="this.style.background='none';this.style.color='var(--dim)'">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </button>
-          </div>
-        </div>`;
-      }).join('');
+      if (!user) {
+        // Not logged in — show login screen with share context
+        showShareLoginPrompt(shareId, ownerName);
+        return;
+      }
 
-      // עדכן גם את מספר הטראקים בהירו
-      const metaTracks = document.getElementById('sv-meta-tracks');
-      if (metaTracks) metaTracks.textContent = `${newTracks.length} טראק${newTracks.length!==1?'ים':''}`;
+      // Logged in — load the owner's project live
+      const ownerDocRef = window._fbDoc(window._fbDb, 'users', ownerUid);
+      const ownerSnap = await window._fbGetDoc(ownerDocRef);
+      if (!ownerSnap.exists()) {
+        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:'DM Mono',monospace;background:#0a0a0b;color:#5a5a62"><div style="font-size:32px">◈</div><div style="font-size:12px;letter-spacing:0.1em">project not found</div></div>`;
+        return;
+      }
 
-      // הצג תג "חי"
-      const badge = document.getElementById('sv-live-badge');
-      if (badge) { badge.style.opacity = '1'; setTimeout(() => badge.style.opacity = '0', 2500); }
+      const ownerData = ownerSnap.data();
+      const ownerAlbums = ownerData.albums || {};
+      const allProjects = Object.values(ownerAlbums).flat();
+      const project = allProjects.find(p => p.id === projectId);
+
+      if (!project) {
+        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:'DM Mono',monospace;background:#0a0a0b;color:#5a5a62"><div style="font-size:32px">◈</div><div style="font-size:12px;letter-spacing:0.1em">project not found</div></div>`;
+        return;
+      }
+
+      // Check if already saved
+      const viewerUid = user.uid;
+      const savedRef = window._fbDoc(window._fbDb, 'savedProjects', `${viewerUid}_${shareId}`);
+      const savedSnap = await window._fbGetDoc(savedRef);
+      const alreadySaved = savedSnap.exists();
+
+      showSharedProject(project, ownerName, shareId, ownerUid, viewerUid, alreadySaved);
+
+      // Live updates — re-fetch owner data when it changes
+      window._fbOnSnapshot(ownerDocRef, (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const albums = data.albums || {};
+        const projects = Object.values(albums).flat();
+        const updated = projects.find(p => p.id === projectId);
+        if (updated) svUpdateLiveProject(updated);
+      });
     });
 
     return true;
   } catch(e) {
-    console.warn('load shared failed', e);
+    console.warn('checkShareMode failed', e);
     return false;
   }
 }
 
-function showSharedProject(p) {
-  document.title = `${p.name} — WIP`;
-  const fmt = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const fdate = ts => { const d = new Date(ts); return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
+function showShareLoginPrompt(shareId, ownerName) {
+  document.body.innerHTML = `
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a0b;font-family:'DM Mono',monospace">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:28px;width:320px;animation:obIn 0.25s ease">
+      <style>@keyframes obIn{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}</style>
+      <div style="font-size:11px;font-weight:500;letter-spacing:0.28em;color:#c8ff32;text-transform:uppercase">◈ wip</div>
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:500;color:#e8e8ea;letter-spacing:-0.02em;margin-bottom:8px">${ownerName || 'someone'} shared a project</div>
+        <div style="font-size:11px;color:#5a5a62;letter-spacing:0.06em">sign in to listen and save</div>
+      </div>
+      <button onclick="window._shareSignIn('${shareId}')" style="
+        display:flex;align-items:center;justify-content:center;gap:12px;
+        width:100%;padding:14px 20px;background:#fff;color:#3c4043;
+        border:none;border-radius:10px;font-family:'DM Mono',monospace;
+        font-size:13px;font-weight:500;letter-spacing:0.06em;cursor:pointer;
+        box-shadow:0 2px 12px rgba(0,0,0,0.3);transition:box-shadow 0.15s,transform 0.1s"
+        onmouseenter="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.4)'"
+        onmouseleave="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.3)'">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        continue with Google
+      </button>
+    </div>
+  </div>`;
 
-  // Strip lyrics from tracks before displaying
-  const tracks = p.tracks.map(t => ({ ...t, lyrics: [] }));
+  window._shareSignIn = async (sid) => {
+    try {
+      await window._fbSignInWithPopup(window._fbAuth, window._fbGoogleProvider);
+      // After sign-in, reload the share page
+      location.reload();
+    } catch(e) { console.warn('sign in failed', e); }
+  };
+}
+
+async function saveSharedProject(shareId, ownerUid, projectId, viewerUid) {
+  try {
+    const savedRef = window._fbDoc(window._fbDb, 'savedProjects', `${viewerUid}_${shareId}`);
+    await window._fbSetDoc(savedRef, {
+      shareId, ownerUid, projectId, viewerUid,
+      savedAt: Date.now()
+    });
+    // Show saved state
+    const btn = document.getElementById('sv-save-btn');
+    if (btn) {
+      btn.textContent = '✓ saved';
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'var(--bg)';
+      btn.onclick = null;
+    }
+    // Add to sidebar
+    svAddToSidebar(shareId, ownerUid, projectId);
+  } catch(e) {
+    console.warn('save failed', e);
+  }
+}
+
+function svAddToSidebar(shareId, ownerUid, projectId) {
+  // Will be loaded on next app init via savedProjects collection
+}
+
+function svUpdateLiveProject(project) {
+  // Update track list when owner changes their project
+  const tracksArea = document.getElementById('sv-tracks-area');
+  if (!tracksArea) return;
+  const fmt2 = s => (!isFinite(s)?'0:00':`${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`);
+  const MONTHS2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fdate2 = ts => { const d=new Date(ts); return `${MONTHS2[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
+
+  tracksArea.innerHTML = project.tracks.map((t,i) => {
+    const s = t.status;
+    const statusHtml = s ? `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;flex-shrink:0;border:1px solid transparent;${
+      s==='idea'?'color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08)':
+      s==='demo'?'color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08)':
+      s==='mixing'?'color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08)':
+      s==='done'?'color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08)':''
+    }">${s}</span>` : '';
+    return `<div id="sv-row-${i}" style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:background 0.1s;margin-bottom:1px"
+      onclick="svPlay(${i})" onmouseenter="svRowEnter(this,${i})" onmouseleave="svRowLeave(this,${i})">
+      <div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:20px">
+        <span id="sv-num-${i}" style="font-size:10px;color:var(--dim)">${i+1}</span>
+        <span id="sv-ico-${i}" style="position:absolute;font-size:11px;color:var(--accent);opacity:0">▶</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <span id="sv-tname-${i}" style="font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</span>
+        ${statusHtml}
+      </div>
+      <div style="font-size:10px;color:var(--dim)">${t.bpm && t.bpm!=='analyzing'?`<span style="color:var(--accent);opacity:0.75">${t.bpm}</span>`:'—'}</div>
+      <div style="font-size:9px;color:var(--dim)">${fdate2(t.added||Date.now())}</div>
+      <div style="font-size:10px;color:var(--dim)">${fmt2(t.dur||0)}</div>
+      <div id="sv-acts-${i}" style="display:flex;align-items:center;justify-content:flex-end;gap:3px;opacity:0;transition:opacity 0.1s"></div>
+    </div>`;
+  }).join('');
+
+  // Live badge
+  const badge = document.getElementById('sv-live-badge');
+  if (badge) { badge.style.opacity='1'; setTimeout(()=>badge.style.opacity='0',2500); }
+}
+
+
+
+
+function showSharedProject(project, ownerName, shareId, ownerUid, viewerUid, alreadySaved) {
+  document.title = `${project.name} — WIP`;
+  const isOwn = ownerUid === viewerUid;
+
+  // Reuse existing showSharedProject UI infrastructure
+  // but now with Save button and live updates
+  const fmt = s => (!isFinite(s)?'0:00':`${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`);
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fdate = ts => { const d=new Date(ts); return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
+  const tracks = project.tracks || [];
 
   document.body.style.overflow = 'hidden';
   document.body.style.height = '100vh';
 
   document.body.innerHTML = `
   <div id="sv-app" style="display:grid;grid-template-rows:1fr var(--player-h);grid-template-columns:var(--sidebar-w) 1fr;grid-template-areas:'sidebar main' 'player player';height:100vh;">
-
     <!-- SIDEBAR -->
     <div style="grid-area:sidebar;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--surface);">
       <div style="padding:18px 16px 14px;border-bottom:1px solid var(--border)">
@@ -4060,60 +4119,63 @@ function showSharedProject(p) {
         <div style="font-size:9px;color:var(--dim);letter-spacing:0.12em;margin-top:2px">shared project</div>
       </div>
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-        <div style="width:26px;height:26px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent);font-weight:500;flex-shrink:0">${(p.sharedBy||'?')[0].toUpperCase()}</div>
-        <div style="font-size:11px;color:var(--mid);letter-spacing:0.05em;flex:1">${p.sharedBy||'unknown'}</div>
-        <div id="sv-live-badge" style="font-size:8px;letter-spacing:0.14em;color:var(--accent);border:1px solid rgba(200,255,50,0.3);border-radius:20px;padding:2px 7px;opacity:0;transition:opacity 0.4s">● LIVE</div>
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--adim);border:1px solid rgba(200,255,50,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent);font-weight:500;flex-shrink:0">${(ownerName||'?')[0].toUpperCase()}</div>
+        <div style="font-size:11px;color:var(--mid);letter-spacing:0.05em;flex:1">${ownerName||'unknown'}</div>
+        <div id="sv-live-badge" style="font-size:8px;letter-spacing:0.14em;color:var(--accent);border:1px solid rgba(200,255,50,0.3);border-radius:20px;padding:2px 7px;opacity:0;transition:opacity 0.4s">● live</div>
       </div>
       <div style="padding:12px 0;flex:1;overflow-y:auto">
         <div style="font-size:9px;font-weight:500;letter-spacing:0.2em;color:var(--dim);text-transform:uppercase;padding:0 16px 8px">project</div>
         <div style="display:flex;align-items:center;gap:10px;padding:5px 16px;background:var(--surface2);position:relative">
           <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:16px;width:2px;background:var(--accent);border-radius:0 2px 2px 0"></div>
           <div style="width:36px;height:36px;border-radius:3px;background:var(--surface3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim);border:1px solid rgba(200,255,50,0.3)">
-            ${p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover">` : '◈'}
+            ${project.cover?`<img src="${project.cover}" style="width:100%;height:100%;object-fit:cover">`: '◈'}
           </div>
           <div style="min-width:0;flex:1">
-            <div style="font-size:11px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
-            <div style="font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${p.artist||'—'}</div>
+            <div style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${project.name}</div>
+            <div style="font-size:9px;color:var(--dim);margin-top:1px">${ownerName||'—'}</div>
           </div>
-          <span style="font-size:9px;color:var(--dim);flex-shrink:0">${tracks.length}</span>
         </div>
       </div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--border)">
-        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.5.3</div>
+        <div style="font-size:8.5px;color:var(--dim);letter-spacing:0.1em;opacity:0.5">v2.6.0</div>
       </div>
     </div>
 
     <!-- MAIN -->
     <div style="grid-area:main;display:flex;flex-direction:column;overflow:hidden;align-items:center;position:relative" id="sv-main">
-      <div id="sv-ambient" style="position:absolute;inset:0;pointer-events:none;z-index:0;filter:blur(80px) saturate(1.1) brightness(0.07);transform:scale(1.15);opacity:0;transition:opacity 1s ease;${p.cover?`background:url(${p.cover}) center/cover`:''}"></div>
+      <div id="sv-ambient" style="position:absolute;inset:0;pointer-events:none;z-index:0;filter:blur(80px) saturate(1.1) brightness(0.07);transform:scale(1.15);opacity:0;transition:opacity 1s;${project.cover?`background:url(${project.cover}) center/cover`:''}"></div>
       <div style="flex:1;overflow-y:auto;overflow-x:hidden;width:100%;max-width:960px;display:flex;flex-direction:column;position:relative;z-index:1">
-
         <!-- HERO -->
         <div style="padding:44px 40px 32px;display:flex;align-items:flex-end;gap:32px;position:relative;flex-shrink:0">
-          ${p.cover ? `<div style="position:absolute;inset:0;background-image:url(${p.cover});background-size:cover;background-position:center;filter:blur(40px) saturate(1.4) brightness(0.28);transform:scale(1.1);pointer-events:none"></div>` : ''}
+          ${project.cover?`<div style="position:absolute;inset:0;background-image:url(${project.cover});background-size:cover;background-position:center;filter:blur(40px) saturate(1.4) brightness(0.28);transform:scale(1.1);pointer-events:none"></div>`:''}
           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,10,11,0.5) 0%,transparent 100%);pointer-events:none"></div>
           <div style="width:160px;height:160px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:44px;color:var(--dim);overflow:hidden;position:relative;box-shadow:0 18px 56px rgba(0,0,0,0.75);flex-shrink:0;z-index:1">
-            ${p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">` : '◈'}
+            ${project.cover?`<img src="${project.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:'◈'}
           </div>
           <div style="flex:1;min-width:0;z-index:1">
-            <div style="font-size:9px;font-weight:500;letter-spacing:0.22em;color:var(--dim);text-transform:uppercase;margin-bottom:10px">WIP · ${(p.type||'project').toUpperCase()}</div>
-            <div style="font-size:34px;font-weight:500;line-height:1.1;letter-spacing:-0.02em;color:var(--text);font-family:'DM Mono','Fredoka',monospace">${p.name}</div>
-            <div style="font-size:13px;font-weight:400;color:var(--text);margin-top:10px;letter-spacing:0.03em">${p.artist||'unknown artist'}</div>
-            <div style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:10px;color:var(--dim);letter-spacing:0.05em">
-              <span>${p.year||new Date().getFullYear()}</span>
-              ${p.genre ? `<span style="opacity:0.4">·</span><span>${p.genre}</span>` : ''}
+            <div style="font-size:9px;letter-spacing:0.22em;color:var(--dim);text-transform:uppercase;margin-bottom:10px">WIP · ${(project.type||'project').toUpperCase()}</div>
+            <div style="font-size:34px;font-weight:500;line-height:1.1;letter-spacing:-0.02em;color:var(--text);font-family:'DM Mono',monospace">${project.name}</div>
+            <div style="font-size:13px;color:var(--text);margin-top:10px">${project.artist||ownerName||'unknown artist'}</div>
+            <div style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:10px;color:var(--dim)">
+              <span>${project.year||new Date().getFullYear()}</span>
+              ${project.genre?`<span style="opacity:0.4">·</span><span>${project.genre}</span>`:''}
               <span style="opacity:0.4">·</span><span>${tracks.length} track${tracks.length!==1?'s':''}</span>
             </div>
-            <div style="display:flex;align-items:center;gap:14px;margin-top:24px">
-              <button onclick="svPlayAll()" id="sv-play-btn" style="width:48px;height:48px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,background 0.15s;flex-shrink:0">▶</button>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:24px">
+              <button onclick="svPlayAll()" id="sv-play-btn" style="width:48px;height:48px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,background 0.15s">▶</button>
+              ${!isOwn ? `<button id="sv-save-btn" onclick="saveSharedProject('${shareId}','${ownerUid}','${project.id}','${viewerUid}')"
+                style="height:36px;padding:0 18px;background:${alreadySaved?'var(--accent)':'none'};border:1px solid ${alreadySaved?'var(--accent)':'var(--border)'};border-radius:20px;color:${alreadySaved?'var(--bg)':'var(--mid)'};font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:0.08em;transition:all 0.15s;display:flex;align-items:center;gap:6px"
+                onmouseenter="if(!this.dataset.saved)this.style.borderColor='var(--mid)'" onmouseleave="if(!this.dataset.saved)this.style.borderColor='var(--border)'"
+                ${alreadySaved?"data-saved='1'":''}>
+                ${alreadySaved?'✓ saved':'+ save to library'}
+              </button>` : '<div style="font-size:10px;color:var(--dim);letter-spacing:0.08em">your project</div>'}
             </div>
           </div>
         </div>
-
         <!-- TRACKS -->
         <div style="flex:1;padding:0 40px 28px">
           <hr style="border:none;border-top:1px solid var(--border);margin-bottom:10px">
-          <div style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:5px 10px 5px;border-bottom:1px solid var(--border);margin-bottom:4px">
+          <div style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:5px 10px;border-bottom:1px solid var(--border);margin-bottom:4px">
             <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">#</div>
             <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">title</div>
             <div style="font-size:9px;font-weight:500;letter-spacing:0.16em;color:var(--dim);text-transform:uppercase">bpm</div>
@@ -4124,36 +4186,26 @@ function showSharedProject(p) {
           <div id="sv-tracks-area">
             ${tracks.map((t,i) => {
               const s = t.status;
-              const statusHtml = s ? `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;cursor:default;flex-shrink:0;border:1px solid transparent;${
+              const statusHtml = s ? `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;flex-shrink:0;border:1px solid transparent;${
                 s==='idea'?'color:#7eb8ff;border-color:rgba(126,184,255,0.3);background:rgba(126,184,255,0.08)':
                 s==='demo'?'color:#c8a0ff;border-color:rgba(200,160,255,0.3);background:rgba(200,160,255,0.08)':
                 s==='mixing'?'color:#ff9944;border-color:rgba(255,153,68,0.3);background:rgba(255,153,68,0.08)':
                 s==='done'?'color:#c8ff32;border-color:rgba(200,255,50,0.3);background:rgba(200,255,50,0.08)':''
               }">${s}</span>` : '';
-              return `<div id="sv-row-${i}" data-idx="${i}"
-                style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:background 0.1s;margin-bottom:1px"
-                onclick="svPlay(${i})"
-                onmouseenter="svRowEnter(this,${i})"
-                onmouseleave="svRowLeave(this,${i})">
+              return `<div id="sv-row-${i}" style="display:grid;grid-template-columns:36px 1fr 56px 140px 72px 68px;align-items:center;padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:background 0.1s;margin-bottom:1px"
+                onclick="svPlay(${i})" onmouseenter="svRowEnter(this,${i})" onmouseleave="svRowLeave(this,${i})">
                 <div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:20px">
                   <span id="sv-num-${i}" style="font-size:10px;color:var(--dim)">${i+1}</span>
                   <span id="sv-ico-${i}" style="position:absolute;font-size:11px;color:var(--accent);opacity:0">▶</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;min-width:0">
-                  <span id="sv-tname-${i}" style="font-size:12.5px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em">${t.name}</span>
+                  <span id="sv-tname-${i}" style="font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</span>
                   ${statusHtml}
                 </div>
-                <div style="font-size:10px;color:var(--dim);letter-spacing:0.04em">${t.bpm && t.bpm!=='analyzing' ? `<span style="color:var(--accent);opacity:0.75">${t.bpm}</span>` : '—'}</div>
-                <div style="font-size:9px;color:var(--dim);letter-spacing:0.04em">${fdate(t.added||Date.now())}</div>
+                <div style="font-size:10px;color:var(--dim)">${t.bpm&&t.bpm!=='analyzing'?`<span style="color:var(--accent);opacity:0.75">${t.bpm}</span>`:'—'}</div>
+                <div style="font-size:9px;color:var(--dim)">${fdate(t.added||Date.now())}</div>
                 <div style="font-size:10px;color:var(--dim)">${fmt(t.dur||0)}</div>
-                <div id="sv-acts-${i}" style="display:flex;align-items:center;justify-content:flex-end;gap:3px;opacity:0;transition:opacity 0.1s">
-                  <button onclick="event.stopPropagation();svOpenLyrics(${i})" title="write lyrics"
-                    style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:4px;font-size:13px;transition:color 0.1s,background 0.1s"
-                    onmouseenter="this.style.background='var(--surface3)';this.style.color='var(--text)'"
-                    onmouseleave="this.style.background='none';this.style.color='var(--dim)'">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                  </button>
-                </div>
+                <div id="sv-acts-${i}" style="opacity:0;display:flex;align-items:center;justify-content:flex-end"></div>
               </div>`;
             }).join('')}
           </div>
@@ -4163,501 +4215,74 @@ function showSharedProject(p) {
 
     <!-- PLAYER -->
     <div style="grid-area:player;height:var(--player-h);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:0;background:var(--surface);position:relative;z-index:10">
-      <!-- Left: track info -->
       <div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px">
         <div id="sv-pl-thumb" style="width:40px;height:40px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--dim);flex-shrink:0;overflow:hidden;position:relative">♩</div>
         <div style="min-width:0">
-          <div id="sv-pl-name" style="font-size:11px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em;color:var(--text)">—</div>
+          <div id="sv-pl-name" style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em">—</div>
           <div id="sv-pl-artist" style="font-size:9px;color:var(--dim);margin-top:3px;letter-spacing:0.06em">no track playing</div>
         </div>
       </div>
-      <!-- Center: controls + waveform -->
       <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 40px">
         <div style="display:flex;align-items:center;gap:2px">
-          <button onclick="svSkipPrev()" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;color:var(--mid);transition:color 0.12s,background 0.12s" onmouseenter="this.style.color='var(--text)';this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.color='var(--mid)';this.style.background='transparent'">
+          <button onclick="svSkipPrev()" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:50%;color:var(--mid);display:flex;align-items:center;justify-content:center" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--mid)'">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
           </button>
-          <button id="sv-pp" onclick="svToggle()" style="width:36px;height:36px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 8px;transition:background 0.15s,transform 0.1s" onmouseenter="this.style.background='#d4ff50'" onmouseleave="this.style.background='var(--accent)'">
+          <button id="sv-pp" onclick="svToggle()" style="width:36px;height:36px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 8px" onmouseenter="this.style.background='#d4ff50'" onmouseleave="this.style.background='var(--accent)'">
             <svg id="sv-pp-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           </button>
-          <button onclick="svSkipNext()" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;color:var(--mid);transition:color 0.12s,background 0.12s" onmouseenter="this.style.color='var(--text)';this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.color='var(--mid)';this.style.background='transparent'">
+          <button onclick="svSkipNext()" style="width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:50%;color:var(--mid);display:flex;align-items:center;justify-content:center" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--mid)'">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
           </button>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;width:280px;margin-top:-4px" id="sv-prog-wrap">
-          <span id="sv-tc" style="width:30px;flex-shrink:0;font-size:9px;color:var(--dim);text-align:center;letter-spacing:0.03em">0:00</span>
+        <div style="display:flex;align-items:center;gap:14px;width:280px;margin-top:-4px">
+          <span id="sv-tc" style="font-size:9px;color:var(--dim);width:30px;text-align:center">0:00</span>
           <div id="sv-wf-wrap" onclick="svSeek(event)" style="flex:1;height:28px;position:relative;cursor:pointer;border-radius:3px;overflow:hidden">
             <canvas id="sv-wf-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
             <div id="sv-wf-cursor" style="position:absolute;top:0;bottom:0;width:1.5px;background:var(--accent);left:0%;pointer-events:none;box-shadow:0 0 6px rgba(200,255,50,0.5)"></div>
-            <div id="sv-wf-loading" style="display:none;position:absolute;left:0;right:0;top:20%;bottom:20%;overflow:hidden;border-radius:2px">
-              <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(200,255,50,0.06) 0px,rgba(200,255,50,0.06) 2px,transparent 2px,transparent 5px)"></div>
-            </div>
+            <div id="sv-wf-loading" style="display:none;position:absolute;left:0;right:0;top:20%;bottom:20%"></div>
           </div>
-          <span id="sv-tt" style="width:30px;flex-shrink:0;font-size:9px;color:var(--dim);text-align:center;letter-spacing:0.03em">0:00</span>
+          <span id="sv-tt" style="font-size:9px;color:var(--dim);width:30px;text-align:center">0:00</span>
         </div>
       </div>
-      <!-- Right: volume (identical to main app) -->
       <div style="flex:1;display:flex;align-items:center;justify-content:flex-end">
         <div class="vol-wrap">
           <span class="vol-icon">🔈</span>
           <input type="range" class="vol-slider" min="0" max="1" step="0.01" value="0.8" oninput="window.svAudio.volume=this.value">
         </div>
-        <button onclick="svToggleFullscreen()" title="fullscreen" style="margin-left:8px;width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dim);transition:color 0.12s,background 0.12s" onmouseenter="this.style.color='var(--text)';this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.color='var(--dim)';this.style.background='transparent'">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-        </button>
       </div>
     </div>
-
-  </div>
-
-  <!-- LYRICS PANEL -->
-  <div id="sv-lyrics-panel" style="position:fixed;top:0;right:0;bottom:var(--player-h);width:500px;background:var(--bg);border-left:1px solid var(--border);display:flex;flex-direction:column;z-index:300;transform:translateX(100%);transition:transform 0.22s cubic-bezier(0.4,0,0.2,1);box-shadow:-12px 0 40px rgba(0,0,0,0.4)">
-    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);flex-shrink:0">✏ lyrics</div>
-      <div id="sv-lp-name" style="font-size:11px;font-weight:500;color:var(--text);letter-spacing:0.04em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
-      <div id="sv-lp-dot" style="width:6px;height:6px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background 0.2s"></div>
-      <button onclick="svCloseLyrics()" style="width:26px;height:26px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px" onmouseenter="this.style.color='var(--text)';this.style.background='var(--surface2)'" onmouseleave="this.style.color='var(--dim)';this.style.background='none'">×</button>
-    </div>
-    <!-- Toolbar -->
-    <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap">
-      ${['intro','verse','pre-hook','hook','bridge','outro'].map(s => `<button onclick="svInsertSection('${s}')" style="padding:3px 8px;border-radius:3px;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;font-family:'DM Mono','Fredoka',monospace;transition:all 0.1s" onmouseenter="this.style.borderColor='var(--border-h)';this.style.color='var(--mid)';this.style.background='var(--surface2)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--dim)';this.style.background='none'">${s}</button>`).join('')}
-      <div style="width:1px;height:14px;background:var(--border);flex-shrink:0"></div>
-      <button onclick="svLyricsFont(-1)" style="width:24px;height:24px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;border-radius:3px;font-size:11px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace">A−</button>
-      <button onclick="svLyricsFont(1)" style="width:24px;height:24px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;border-radius:3px;font-size:11px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace">A+</button>
-    </div>
-    <!-- Editor -->
-    <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column">
-      <textarea id="sv-lyrics-ta" placeholder="start writing...&#10;&#10;the beat is playing. flow." spellcheck="false"
-        style="flex:1;width:100%;min-height:100%;background:none;border:none;outline:none;resize:none;color:var(--text);font-family:'DM Mono','Fredoka',monospace;font-size:14px;line-height:1.85;letter-spacing:0.02em;caret-color:var(--accent)"
-        oninput="svOnLyricsInput()" onkeyup="svUpdateSyllableLine(this)" onclick="svUpdateSyllableLine(this)"></textarea>
-    </div>
-    <!-- Footer stats -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;border-top:1px solid var(--border);flex-shrink:0">
-      <div style="display:flex;gap:16px">
-        <div style="font-size:9.5px;color:var(--dim);letter-spacing:0.1em">lines <span id="sv-lp-lines" style="color:var(--mid)">0</span></div>
-        <div style="font-size:9.5px;color:var(--dim);letter-spacing:0.1em">words <span id="sv-lp-words" style="color:var(--mid)">0</span></div>
-      </div>
-      <div id="sv-lp-created" style="font-size:9px;color:var(--dim)">—</div>
-    </div>
-    <!-- Syllable line indicator -->
-    <div id="sv-lp-syl-line" style="display:flex;align-items:center;gap:4px;padding:6px 16px 10px;flex-shrink:0;min-height:28px"></div>
-    <!-- Beat grid -->
-    <div class="lp-beat-grid" id="sv-beat-grid" style="display:flex;align-items:center;gap:6px;padding:10px 16px 8px;flex-shrink:0;border-top:1px solid var(--border)">
-      <div class="beat-box beat-1" id="sv-beat-0"></div>
-      <div class="beat-box" id="sv-beat-1"></div>
-      <div class="beat-box" id="sv-beat-2"></div>
-      <div class="beat-box" id="sv-beat-3"></div>
-      <div class="lp-bpm-label" id="sv-bpm-label">— bpm</div>
-    </div>
-  </div>
-
-  <!-- FULLSCREEN VIEW -->
-  <div id="sv-fs-view" onclick="svToggleFullscreen()" style="position:fixed;inset:0;z-index:500;opacity:0;pointer-events:none;transition:opacity 0.25s;display:flex;align-items:center;justify-content:center">
-    <div id="sv-fs-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) saturate(1.3) brightness(0.25);transform:scale(1.1)"></div>
-    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:28px;padding:40px" onclick="event.stopPropagation()">
-      <div id="sv-fs-cover" style="width:220px;height:220px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:60px;color:var(--dim);overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.8)">♩</div>
-      <div style="text-align:center">
-        <div id="sv-fs-track" style="font-size:22px;font-weight:500;color:#fff;letter-spacing:-0.01em;margin-bottom:6px">—</div>
-        <div id="sv-fs-artist" style="font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:0.04em">no track playing</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:18px">
-        <button onclick="svSkipPrev()" style="width:48px;height:48px;border:none;background:none;cursor:pointer;color:rgba(255,255,255,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center" onmouseenter="this.style.color='#fff';this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.color='rgba(255,255,255,0.7)';this.style.background='none'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
-        </button>
-        <button id="sv-fs-pp" onclick="svToggle()" style="width:60px;height:60px;background:var(--accent);border:none;border-radius:50%;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s" onmouseenter="this.style.background='#d4ff50'" onmouseleave="this.style.background='var(--accent)'">
-          <svg id="sv-fs-pp-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        </button>
-        <button onclick="svSkipNext()" style="width:48px;height:48px;border:none;background:none;cursor:pointer;color:rgba(255,255,255,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center" onmouseenter="this.style.color='#fff';this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.color='rgba(255,255,255,0.7)';this.style.background='none'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
-        </button>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;width:400px">
-        <span id="sv-fs-tc" style="font-size:10px;color:rgba(255,255,255,0.4);width:34px;text-align:center;flex-shrink:0">0:00</span>
-        <div id="sv-fs-prog" onclick="svFsSeek(event)" style="flex:1;height:3px;background:rgba(255,255,255,0.15);border-radius:3px;cursor:pointer;padding:10px 0;margin:-10px 0;background-clip:content-box;box-sizing:content-box">
-          <div id="sv-fs-fill" style="height:100%;background:var(--accent);border-radius:3px;pointer-events:none;width:0%"></div>
-        </div>
-        <span id="sv-fs-tt" style="font-size:10px;color:rgba(255,255,255,0.4);width:34px;text-align:center;flex-shrink:0">0:00</span>
-      </div>
-    </div>
-    <button onclick="svToggleFullscreen()" style="position:absolute;top:24px;right:28px;width:36px;height:36px;border:none;background:rgba(255,255,255,0.08);border-radius:50%;cursor:pointer;color:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center" onmouseenter="this.style.background='rgba(255,255,255,0.15)';this.style.color='#fff'" onmouseleave="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.5)'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
   </div>
   `;
 
-  // Ambient
-  if (p.cover) setTimeout(() => { const el = document.getElementById('sv-ambient'); if(el) el.style.opacity='1'; }, 100);
+  // Ambient glow
+  if (project.cover) setTimeout(() => { const el=document.getElementById('sv-ambient'); if(el) el.style.opacity='1'; }, 100);
 
-  // ── Define ALL window functions BEFORE setting innerHTML ──
-  // (so inline event handlers like onkeyup can find them immediately)
+  // Init player with the shared project's tracks (using cloudUrl)
+  const svTracks = tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }));
 
+  // ── waveform, player, lyrics copied from existing sv* infrastructure ──
   const svWfCache = {};
-
-  function svDataURLtoArrayBuffer(dataURL) {
-    const base64 = dataURL.split(',')[1];
-    const binary = atob(base64);
-    const buf = new ArrayBuffer(binary.length);
-    const view = new Uint8Array(buf);
-    for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i);
-    return buf;
-  }
-
-  function svRenderWaveframe(peaks, progress) {
-    const canvas = document.getElementById('sv-wf-canvas');
-    const wrap = document.getElementById('sv-wf-wrap');
-    if (!canvas || !wrap || !peaks) return;
-    const dpr = window.devicePixelRatio || 1;
-    const W = wrap.getBoundingClientRect().width;
-    const H = wrap.getBoundingClientRect().height;
-    if (!W || !H) return;
-    if (canvas.width !== Math.round(W * dpr)) {
-      canvas.width = Math.round(W * dpr);
-      canvas.height = Math.round(H * dpr);
-    }
-    const ctx2 = canvas.getContext('2d');
-    ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx2.clearRect(0, 0, W, H);
-    const barW = W / peaks.length, midY = H / 2, playedX = (progress || 0) * W;
-    for (let i = 0; i < peaks.length; i++) {
-      const h = Math.max(1.5, peaks[i] * midY * 0.92);
-      const x = i * barW, bw = Math.max(barW - 0.5, 1);
-      ctx2.fillStyle = x < playedX ? '#c8ff32' : 'rgba(255,255,255,0.18)';
-      ctx2.fillRect(x, midY - h, bw, h * 2);
-    }
-  }
-
-  async function svDrawWaveform(url, tid, progress) {
-    const wrap = document.getElementById('sv-wf-wrap');
-    if (!wrap || !url) return;
-    const rect = wrap.getBoundingClientRect();
-    const W = rect.width, H = rect.height;
-    if (!W || !H) { console.warn('sv wf: wrap size=0, retrying...'); setTimeout(() => svDrawWaveform(url, tid, progress), 200); return; }
-
-    let peaks = svWfCache[tid];
-    if (!peaks) {
-      const loadEl = document.getElementById('sv-wf-loading');
-      if (loadEl) loadEl.style.display = 'block';
-      try {
-        const actx = new (window.AudioContext || window.webkitAudioContext)();
-        let buf;
-        if (url.startsWith('data:')) {
-          buf = svDataURLtoArrayBuffer(url);
-        } else {
-          const resp = await fetch(url);
-          buf = await resp.arrayBuffer();
-        }
-        const decoded = await actx.decodeAudioData(buf);
-        actx.close();
-        const numBars = Math.max(10, Math.floor(W));
-        const raw = decoded.getChannelData(0);
-        const step = Math.max(1, Math.floor(raw.length / numBars));
-        peaks = new Float32Array(numBars);
-        for (let i = 0; i < numBars; i++) {
-          let max = 0;
-          const off = i * step;
-          for (let j = 0; j < step; j++) { const v = Math.abs(raw[off + j] || 0); if (v > max) max = v; }
-          peaks[i] = max;
-        }
-        const maxP = Math.max(...peaks, 0.001);
-        for (let i = 0; i < peaks.length; i++) peaks[i] /= maxP;
-        svWfCache[tid] = peaks;
-      } catch(e) { console.warn('sv wf decode failed:', e); }
-      const loadEl2 = document.getElementById('sv-wf-loading');
-      if (loadEl2) loadEl2.style.display = 'none';
-    }
-    if (peaks) svRenderWaveframe(peaks, progress || 0);
-  }
-
-  window.svCurrentWfTid = null;
-
-  // ── Lyrics functions (defined before innerHTML so onkeyup works) ──
-  let svLyricsFontSize = 14;
-  let svLyricsTrackIdx = -1;
-  const svLyricsDB = {};
-
-  function svUpdateLyricsStats(text) {
-    const lines = text ? text.split('\n').filter(l => l.trim() && !l.trim().match(/^\[.*\]$/)).length : 0;
-    const words = text ? text.replace(/^\[.*\]$/gm, '').trim().split(/\s+/).filter(Boolean).length : 0;
-    const lEl = document.getElementById('sv-lp-lines');
-    const wEl = document.getElementById('sv-lp-words');
-    if (lEl) lEl.textContent = lines;
-    if (wEl) wEl.textContent = words;
-  }
-
-  function svCountSyllables(word) {
-    word = word.toLowerCase().replace(/[^a-z']/g, '');
-    if (!word) return 0;
-    if (word.length <= 3) return 1;
-    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '').replace(/^y/, '');
-    const m = word.match(/[aeiouy]{1,2}/g);
-    return m ? m.length : 1;
-  }
-
-  window.svUpdateSyllableLine = function(ta) {
-    const bar = document.getElementById('sv-lp-syl-line');
-    if (!bar) return;
-    const pos = ta.selectionStart, text = ta.value;
-    const lineStart = text.lastIndexOf('\n', pos - 1) + 1;
-    const lineEnd = text.indexOf('\n', pos);
-    const line = text.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
-    if (!line.trim() || /^\[.*\]$/.test(line.trim())) { bar.innerHTML = ''; return; }
-    const count = line.trim().split(/\s+/).filter(Boolean).reduce((s, w) => s + svCountSyllables(w), 0);
-    const color = count <= 6 ? 'var(--dim)' : count <= 10 ? 'var(--mid)' : count <= 14 ? 'var(--accent)' : count <= 18 ? '#ffaa44' : '#ff5555';
-    const label = count <= 6 ? 'light' : count <= 10 ? 'smooth' : count <= 14 ? 'solid' : count <= 18 ? 'dense' : 'fire 🔥';
-    const dots = Array.from({length: Math.min(count, 24)}, (_, i) => {
-      const groupEnd = (i + 1) % 4 === 0;
-      return `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${color};margin-right:${groupEnd ? '6px' : '2px'};flex-shrink:0"></span>`;
-    }).join('');
-    const overflow = count > 24 ? `<span style="font-size:9px;color:${color}">+${count - 24}</span>` : '';
-    bar.innerHTML = `<div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap;overflow:hidden">${dots}${overflow}</div><span style="font-size:9px;color:${color};letter-spacing:0.1em;white-space:nowrap;margin-left:4px">${count} syl · ${label}</span>`;
-  };
-
-  window.svOnLyricsInput = function() {
-    const ta = document.getElementById('sv-lyrics-ta');
-    if (!ta) return;
-    if (svLyricsTrackIdx >= 0) svLyricsDB[svLyricsTrackIdx] = ta.value;
-    svUpdateLyricsStats(ta.value);
-    window.svUpdateSyllableLine(ta);
-    const dot = document.getElementById('sv-lp-dot');
-    if (dot) { dot.style.background = '#ffaa44'; clearTimeout(dot._t); dot._t = setTimeout(() => dot.style.background = 'var(--accent)', 1500); }
-  };
-
-  window.svOpenLyrics = (i) => {
-    svLyricsTrackIdx = i;
-    document.getElementById('sv-lp-name').textContent = tracks[i].name;
-    const ta = document.getElementById('sv-lyrics-ta');
-    ta.value = svLyricsDB[i] || '';
-    ta.style.fontSize = svLyricsFontSize + 'px';
-    svUpdateLyricsStats(ta.value);
-    const panel = document.getElementById('sv-lyrics-panel');
-    panel.style.transform = 'translateX(0)';
-    document.getElementById('sv-main').style.marginRight = '500px';
-    document.getElementById('sv-main').style.transition = 'margin-right 0.22s cubic-bezier(0.4,0,0.2,1)';
-    svUpdateBeatGrid(i);
-    setTimeout(() => ta.focus(), 250);
-  };
-
-  window.svCloseLyrics = () => {
-    document.getElementById('sv-lyrics-panel').style.transform = 'translateX(100%)';
-    document.getElementById('sv-main').style.marginRight = '0';
-    svStopBeatGrid();
-  };
-
-  window.svInsertSection = (name) => {
-    const ta = document.getElementById('sv-lyrics-ta'); ta.focus();
-    const pos = ta.selectionStart, val = ta.value;
-    const tag = (pos > 0 && val[pos - 1] !== '\n' ? '\n' : '') + `[${name.toUpperCase()}]\n`;
-    ta.value = val.slice(0, pos) + tag + val.slice(pos);
-    ta.selectionStart = ta.selectionEnd = pos + tag.length;
-    window.svOnLyricsInput();
-  };
-
-  window.svLyricsFont = (delta) => {
-    svLyricsFontSize = Math.max(11, Math.min(22, svLyricsFontSize + delta));
-    const ta = document.getElementById('sv-lyrics-ta');
-    if (ta) ta.style.fontSize = svLyricsFontSize + 'px';
-  };
-
-  // ── Beat grid ──
-  let svBeatRaf = null;
-
-  function svStartBeatGrid(bpm) {
-    svStopBeatGrid();
-    if (!bpm || bpm === 'analyzing') return;
-    const beatDur = 60 / bpm;
-    const label = document.getElementById('sv-bpm-label');
-    if (label) label.textContent = `${Math.round(bpm)} bpm`;
-    function tick() {
-      const beat = Math.floor(window.svAudio.currentTime / beatDur) % 4;
-      for (let i = 0; i < 4; i++) {
-        document.getElementById(`sv-beat-${i}`)?.classList.toggle('active-beat', i === beat);
-      }
-      svBeatRaf = requestAnimationFrame(tick);
-    }
-    svBeatRaf = requestAnimationFrame(tick);
-  }
-
-  function svStopBeatGrid() {
-    if (svBeatRaf) { cancelAnimationFrame(svBeatRaf); svBeatRaf = null; }
-    for (let i = 0; i < 4; i++) document.getElementById(`sv-beat-${i}`)?.classList.remove('active-beat');
-  }
-
-  function svUpdateBeatGrid(trackIdx) {
-    if (trackIdx < 0 || !tracks[trackIdx]) { svStopBeatGrid(); return; }
-    const t = tracks[trackIdx];
-    const bpm = t.bpm && t.bpm !== 'analyzing' ? parseFloat(t.bpm) : null;
-    const label = document.getElementById('sv-bpm-label');
-    if (bpm) {
-      if (label) label.textContent = `${Math.round(bpm)} bpm`;
-      svStartBeatGrid(bpm);
-    } else {
-      svStopBeatGrid();
-      if (label) label.textContent = 'no bpm';
-    }
-  }
-
-  // ── Player logic ──
-  window.svAudio = new Audio();
-  window.svAudio.volume = 0.8;
-  let svCur = -1, svPlaying = false, svRaf = null;
-  const fmt2 = s => { if (!isFinite(s)) return '0:00'; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; };
-
-  let svFsOpen = false;
-
-  window.svToggleFullscreen = () => {
-    svFsOpen = !svFsOpen;
-    const v = document.getElementById('sv-fs-view');
-    v.style.opacity = svFsOpen ? '1' : '0';
-    v.style.pointerEvents = svFsOpen ? 'all' : 'none';
-    if (svFsOpen) {
-      document.documentElement.requestFullscreen?.();
-      svUpdateFsView();
-    } else {
-      document.exitFullscreen?.();
-    }
-  };
-
-  function svUpdateFsView() {
-    if (!svFsOpen) return;
-    const t = svCur >= 0 ? tracks[svCur] : null;
-    const cover = document.getElementById('sv-fs-cover');
-    const bg = document.getElementById('sv-fs-bg');
-    if (cover) cover.innerHTML = p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover">` : '♩';
-    if (bg) bg.style.backgroundImage = p.cover ? `url(${p.cover})` : 'none';
-    const trackEl = document.getElementById('sv-fs-track');
-    const artistEl = document.getElementById('sv-fs-artist');
-    if (trackEl) trackEl.textContent = t ? t.name : '—';
-    if (artistEl) artistEl.textContent = p.artist || 'no track playing';
-    const ppIcon = document.getElementById('sv-fs-pp-icon');
-    if (ppIcon) ppIcon.innerHTML = svPlaying
-      ? '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
-      : '<polygon points="5 3 19 12 5 21 5 3"/>';
-  }
-
-  window.svFsSeek = (e) => {
-    const bar = document.getElementById('sv-fs-prog');
-    const r = bar.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    if (window.svAudio.duration) window.svAudio.currentTime = pct * window.svAudio.duration;
-  };
-
-  // Keyboard ESC closes fullscreen
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && svFsOpen) window.svToggleFullscreen(); });
-
-  function svUpdateRows() {
-    tracks.forEach((_,i) => {
-      const row = document.getElementById(`sv-row-${i}`);
-      const num = document.getElementById(`sv-num-${i}`);
-      const ico = document.getElementById(`sv-ico-${i}`);
-      const name = document.getElementById(`sv-tname-${i}`);
-      const acts = document.getElementById(`sv-acts-${i}`);
-      if (!row) return;
-      const isCur = i===svCur, isPlay = isCur&&svPlaying;
-      row.style.background = isCur ? 'var(--adim)' : '';
-      row.style.borderColor = isCur ? 'rgba(200,255,50,0.14)' : 'transparent';
-      if (num) num.style.opacity = isCur ? '0' : '1';
-      if (ico) { ico.style.opacity = isCur?'1':'0'; ico.textContent = isPlay?'⏸':'▶'; }
-      if (name) name.style.color = isCur ? 'var(--accent)' : 'var(--text)';
-      if (acts) acts.style.opacity = isCur ? '1' : '0';
-    });
-    const btn = document.getElementById('sv-play-btn');
-    if (btn) btn.textContent = svPlaying ? '⏸' : '▶';
-    const ppIcon = document.getElementById('sv-pp-icon');
-    if (ppIcon) ppIcon.innerHTML = svPlaying
-      ? '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
-      : '<polygon points="5 3 19 12 5 21 5 3"/>';
-  }
-
-  window.svRowEnter = (el,i) => {
-    if (i!==svCur) el.style.background='var(--surface2)';
-    document.getElementById(`sv-acts-${i}`).style.opacity='1';
-    document.getElementById(`sv-num-${i}`).style.opacity='0';
-    document.getElementById(`sv-ico-${i}`).style.opacity='1';
-  };
-  window.svRowLeave = (el,i) => {
-    el.style.background = i===svCur ? 'var(--adim)' : '';
-    document.getElementById(`sv-acts-${i}`).style.opacity = i===svCur?'1':'0';
-    document.getElementById(`sv-num-${i}`).style.opacity = i===svCur?'0':'1';
-    document.getElementById(`sv-ico-${i}`).style.opacity = i===svCur?'1':'0';
-  };
-
-  window.svPlay = async (i) => {
-    if (!tracks[i]) return;
-    if (svCur===i) { svToggle(); return; }
-    if (!tracks[i].url) return;
-    svCur = i; svPlaying = true;
-    window.svAudio.src = tracks[i].url;
-    window.svAudio.play();
-    document.getElementById('sv-pl-name').textContent = tracks[i].name;
-    document.getElementById('sv-pl-artist').textContent = p.artist||'';
-    const thumb = document.getElementById('sv-pl-thumb');
-    if (thumb) thumb.innerHTML = p.cover ? `<img src="${p.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">` : '♪';
-    svUpdateRows();
-    window.svCurrentWfTid = i;
-    if (svFsOpen) svUpdateFsView();
-    // Use setTimeout to ensure layout is complete before measuring
-    setTimeout(() => svDrawWaveform(tracks[i].url, i, 0), 100);
-  };
-  window.svPlayAll = () => {
-    if (svCur>=0) { svToggle(); return; }
-    const first = tracks.findIndex(t=>t.url);
-    if (first>=0) svPlay(first);
-  };
-  window.svToggle = () => {
-    if (svCur<0) { svPlayAll(); return; }
-    if (svPlaying) { window.svAudio.pause(); }
-    else { window.svAudio.play(); }
-  };
-  window.svSkipNext = () => {
-    let next = svCur+1;
-    while (next<tracks.length && !tracks[next].url) next++;
-    if (next<tracks.length) svPlay(next);
-  };
-  window.svSkipPrev = () => {
-    if (window.svAudio.currentTime>3) { window.svAudio.currentTime=0; return; }
-    let prev = svCur-1;
-    while (prev>=0 && !tracks[prev].url) prev--;
-    if (prev>=0) svPlay(prev);
-  };
-  window.svSeek = (e) => {
-    const wrap = document.getElementById('sv-wf-wrap');
-    const r = wrap.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1,(e.clientX-r.left)/r.width));
-    if (window.svAudio.duration) window.svAudio.currentTime = pct*window.svAudio.duration;
-  };
-
-  window.svAudio.addEventListener('play', () => {
-    svPlaying=true; svUpdateRows();
-    if (svFsOpen) svUpdateFsView();
-    // Update beat grid if lyrics panel is open
-    if (svLyricsTrackIdx >= 0) svUpdateBeatGrid(svLyricsTrackIdx);
-    function tick() {
-      if (!window.svAudio.duration) { svRaf=requestAnimationFrame(tick); return; }
-      const pct = window.svAudio.currentTime/window.svAudio.duration;
-      // Waveform
-      if (window.svCurrentWfTid !== null && svWfCache[window.svCurrentWfTid]) {
-        svRenderWaveframe(svWfCache[window.svCurrentWfTid], pct);
-      }
-      const cursor = document.getElementById('sv-wf-cursor');
-      if (cursor) cursor.style.left = (pct*100)+'%';
-      document.getElementById('sv-tc').textContent = fmt2(window.svAudio.currentTime);
-      document.getElementById('sv-tt').textContent = fmt2(window.svAudio.duration);
-      // עדכן fullscreen אם פתוח
-      if (svFsOpen) {
-        const fsFill = document.getElementById('sv-fs-fill');
-        const fsTc = document.getElementById('sv-fs-tc');
-        const fsTt = document.getElementById('sv-fs-tt');
-        if (fsFill) fsFill.style.width = (pct*100)+'%';
-        if (fsTc) fsTc.textContent = fmt2(window.svAudio.currentTime);
-        if (fsTt) fsTt.textContent = fmt2(window.svAudio.duration);
-      }
-      svRaf=requestAnimationFrame(tick);
-    }
-    if (svRaf) cancelAnimationFrame(svRaf);
-    svRaf=requestAnimationFrame(tick);
-  });
-  window.svAudio.addEventListener('pause', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svStopBeatGrid(); if(svFsOpen) svUpdateFsView(); });
-  window.svAudio.addEventListener('ended', () => { svPlaying=false; svUpdateRows(); if(svRaf) cancelAnimationFrame(svRaf); svStopBeatGrid(); if(svFsOpen) svUpdateFsView(); svSkipNext(); });
+  function svDataURLtoArrayBuffer(d){const b=atob(d.split(',')[1]);const buf=new ArrayBuffer(b.length);const v=new Uint8Array(buf);for(let i=0;i<b.length;i++)v[i]=b.charCodeAt(i);return buf;}
+  function svRenderWaveframe(peaks,progress){const canvas=document.getElementById('sv-wf-canvas');const wrap=document.getElementById('sv-wf-wrap');if(!canvas||!wrap||!peaks)return;const dpr=window.devicePixelRatio||1;const W=wrap.getBoundingClientRect().width;const H=wrap.getBoundingClientRect().height;if(!W||!H)return;if(canvas.width!==Math.round(W*dpr)){canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);}const ctx2=canvas.getContext('2d');ctx2.setTransform(dpr,0,0,dpr,0,0);ctx2.clearRect(0,0,W,H);const barW=W/peaks.length,midY=H/2,playedX=(progress||0)*W;for(let i=0;i<peaks.length;i++){const h=Math.max(1.5,peaks[i]*midY*0.92);const x=i*barW,bw=Math.max(barW-0.5,1);ctx2.fillStyle=x<playedX?'#c8ff32':'rgba(255,255,255,0.18)';ctx2.fillRect(x,midY-h,bw,h*2);}}
+  async function svDrawWaveform(url,tid,progress){const wrap=document.getElementById('sv-wf-wrap');if(!wrap||!url)return;const rect=wrap.getBoundingClientRect();const W=rect.width,H=rect.height;if(!W||!H){setTimeout(()=>svDrawWaveform(url,tid,progress),200);return;}let peaks=svWfCache[tid];if(!peaks){const loadEl=document.getElementById('sv-wf-loading');if(loadEl)loadEl.style.display='block';try{const actx=new(window.AudioContext||window.webkitAudioContext)();let buf;if(url.startsWith('data:')){buf=svDataURLtoArrayBuffer(url);}else{const resp=await fetch(url);buf=await resp.arrayBuffer();}const decoded=await actx.decodeAudioData(buf);actx.close();const numBars=Math.max(10,Math.floor(W));const raw=decoded.getChannelData(0);const step=Math.max(1,Math.floor(raw.length/numBars));peaks=new Float32Array(numBars);for(let i=0;i<numBars;i++){let max=0;const off=i*step;for(let j=0;j<step;j++){const v=Math.abs(raw[off+j]||0);if(v>max)max=v;}peaks[i]=max;}const maxP=Math.max(...peaks,0.001);for(let i=0;i<peaks.length;i++)peaks[i]/=maxP;svWfCache[tid]=peaks;}catch(e){console.warn('wf failed',e);}const loadEl2=document.getElementById('sv-wf-loading');if(loadEl2)loadEl2.style.display='none';}if(peaks)svRenderWaveframe(peaks,progress||0);}
+  window.svCurrentWfTid=null;
+  window.svAudio=new Audio();
+  window.svAudio.volume=0.8;
+  let svCur=-1,svPlaying=false,svRaf=null;
+  const fmt2=s=>(!isFinite(s)?'0:00':`${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`);
+  function svUpdateRows(){svTracks.forEach((_,i)=>{const row=document.getElementById(`sv-row-${i}`);const num=document.getElementById(`sv-num-${i}`);const ico=document.getElementById(`sv-ico-${i}`);const name=document.getElementById(`sv-tname-${i}`);const acts=document.getElementById(`sv-acts-${i}`);if(!row)return;const isCur=i===svCur,isPlay=isCur&&svPlaying;row.style.background=isCur?'var(--adim)':'';row.style.borderColor=isCur?'rgba(200,255,50,0.14)':'transparent';if(num)num.style.opacity=isCur?'0':'1';if(ico){ico.style.opacity=isCur?'1':'0';ico.textContent=isPlay?'⏸':'▶';}if(name)name.style.color=isCur?'var(--accent)':'var(--text)';if(acts)acts.style.opacity=isCur?'1':'0';});const btn=document.getElementById('sv-play-btn');if(btn)btn.textContent=svPlaying?'⏸':'▶';const ppIcon=document.getElementById('sv-pp-icon');if(ppIcon)ppIcon.innerHTML=svPlaying?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<polygon points="5 3 19 12 5 21 5 3"/>';}
+  window.svRowEnter=(el,i)=>{if(i!==svCur)el.style.background='var(--surface2)';const acts=document.getElementById(`sv-acts-${i}`);if(acts)acts.style.opacity='1';document.getElementById(`sv-num-${i}`).style.opacity='0';document.getElementById(`sv-ico-${i}`).style.opacity='1';};
+  window.svRowLeave=(el,i)=>{el.style.background=i===svCur?'var(--adim)':'';const acts=document.getElementById(`sv-acts-${i}`);if(acts)acts.style.opacity=i===svCur?'1':'0';document.getElementById(`sv-num-${i}`).style.opacity=i===svCur?'0':'1';document.getElementById(`sv-ico-${i}`).style.opacity=i===svCur?'1':'0';};
+  window.svPlay=async(i)=>{if(!svTracks[i])return;if(svCur===i){svToggle();return;}if(!svTracks[i].url)return;svCur=i;svPlaying=true;window.svAudio.src=svTracks[i].url;window.svAudio.play();document.getElementById('sv-pl-name').textContent=svTracks[i].name;document.getElementById('sv-pl-artist').textContent=project.artist||ownerName||'';const thumb=document.getElementById('sv-pl-thumb');if(thumb)thumb.innerHTML=project.cover?`<img src="${project.cover}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:'♪';svUpdateRows();window.svCurrentWfTid=i;setTimeout(()=>svDrawWaveform(svTracks[i].url,i,0),100);};
+  window.svPlayAll=()=>{if(svCur>=0){svToggle();return;}const first=svTracks.findIndex(t=>t.url);if(first>=0)svPlay(first);};
+  window.svToggle=()=>{if(svCur<0){svPlayAll();return;}if(svPlaying)window.svAudio.pause();else window.svAudio.play();};
+  window.svSkipNext=()=>{let next=svCur+1;while(next<svTracks.length&&!svTracks[next].url)next++;if(next<svTracks.length)svPlay(next);};
+  window.svSkipPrev=()=>{if(window.svAudio.currentTime>3){window.svAudio.currentTime=0;return;}let prev=svCur-1;while(prev>=0&&!svTracks[prev].url)prev--;if(prev>=0)svPlay(prev);};
+  window.svSeek=(e)=>{const wrap=document.getElementById('sv-wf-wrap');const r=wrap.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));if(window.svAudio.duration)window.svAudio.currentTime=pct*window.svAudio.duration;};
+  window.svAudio.addEventListener('play',()=>{svPlaying=true;svUpdateRows();function tick(){if(!window.svAudio.duration){svRaf=requestAnimationFrame(tick);return;}const pct=window.svAudio.currentTime/window.svAudio.duration;if(window.svCurrentWfTid!==null&&svWfCache[window.svCurrentWfTid])svRenderWaveframe(svWfCache[window.svCurrentWfTid],pct);const cursor=document.getElementById('sv-wf-cursor');if(cursor)cursor.style.left=(pct*100)+'%';document.getElementById('sv-tc').textContent=fmt2(window.svAudio.currentTime);document.getElementById('sv-tt').textContent=fmt2(window.svAudio.duration);svRaf=requestAnimationFrame(tick);}if(svRaf)cancelAnimationFrame(svRaf);svRaf=requestAnimationFrame(tick);});
+  window.svAudio.addEventListener('pause',()=>{svPlaying=false;svUpdateRows();if(svRaf)cancelAnimationFrame(svRaf);});
+  window.svAudio.addEventListener('ended',()=>{svPlaying=false;svUpdateRows();if(svRaf)cancelAnimationFrame(svRaf);svSkipNext();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){}});
 }
 
 // ─── INIT ───
