@@ -1990,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.8</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.9</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3550,13 +3550,16 @@ function toggleFullscreen() {
   const v = document.getElementById('fs-view');
   v.classList.toggle('open', fsOpen);
   if (fsOpen) {
-    if (!isMobile()) document.documentElement.requestFullscreen?.();
     updateFsView();
   } else {
-    if (!isMobile()) document.exitFullscreen?.();
     stopFsBeatPulse();
   }
 }
+
+// Sync if browser exits native fullscreen via ESC
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && fsOpen) { fsOpen = false; document.getElementById('fs-view')?.classList.remove('open'); stopFsBeatPulse(); }
+});
 
 function updateFsView() {
   if (!fsOpen) return;
@@ -5296,7 +5299,8 @@ let _fsAnalyser = null;
 let _fsAnalyserData = null;
 
 function initFsAnalyser() {
-  if (_fsAnalyser) return;
+  // Skip on mobile — createMediaElementSource breaks iOS audio
+  if (isMobile() || _fsAnalyser) return;
   try {
     const actx = new (window.AudioContext || window.webkitAudioContext)();
     const src = actx.createMediaElementSource(audio);
@@ -5310,13 +5314,13 @@ function initFsAnalyser() {
 }
 
 function getFsAmplitude() {
-  if (!_fsAnalyser) return 0.5;
+  // Mobile: use a gentle fixed amplitude so breathing still works
+  if (isMobile() || !_fsAnalyser) return 0.55;
   _fsAnalyser.getByteFrequencyData(_fsAnalyserData);
-  // Focus on bass/low-mid (first ~30% of bins)
   const bins = Math.floor(_fsAnalyserData.length * 0.3);
   let sum = 0;
   for (let i = 0; i < bins; i++) sum += _fsAnalyserData[i];
-  return Math.min(1, (sum / bins) / 180); // 0..1
+  return Math.min(1, (sum / bins) / 180);
 }
 
 function startFsBeatPulse(bpm) {
