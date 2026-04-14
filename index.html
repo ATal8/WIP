@@ -1010,20 +1010,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--dim); padding: 2px 6px; border: 1px solid var(--border); border-radius: 10px;
 }
-.artist-collab-row { display: flex; border: 1px solid var(--border); border-radius: 0 0 4px 4px; overflow: hidden; }
-.collab-type-select {
-  background: var(--bg); border: none; border-right: 1px solid var(--border);
-  color: var(--mid); font-size: 10px; font-family: 'DM Mono', 'Fredoka', monospace;
-  letter-spacing: 0.06em; padding: 7px 10px; cursor: pointer; outline: none; flex-shrink: 0;
-}
-.collab-name-input {
-  flex: 1; background: var(--bg); border: none; color: var(--text);
-  font-size: 11.5px; font-family: 'DM Mono', 'Fredoka', monospace;
-  padding: 7px 11px; outline: none; letter-spacing: 0.04em;
-}
-.collab-name-input::placeholder { color: var(--dim); }
-.collab-name-input:disabled { opacity: 0.3; cursor: not-allowed; }
-
 /* ─── ALBUM MODAL ─── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.18s; }
 .modal-overlay.open { opacity: 1; pointer-events: all; }
@@ -1970,7 +1956,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.5.9</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.0</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2173,9 +2159,6 @@ function totalDur(tracks) {
   const m = Math.floor(s / 60), sec = Math.floor(s % 60);
   return m ? `${m}m ${sec}s` : `${sec}s`;
 }
-const EMOJIS = ['🎵','🎸','🥁','🎹','🎺','🎻','🎤','🎧','🎼','🔊'];
-function pickEmoji(name) { return EMOJIS[name.charCodeAt(0) % EMOJIS.length]; }
-
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -2302,25 +2285,8 @@ function updateSidebarUser() {
   }
 }
 
-function renameCurrentUser(el) {
-  const newName = el.textContent.trim();
-  if (!newName || newName === DB.currentUser) { el.textContent = DB.currentUser; return; }
-  if (DB.users.find(u => u.name === newName)) { toast('name already taken'); el.textContent = DB.currentUser; return; }
-  // Rename in DB
-  const u = DB.users.find(x => x.name === DB.currentUser);
-  if (u) u.name = newName;
-  DB.albums[newName] = DB.albums[DB.currentUser] || [];
-  delete DB.albums[DB.currentUser];
-  DB.currentUser = newName;
-  el.textContent = newName;
-  document.getElementById('sb-avatar').textContent = newName[0].toUpperCase();
-  saveDB();
-  toast(`renamed to ${newName} ✓`);
-}
-
 
 // Keep for delete user modal compatibility
-let delUserTarget = null;
 const USER_DELETE_JOKES = [
   "every track you made here is about to vanish. like tears in rain. 🌧️",
   "you built all that. and now it's gone. this is fine. 🔥",
@@ -2510,23 +2476,6 @@ function closeUserSettings(e) {
   document.getElementById('us-modal').classList.remove('open');
 }
 
-function updateCollabInput() {
-  const type = document.getElementById('ps-collab-type').value;
-  const input = document.getElementById('ps-collab-name');
-  input.disabled = !type;
-  if (!type) input.value = '';
-}
-
-function getComputedArtist(prefix) {
-  const base = DB.currentUser || '';
-  const typeId = prefix === 'm' ? 'm-collab-type' : 'ps-collab-type';
-  const collabId = prefix === 'm' ? 'm-collab-name' : 'ps-collab-name';
-  const type = document.getElementById(typeId)?.value || '';
-  const collab = (document.getElementById(collabId)?.value || '').trim();
-  if (type && collab) return `${base} ${type} ${collab}`;
-  return base;
-}
-
 // ─── LYRICS PANEL ───
 const LP = { tid: null, takeId: null, fontSize: 14, saveTimer: null, dirty: false };
 
@@ -2703,7 +2652,7 @@ function saveLyricsTake() {
   const t = p.tracks.find(x => x.id === LP.tid); if (!t) return;
   const take = (t.lyrics||[]).find(x => x.id === LP.takeId); if (!take) return;
   take.content = document.getElementById('lyrics-textarea').value;
-  take.updated = Date.now(); LP.dirty = false; saveDB();
+  take.updated = Date.now(); LP.dirty = false; saveDBDebounced();
   setLyricsDot('saved');
 }
 
@@ -2977,7 +2926,7 @@ function findPByTrack(tid) {
 function updateField(pid, field, val) {
   const albums = curAlbums();
   const p = albums.find(x => x.id === pid); if (!p) return;
-  p[field] = val; saveDB(); renderSidebar();
+  p[field] = val; saveDBDebounced(); renderSidebarDebounced();
   if (field === 'artist' && S.curTid) {
     const fp = findPByTrack(S.curTid);
     if (fp && fp.id === pid) document.getElementById('pl-artist').textContent = val;
@@ -2998,6 +2947,11 @@ function dataURLtoArrayBuffer(dataURL) {
   return buf;
 }
 
+// BPM worker — heavy autocorrelation runs off main thread
+const _bpmWorkerSrc = atob('CnNlbGYub25tZXNzYWdlID0gZnVuY3Rpb24oZSkgewogIGNvbnN0IHsgb25zZXQsIGVudkxlbiwgaG9wTXMgfSA9IGUuZGF0YTsKICBjb25zdCBlbnZTUiA9IDEgLyBob3BNczsKICBjb25zdCBsYWdNaW4gPSBNYXRoLmZsb29yKDYwIC8gMjAwICogZW52U1IpOwogIGNvbnN0IGxhZ01heCA9IE1hdGguZmxvb3IoNjAgLyA2MCAgKiBlbnZTUik7CiAgY29uc3QgYWNMZW4gID0gTWF0aC5taW4oZW52TGVuLCA0MDAwKTsKICBjb25zdCBhYyA9IG5ldyBGbG9hdDMyQXJyYXkobGFnTWF4ICsgMSk7CiAgZm9yIChsZXQgbGFnID0gbGFnTWluOyBsYWcgPD0gbGFnTWF4OyBsYWcrKykgewogICAgbGV0IHN1bSA9IDAsIG4gPSAwOwogICAgZm9yIChsZXQgaSA9IDA7IGkgKyBsYWcgPCBhY0xlbjsgaSsrKSB7IHN1bSArPSBvbnNldFtpXSAqIG9uc2V0W2kgKyBsYWddOyBuKys7IH0KICAgIGFjW2xhZ10gPSBuID4gMCA/IHN1bSAvIG4gOiAwOwogIH0KICBjb25zdCBhY1cgPSBuZXcgRmxvYXQzMkFycmF5KGxhZ01heCArIDEpOwogIGZvciAobGV0IGxhZyA9IGxhZ01pbjsgbGFnIDw9IGxhZ01heDsgbGFnKyspIHsKICAgIGxldCBzY29yZSA9IGFjW2xhZ107CiAgICBjb25zdCBoMiA9IE1hdGgucm91bmQobGFnIC8gMik7IGNvbnN0IGgzID0gTWF0aC5yb3VuZChsYWcgLyAzKTsKICAgIGlmIChoMiA+PSBsYWdNaW4pIHNjb3JlICs9IGFjW2gyXSAqIDAuNTsKICAgIGlmIChoMyA+PSBsYWdNaW4pIHNjb3JlICs9IGFjW2gzXSAqIDAuMjU7CiAgICBjb25zdCBkMiA9IGxhZyAqIDI7CiAgICBpZiAoZDIgPD0gbGFnTWF4KSBzY29yZSArPSBhY1tkMl0gKiAwLjU7CiAgICBhY1dbbGFnXSA9IHNjb3JlOwogIH0KICBsZXQgYmVzdExhZyA9IGxhZ01pbiwgYmVzdFNjb3JlID0gMDsKICBmb3IgKGxldCBsYWcgPSBsYWdNaW47IGxhZyA8PSBsYWdNYXg7IGxhZysrKSB7CiAgICBpZiAoYWNXW2xhZ10gPiBiZXN0U2NvcmUpIHsgYmVzdFNjb3JlID0gYWNXW2xhZ107IGJlc3RMYWcgPSBsYWc7IH0KICB9CiAgbGV0IHJlZmluZWRMYWcgPSBiZXN0TGFnOwogIGlmIChiZXN0TGFnID4gbGFnTWluICYmIGJlc3RMYWcgPCBsYWdNYXgpIHsKICAgIGNvbnN0IHkwID0gYWNXW2Jlc3RMYWctMV0sIHkxID0gYWNXW2Jlc3RMYWddLCB5MiA9IGFjV1tiZXN0TGFnKzFdOwogICAgY29uc3QgZGVub20gPSAyKigyKnkxLXkwLXkyKTsKICAgIGlmIChkZW5vbSA+IDApIHJlZmluZWRMYWcgPSBiZXN0TGFnICsgKHkwLXkyKS9kZW5vbTsKICB9CiAgY29uc3QgYnBtID0gKDYwL2hvcE1zKS9yZWZpbmVkTGFnOwogIGNvbnN0IHJvdW5kZWQgPSBNYXRoLnJvdW5kKGJwbSk7CiAgc2VsZi5wb3N0TWVzc2FnZShyb3VuZGVkIDwgNjAgfHwgcm91bmRlZCA+IDIwMCA/IG51bGwgOiByb3VuZGVkKTsKfTsK');
+const _bpmWorkerBlob = new Blob([_bpmWorkerSrc], {type:'application/javascript'});
+const _bpmWorkerUrl = URL.createObjectURL(_bpmWorkerBlob);
+
 async function detectBPM(audioUrl) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -3012,8 +2966,10 @@ async function detectBPM(audioUrl) {
     ctx.close();
 
     const sr = audioBuf.sampleRate;
-    // Analyze up to 60s
     const maxSamples = Math.min(audioBuf.length, sr * 60);
+    const hopMs = 0.010;
+    const hop = Math.floor(sr * hopMs);
+    const winSize = hop * 4;
 
     // Mix to mono
     let raw = new Float32Array(maxSamples);
@@ -3022,79 +2978,27 @@ async function detectBPM(audioUrl) {
       for (let i = 0; i < maxSamples; i++) raw[i] += ch[i] / audioBuf.numberOfChannels;
     }
 
-    // ── Step 1: Onset envelope via RMS with 10ms hop ──
-    const hopMs = 0.010;
-    const hop = Math.floor(sr * hopMs);
-    const winSize = hop * 4;
+    // Onset envelope (main thread — fast)
     const envLen = Math.floor((maxSamples - winSize) / hop);
     const env = new Float32Array(envLen);
     for (let i = 0; i < envLen; i++) {
-      let e = 0;
-      const off = i * hop;
+      let e = 0; const off = i * hop;
       for (let j = 0; j < winSize; j++) e += raw[off + j] ** 2;
       env[i] = Math.sqrt(e / winSize);
     }
-
-    // ── Step 2: Half-wave rectified first-order diff (onset strength) ──
     const onset = new Float32Array(envLen);
     for (let i = 1; i < envLen; i++) onset[i] = Math.max(0, env[i] - env[i-1]);
-
-    // ── Step 3: Normalize onset ──
     let maxO = 0;
     for (let i = 0; i < envLen; i++) if (onset[i] > maxO) maxO = onset[i];
     if (maxO > 0) for (let i = 0; i < envLen; i++) onset[i] /= maxO;
 
-    // ── Step 4: Autocorrelation of onset curve ──
-    // BPM 60–200 → period in frames
-    const envSR = 1 / hopMs; // frames per second = 100
-    const lagMin = Math.floor(60 / 200 * envSR); // 200 BPM
-    const lagMax = Math.floor(60 / 60  * envSR); // 60 BPM
-    const acLen  = Math.min(envLen, 4000); // use first 40s for speed
-
-    const ac = new Float32Array(lagMax + 1);
-    for (let lag = lagMin; lag <= lagMax; lag++) {
-      let sum = 0, n = 0;
-      for (let i = 0; i + lag < acLen; i++) {
-        sum += onset[i] * onset[i + lag];
-        n++;
-      }
-      ac[lag] = n > 0 ? sum / n : 0;
-    }
-
-    // ── Step 5: Also weight by harmonics (lag/2, lag/3, lag*2) ──
-    const acW = new Float32Array(lagMax + 1);
-    for (let lag = lagMin; lag <= lagMax; lag++) {
-      let score = ac[lag];
-      // sub-harmonics (double/triple tempo)
-      const h2 = Math.round(lag / 2);
-      const h3 = Math.round(lag / 3);
-      if (h2 >= lagMin) score += ac[h2] * 0.5;
-      if (h3 >= lagMin) score += ac[h3] * 0.25;
-      // super-harmonic (half tempo)
-      const d2 = lag * 2;
-      if (d2 <= lagMax) score += ac[d2] * 0.5;
-      acW[lag] = score;
-    }
-
-    // ── Step 6: Find best lag ──
-    let bestLag = lagMin, bestScore = 0;
-    for (let lag = lagMin; lag <= lagMax; lag++) {
-      if (acW[lag] > bestScore) { bestScore = acW[lag]; bestLag = lag; }
-    }
-
-    // ── Step 7: Sub-frame refinement via parabolic interpolation ──
-    let refinedLag = bestLag;
-    if (bestLag > lagMin && bestLag < lagMax) {
-      const y0 = acW[bestLag - 1], y1 = acW[bestLag], y2 = acW[bestLag + 1];
-      const denom = 2 * (2 * y1 - y0 - y2);
-      if (denom > 0) refinedLag = bestLag + (y0 - y2) / denom;
-    }
-
-    const bpm = (60 / hopMs) / refinedLag;
-    const rounded = Math.round(bpm);
-    if (rounded < 60 || rounded > 200) return null;
-    return rounded;
-
+    // Heavy autocorrelation — run in worker
+    return await new Promise((resolve) => {
+      const w = new Worker(_bpmWorkerUrl);
+      w.onmessage = e => { w.terminate(); resolve(e.data); };
+      w.onerror = () => { w.terminate(); resolve(null); };
+      w.postMessage({ onset, envLen, hopMs }, [onset.buffer]);
+    });
   } catch (e) {
     console.warn('BPM detection failed:', e);
     return null;
@@ -3114,7 +3018,7 @@ async function analyzeTrackBPM(t, p) {
   const bpm = await detectBPM(t.url);
   if (!findPByTrack(t.id)) return;
   t.bpm = bpm || null;
-  saveDB();
+  saveDBDebounced();
   renderTrackList();
 }
 
@@ -3126,7 +3030,7 @@ function addTracks(files) {
     const localUrl = URL.createObjectURL(f);
     const t = { id: uid(), name: f.name.replace(/\.[^.]+$/, ''), originalName: f.name, fileType: f.name.split('.').pop().toUpperCase(), url: localUrl, dur: 0, added: Date.now(), pid: p.id, bpm: null, cloudUrl: null };
     const tmp = new Audio(localUrl);
-    tmp.addEventListener('loadedmetadata', () => { t.dur = tmp.duration; renderTrackList(); updateMetaRow(); renderSidebar(); saveDB(); });
+    tmp.addEventListener('loadedmetadata', () => { t.dur = tmp.duration; renderTrackList(); updateMetaRow(); renderSidebarDebounced(); saveDBDebounced(); });
     p.tracks.push(t);
     const reader = new FileReader();
     reader.onload = ev => saveAudio(t.id, ev.target.result);
@@ -4195,9 +4099,21 @@ function deleteAudio(id) {
 }
 
 // ─── AUTO-SAVE TO FILE ───
-let autoSaveTimer = null;
 
 let _lastSelfSaveTs = 0; // used by initLiveSync to detect self-saves
+
+// ─── DEBOUNCE ───
+let _saveDbTimer = null;
+function saveDBDebounced() {
+  clearTimeout(_saveDbTimer);
+  _saveDbTimer = setTimeout(() => saveDB(), 800);
+}
+
+let _renderSidebarTimer = null;
+function renderSidebarDebounced() {
+  clearTimeout(_renderSidebarTimer);
+  _renderSidebarTimer = setTimeout(() => renderSidebar(), 60);
+}
 
 function saveDB() {
   try {
@@ -4230,8 +4146,19 @@ function saveDB() {
       }));
     }
     localStorage.setItem('wip_db', JSON.stringify(localPayload));
-    saveDBToFirebase(payload);
+    _scheduleFirebaseSave(payload);
   } catch(e) { console.error('[WIP] saveDB failed:', e); }
+}
+
+let _fbSaveTimer = null;
+let _fbPendingPayload = null;
+function _scheduleFirebaseSave(payload) {
+  _fbPendingPayload = payload;
+  clearTimeout(_fbSaveTimer);
+  _fbSaveTimer = setTimeout(() => {
+    if (_fbPendingPayload) saveDBToFirebase(_fbPendingPayload);
+    _fbPendingPayload = null;
+  }, 1500);
 }
 
 async function saveDBToFirebase(payload) {
