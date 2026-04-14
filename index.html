@@ -1526,10 +1526,13 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   /* ══ MISC ══ */
   .ob-box { width: 90%; max-width: 360px; }
   .no-sel-hint { display: none; }
-  .fs-close { top: max(16px, env(safe-area-inset-top, 16px)); }
 
   /* ══ FULLSCREEN — mobile optimized ══ */
   #fs-view { z-index: 500; }
+
+  /* Hide X button — swipe down to close instead */
+  .fs-close { display: none; }
+
   .fs-bg {
     filter: blur(60px) saturate(2.5);
     opacity: 0.42;
@@ -1554,6 +1557,16 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   .fs-ctrl-row { gap: 20px; margin-top: 8px; }
   .fs-btn { width: 52px; height: 52px; }
   .fs-play { width: 64px !important; height: 64px !important; }
+
+  /* Beat pulse animation for play button */
+  @keyframes beatPulse {
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(200,255,50,0.5); }
+    40%  { transform: scale(1.12); box-shadow: 0 0 0 12px rgba(200,255,50,0); }
+    100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(200,255,50,0); }
+  }
+  .fs-play.beat-pulse {
+    animation: beatPulse var(--beat-dur, 0.6s) ease-out;
+  }
 }
 </style>
 </head>
@@ -1966,7 +1979,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.4</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.6</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2327,7 +2340,7 @@ function openUserSettings() {
   const statusEl = document.getElementById('us-name-status');
   if (statusEl) statusEl.textContent = '';
 
-  // אווטאר
+  // avatar
   const wrap = document.getElementById('us-avatar-wrap');
   const letter = document.getElementById('us-avatar-letter');
   if (wrap) {
@@ -3367,14 +3380,14 @@ function confirmDeleteProject() {
   document.getElementById('del-proj-modal').classList.remove('open');
   psProjectId = null;
   saveDB(); renderSidebar(); renderMain();
-  // מחק מ-Firebase — shared doc + קבצי אודיו
+  // Delete from Firebase — shared doc + audio files
   if (window._fbReady) {
     try {
       const db = window._fbDb;
       const storage = window._fbStorage;
-      // מחק את ה-shared document
+      // Delete the shared document
       window._fbDeleteDoc(window._fbDoc(db, 'shared', pid)).catch(() => {});
-      // מחק קבצי אודיו מ-Storage
+      // Delete audio files from Storage
       window._fbGetDoc(window._fbDoc(db, 'shared', pid)).then(snap => {
         if (!snap.exists()) return;
         const tracks = snap.data().tracks || [];
@@ -3530,6 +3543,7 @@ function toggleFullscreen() {
     updateFsView();
   } else {
     if (!isMobile()) document.exitFullscreen?.();
+    stopFsBeatPulse();
   }
 }
 
@@ -3553,6 +3567,13 @@ function updateFsView() {
 
   // play/pause icon
   document.getElementById('fs-pp').innerHTML = S.playing ? FS_PAUSE_SVG : FS_PLAY_SVG;
+
+  // Start beat pulse on mobile if BPM known
+  if (isMobile() && t?.bpm && t.bpm !== 'analyzing') {
+    startFsBeatPulse(parseFloat(t.bpm));
+  } else {
+    stopFsBeatPulse();
+  }
 }
 
 function seekTo(e, isFs = false) {
@@ -4329,8 +4350,8 @@ async function restoreAudioUrls() {
     for (const p of projects) {
       for (const t of p.tracks) {
         if (!t.url) t.url = await loadAudio(t.id);
-        // אם אין local audio אבל יש cloud URL — השתמש בו ישירות
-        // כולל waveform יעבוד כי drawWaveform תומך ב-URL רגיל
+        // If no local audio but cloud URL exists — use it directly
+        // Waveform will work since drawWaveform supports regular URLs
         if (!t.url && t.cloudUrl) t.url = t.cloudUrl;
       }
     }
@@ -5196,6 +5217,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initMobilePlayer();
   if (isMobile()) {
     initMobileSwipeSeek();
+    initFsSwipeClose();
     addSwipeToClose(document.getElementById('mobile-drawer'), closeMobileDrawer);
     addSwipeToClose(document.getElementById('notif-drawer'), closeNotifDrawer);
     // Modals - attach after a tick so they're rendered
@@ -5207,6 +5229,95 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 500);
   }
 });
+
+// ── Swipe down to close fullscreen (fade out) ──
+function initFsSwipeClose() {
+  const fsView = document.getElementById('fs-view');
+  if (!fsView) return;
+  let startY = 0, lastY = 0, active = false;
+
+  fsView.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.fs-prog-bar')) return; // don't interfere with seek
+    startY = lastY = e.touches[0].clientY;
+    active = true;
+  }, { passive: true });
+
+  fsView.addEventListener('touchmove', (e) => {
+    if (!active) return;
+    lastY = e.touches[0].clientY;
+    const dy = Math.max(0, lastY - startY);
+    // Fade out as user drags down
+    if (dy > 0) fsView.style.opacity = Math.max(0, 1 - dy / 220);
+  }, { passive: true });
+
+  fsView.addEventListener('touchend', () => {
+    if (!active) return;
+    active = false;
+    const dy = lastY - startY;
+    if (dy > 80) {
+      // Close with fade
+      fsView.style.transition = 'opacity 0.2s ease';
+      fsView.style.opacity = '0';
+      setTimeout(() => {
+        fsView.style.transition = '';
+        fsView.style.opacity = '';
+        if (fsOpen) toggleFullscreen();
+      }, 200);
+    } else {
+      // Snap back
+      fsView.style.transition = 'opacity 0.15s ease';
+      fsView.style.opacity = '1';
+      setTimeout(() => fsView.style.transition = '', 150);
+    }
+  });
+}
+
+// ── Beat pulse on fs-play button (mobile fullscreen only) ──
+let _beatPulseRaf = null;
+let _lastBeatIndex = -1;
+
+function startFsBeatPulse(bpm) {
+  stopFsBeatPulse();
+  if (!bpm || bpm === 'analyzing' || !isMobile()) return;
+  const beatDur = 60 / parseFloat(bpm);
+  const btn = document.getElementById('fs-pp');
+  if (!btn) return;
+  btn.style.setProperty('--beat-dur', beatDur.toFixed(3) + 's');
+
+  let anchorAudioTime = audio.currentTime;
+  let anchorWallTime = performance.now();
+
+  function tick(now) {
+    if (!fsOpen || !isMobile()) { stopFsBeatPulse(); return; }
+    const wallElapsed = (now - anchorWallTime) / 1000;
+    const expectedAudioTime = anchorAudioTime + (audio.paused ? 0 : wallElapsed);
+    if (Math.abs(audio.currentTime - expectedAudioTime) > 0.15) {
+      anchorAudioTime = audio.currentTime;
+      anchorWallTime = now;
+    }
+    const currentTime = audio.paused
+      ? audio.currentTime
+      : anchorAudioTime + (now - anchorWallTime) / 1000;
+    const beatIndex = Math.floor(currentTime / beatDur);
+    if (beatIndex !== _lastBeatIndex) {
+      _lastBeatIndex = beatIndex;
+      const b = document.getElementById('fs-pp');
+      if (b) {
+        b.classList.remove('beat-pulse');
+        void b.offsetWidth; // reflow to restart animation
+        b.classList.add('beat-pulse');
+      }
+    }
+    _beatPulseRaf = requestAnimationFrame(tick);
+  }
+  _beatPulseRaf = requestAnimationFrame(tick);
+}
+
+function stopFsBeatPulse() {
+  if (_beatPulseRaf) { cancelAnimationFrame(_beatPulseRaf); _beatPulseRaf = null; }
+  _lastBeatIndex = -1;
+  document.getElementById('fs-pp')?.classList.remove('beat-pulse');
+}
 // ══════════════════════════════════════
 
 let _notifUnsubscribe = null;
