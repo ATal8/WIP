@@ -1551,7 +1551,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     aspect-ratio: 1;
     align-self: center;
     box-shadow: 0 40px 100px rgba(0,0,0,0.8);
-    transition: transform 0.08s ease-out;
     will-change: transform;
   }
   .fs-track { font-size: 20px; font-weight: 500; }
@@ -1991,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.7</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.8</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5292,9 +5291,39 @@ let _particlesRaf = null;
 let _particles = [];
 let _particleColor = '200,255,50';
 
+// ── Audio analyser for real-time amplitude ──
+let _fsAnalyser = null;
+let _fsAnalyserData = null;
+
+function initFsAnalyser() {
+  if (_fsAnalyser) return;
+  try {
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = actx.createMediaElementSource(audio);
+    _fsAnalyser = actx.createAnalyser();
+    _fsAnalyser.fftSize = 256;
+    _fsAnalyser.smoothingTimeConstant = 0.75;
+    src.connect(_fsAnalyser);
+    _fsAnalyser.connect(actx.destination);
+    _fsAnalyserData = new Uint8Array(_fsAnalyser.frequencyBinCount);
+  } catch(e) { _fsAnalyser = null; }
+}
+
+function getFsAmplitude() {
+  if (!_fsAnalyser) return 0.5;
+  _fsAnalyser.getByteFrequencyData(_fsAnalyserData);
+  // Focus on bass/low-mid (first ~30% of bins)
+  const bins = Math.floor(_fsAnalyserData.length * 0.3);
+  let sum = 0;
+  for (let i = 0; i < bins; i++) sum += _fsAnalyserData[i];
+  return Math.min(1, (sum / bins) / 180); // 0..1
+}
+
 function startFsBeatPulse(bpm) {
   stopFsBeatPulse();
   if (!bpm || bpm === 'analyzing' || !isMobile()) return;
+  initFsAnalyser();
+
   const beatDur = 60 / parseFloat(bpm);
   const btn = document.getElementById('fs-pp');
   if (!btn) return;
@@ -5302,9 +5331,13 @@ function startFsBeatPulse(bpm) {
 
   let anchorAudioTime = audio.currentTime;
   let anchorWallTime = performance.now();
+  let currentScale = 1;      // current rendered scale (lerped)
+  let targetScale  = 1;      // scale we're lerping toward
 
   function tick(now) {
     if (!fsOpen || !isMobile()) { stopFsBeatPulse(); return; }
+
+    // Re-anchor on drift
     const wallElapsed = (now - anchorWallTime) / 1000;
     const expectedAudioTime = anchorAudioTime + (audio.paused ? 0 : wallElapsed);
     if (Math.abs(audio.currentTime - expectedAudioTime) > 0.15) {
@@ -5314,9 +5347,19 @@ function startFsBeatPulse(bpm) {
     const currentTime = audio.paused
       ? audio.currentTime
       : anchorAudioTime + (now - anchorWallTime) / 1000;
+
     const beatIndex = Math.floor(currentTime / beatDur);
+
     if (beatIndex !== _lastBeatIndex) {
       _lastBeatIndex = beatIndex;
+
+      // Get amplitude to modulate strength
+      const amp = getFsAmplitude(); // 0..1
+      const strength = 0.008 + amp * 0.026; // scale range: 1.008 – 1.034
+
+      // Set target scale (will lerp toward it)
+      targetScale = 1 + strength;
+
       // Beat pulse on button
       const b = document.getElementById('fs-pp');
       if (b) {
@@ -5324,15 +5367,24 @@ function startFsBeatPulse(bpm) {
         void b.offsetWidth;
         b.classList.add('beat-pulse');
       }
-      // Cover breathing on beat
-      const cover = document.getElementById('fs-cover');
-      if (cover) {
-        cover.style.transform = 'scale(1.022)';
-        setTimeout(() => { cover.style.transform = 'scale(1)'; }, 120);
-      }
-      // Spawn particles on beat
-      spawnParticles(3);
+
+      // Spawn particles proportional to amplitude
+      const n = Math.round(1 + amp * 4);
+      spawnParticles(n);
     }
+
+    // Position within beat (0..1) — decay target back to 1
+    const beatPhase = (currentTime % beatDur) / beatDur;
+    // Decay target smoothly after the hit
+    if (beatPhase > 0.05) targetScale = 1 + (targetScale - 1) * 0.88;
+
+    // Lerp current toward target (smooth)
+    currentScale += (targetScale - currentScale) * 0.18;
+
+    // Apply to cover
+    const cover = document.getElementById('fs-cover');
+    if (cover) cover.style.transform = `scale(${currentScale.toFixed(4)})`;
+
     _beatPulseRaf = requestAnimationFrame(tick);
   }
   _beatPulseRaf = requestAnimationFrame(tick);
