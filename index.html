@@ -914,8 +914,14 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   color: var(--text); font-family: 'DM Mono', 'Fredoka', monospace;
   font-size: 14px; line-height: 1.85; letter-spacing: 0.02em;
   caret-color: var(--accent);
+  unicode-bidi: plaintext;
+  transition: text-align 0.1s;
 }
 #lyrics-textarea::placeholder { color: var(--dim); }
+#lyrics-textarea[dir="rtl"] {
+  font-family: system-ui, sans-serif; /* Hebrew/Arabic fonts render better with system font */
+  letter-spacing: 0;
+}
 #lyrics-textarea .section-tag {
   color: var(--accent); opacity: 0.6; font-size: 10px; letter-spacing: 0.18em;
 }
@@ -1956,7 +1962,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.1</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.2</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2631,6 +2637,10 @@ function loadLyricsTake(t) {
   const ta = document.getElementById('lyrics-textarea');
   ta.value = take ? take.content : '';
   ta.style.fontSize = LP.fontSize + 'px';
+  // Apply RTL/LTR direction on load
+  const dir = detectTextDirection(ta.value);
+  ta.dir = dir;
+  ta.style.textAlign = dir === 'rtl' ? 'right' : 'left';
   LP.dirty = false; updateLyricsStats(ta.value); setLyricsDot('saved');
   const label = document.getElementById('lp-created-label');
   if (label && take?.created) {
@@ -2639,9 +2649,26 @@ function loadLyricsTake(t) {
   } else if (label) { label.textContent = '—'; }
 }
 
+function detectTextDirection(text) {
+  // RTL unicode ranges: Hebrew, Arabic, Persian, Urdu, etc.
+  const rtlChars = /[֑-߿יִ-﷽ﹰ-ﻼ]/;
+  const ltrChars = /[A-Za-zÀ-ɏ]/;
+  // Check first meaningful characters
+  const stripped = text.replace(/[\s\d\W]/g, '');
+  if (!stripped) return 'ltr';
+  const rtlCount = (stripped.match(/[֑-߿יִ-﷽ﹰ-ﻼ]/g) || []).length;
+  const ltrCount = (stripped.match(/[A-Za-zÀ-ɏ]/g) || []).length;
+  return rtlCount > ltrCount ? 'rtl' : 'ltr';
+}
+
 function onLyricsInput() {
   LP.dirty = true; setLyricsDot('dirty');
-  updateLyricsStats(document.getElementById('lyrics-textarea').value);
+  const ta = document.getElementById('lyrics-textarea');
+  // Auto-detect RTL/LTR and apply direction
+  const dir = detectTextDirection(ta.value);
+  ta.dir = dir;
+  ta.style.textAlign = dir === 'rtl' ? 'right' : 'left';
+  updateLyricsStats(ta.value);
   clearTimeout(LP.saveTimer);
   LP.saveTimer = setTimeout(saveLyricsTake, 1500);
 }
@@ -3266,7 +3293,7 @@ async function uploadCoverToStorage(p, dataUrl) {
   // Compress cover to ~200x200 JPEG (~15-30KB) and store in Firestore directly
   // This avoids Firebase Storage rules issues
   try {
-    const compressed = await compressCover(dataUrl, 300, 0.72);
+    const compressed = await compressCover(dataUrl, 600, 0.88);
     p.coverUrl = compressed; // use as the cross-device cover URL
     p.cover = compressed;    // update local too
     saveDB();
