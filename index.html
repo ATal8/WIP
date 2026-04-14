@@ -915,12 +915,16 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   font-size: 14px; line-height: 1.85; letter-spacing: 0.02em;
   caret-color: var(--accent);
   unicode-bidi: plaintext;
-  transition: text-align 0.1s;
+  direction: ltr;
+  text-align: left;
+  transition: text-align 0.15s;
 }
 #lyrics-textarea::placeholder { color: var(--dim); }
 #lyrics-textarea[dir="rtl"] {
-  font-family: system-ui, sans-serif; /* Hebrew/Arabic fonts render better with system font */
+  font-family: system-ui, 'Segoe UI', sans-serif;
   letter-spacing: 0;
+  direction: rtl;
+  text-align: right;
 }
 #lyrics-textarea .section-tag {
   color: var(--accent); opacity: 0.6; font-size: 10px; letter-spacing: 0.18em;
@@ -1962,7 +1966,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.2</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.4</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2638,9 +2642,7 @@ function loadLyricsTake(t) {
   ta.value = take ? take.content : '';
   ta.style.fontSize = LP.fontSize + 'px';
   // Apply RTL/LTR direction on load
-  const dir = detectTextDirection(ta.value);
-  ta.dir = dir;
-  ta.style.textAlign = dir === 'rtl' ? 'right' : 'left';
+  applyTextDirection(ta, detectTextDirection(ta.value));
   LP.dirty = false; updateLyricsStats(ta.value); setLyricsDot('saved');
   const label = document.getElementById('lp-created-label');
   if (label && take?.created) {
@@ -2649,16 +2651,34 @@ function loadLyricsTake(t) {
   } else if (label) { label.textContent = '—'; }
 }
 
+function applyTextDirection(ta, dir) {
+  ta.dir = dir;
+  ta.style.direction = dir;
+  ta.style.textAlign = dir === 'rtl' ? 'right' : 'left';
+  ta.style.unicodeBidi = 'plaintext';
+}
+
 function detectTextDirection(text) {
-  // RTL unicode ranges: Hebrew, Arabic, Persian, Urdu, etc.
-  const rtlChars = /[֑-߿יִ-﷽ﹰ-ﻼ]/;
-  const ltrChars = /[A-Za-zÀ-ɏ]/;
-  // Check first meaningful characters
-  const stripped = text.replace(/[\s\d\W]/g, '');
-  if (!stripped) return 'ltr';
-  const rtlCount = (stripped.match(/[֑-߿יִ-﷽ﹰ-ﻼ]/g) || []).length;
-  const ltrCount = (stripped.match(/[A-Za-zÀ-ɏ]/g) || []).length;
-  return rtlCount > ltrCount ? 'rtl' : 'ltr';
+  if (!text || !text.trim()) return 'ltr';
+  // Check first non-space character
+  for (let i = 0; i < Math.min(text.length, 200); i++) {
+    const code = text.charCodeAt(i);
+    // Hebrew: 0x0590-0x05FF, Arabic: 0x0600-0x06FF, 0x0750-0x077F, RTL marks
+    if ((code >= 0x0590 && code <= 0x05FF) ||
+        (code >= 0x0600 && code <= 0x06FF) ||
+        (code >= 0x0750 && code <= 0x077F) ||
+        (code >= 0xFB1D && code <= 0xFDFD) ||
+        (code >= 0xFE70 && code <= 0xFEFC)) {
+      return 'rtl';
+    }
+    // Latin/LTR
+    if ((code >= 0x0041 && code <= 0x005A) ||
+        (code >= 0x0061 && code <= 0x007A) ||
+        (code >= 0x00C0 && code <= 0x024F)) {
+      return 'ltr';
+    }
+  }
+  return 'ltr';
 }
 
 function onLyricsInput() {
@@ -2666,8 +2686,7 @@ function onLyricsInput() {
   const ta = document.getElementById('lyrics-textarea');
   // Auto-detect RTL/LTR and apply direction
   const dir = detectTextDirection(ta.value);
-  ta.dir = dir;
-  ta.style.textAlign = dir === 'rtl' ? 'right' : 'left';
+  applyTextDirection(ta, dir);
   updateLyricsStats(ta.value);
   clearTimeout(LP.saveTimer);
   LP.saveTimer = setTimeout(saveLyricsTake, 1500);
