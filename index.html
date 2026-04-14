@@ -1956,7 +1956,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.0</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.1</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2910,7 +2910,7 @@ async function createAlbum() {
 }
 
 // ─── PROJECTS ───
-function selectProject(id) { S.curPid = id; savePlayerState(); renderSidebar(); renderMain(); }
+function selectProject(id) { S.curPid = id; _lastRenderedPid = null; savePlayerState(); renderSidebar(); renderMain(); }
 function curP() {
   const own = curAlbums().find(p => p.id === S.curPid);
   if (own) return own;
@@ -3765,13 +3765,43 @@ function renderSidebar() {
 }
 
 // ─── RENDER MAIN ───
+let _lastRenderedPid = null;
+
 function renderMain() {
   const c = document.getElementById('main-content');
   const p = curP();
+
   if (!p) {
+    _lastRenderedPid = null;
     c.innerHTML = `<div class="no-sel"><div class="no-sel-icon">◈</div><div class="no-sel-txt">select a project</div><div class="no-sel-hint">or create a new one to get started</div></div>`;
     return;
   }
+
+  // If same project already rendered — only update the parts that can change
+  if (_lastRenderedPid === p.id && document.getElementById('tracks-area')) {
+    renderTrackList();
+    updateMetaRow();
+    updateHeroBackground(p);
+    syncAlbumPlayBtn();
+    // Update cover if changed
+    const coverImg = c.querySelector('.album-cover img');
+    const coverSrc = getCover(p);
+    if (coverSrc && !coverImg) {
+      const coverEl = c.querySelector('.album-cover');
+      if (coverEl) coverEl.innerHTML = `<img src="${coverSrc}"><div class="cover-overlay"><span class="co-text">change cover</span></div><input type="file" accept="image/*" class="cover-input" onchange="handleCoverUpload(event)">`;
+    } else if (coverSrc && coverImg && coverImg.src !== coverSrc) {
+      coverImg.src = coverSrc;
+    }
+    // Update title/artist/meta text
+    const titleEl = c.querySelector('.album-title');
+    if (titleEl && titleEl.textContent !== p.name) titleEl.textContent = p.name;
+    const artistEl = c.querySelector('.album-artist');
+    if (artistEl && artistEl.textContent !== (p.artist || 'unknown artist')) artistEl.textContent = p.artist || 'unknown artist';
+    return;
+  }
+
+  // Full render — new project or first load
+  _lastRenderedPid = p.id;
   c.innerHTML = `
     <div class="album-hero">
       <div class="hero-cover-blur" id="hero-blur"></div>
@@ -3849,7 +3879,6 @@ function renderMain() {
     </div>` : ''}
     `;
   renderTrackList(); setupDrop(); updateHeroBackground(p);
-  // Fetch saves count in background
   if (!p._isShared && window._fbReady) fetchSavesCount(p.id);
 }
 
