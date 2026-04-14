@@ -1551,6 +1551,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     aspect-ratio: 1;
     align-self: center;
     box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+    transition: transform 0.08s ease-out;
+    will-change: transform;
   }
   .fs-track { font-size: 20px; font-weight: 500; }
   .fs-prog-wrap { width: 100%; }
@@ -1558,16 +1560,25 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   .fs-btn { width: 52px; height: 52px; }
   .fs-play { width: 64px !important; height: 64px !important; }
 
-  /* Beat pulse animation for play button */
+  /* Weaker beat pulse */
   @keyframes beatPulse {
-    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(200,255,50,0.5); }
-    40%  { transform: scale(1.12); box-shadow: 0 0 0 12px rgba(200,255,50,0); }
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(200,255,50,0.3); }
+    35%  { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(200,255,50,0); }
     100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(200,255,50,0); }
   }
   .fs-play.beat-pulse {
     animation: beatPulse var(--beat-dur, 0.6s) ease-out;
   }
-}
+
+  /* Particles canvas */
+  #fs-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.55;
+  }
+} /* end @media mobile */
 </style>
 </head>
 <body class="auth-loading">
@@ -1812,6 +1823,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 <!-- FULLSCREEN VIEW -->
 <div id="fs-view" onclick="toggleFullscreen()">
   <div class="fs-bg" id="fs-bg"></div>
+  <canvas id="fs-particles"></canvas>
   <div class="fs-content" onclick="event.stopPropagation()">
     <div class="fs-cover" id="fs-cover">♩</div>
     <div class="fs-track" id="fs-track">—</div>
@@ -1979,7 +1991,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.6</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.6.7</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3570,6 +3582,7 @@ function updateFsView() {
 
   // Start beat pulse on mobile if BPM known
   if (isMobile() && t?.bpm && t.bpm !== 'analyzing') {
+    updateParticleColor(p);
     startFsBeatPulse(parseFloat(t.bpm));
   } else {
     stopFsBeatPulse();
@@ -5275,6 +5288,9 @@ function initFsSwipeClose() {
 // ── Beat pulse on fs-play button (mobile fullscreen only) ──
 let _beatPulseRaf = null;
 let _lastBeatIndex = -1;
+let _particlesRaf = null;
+let _particles = [];
+let _particleColor = '200,255,50';
 
 function startFsBeatPulse(bpm) {
   stopFsBeatPulse();
@@ -5301,12 +5317,21 @@ function startFsBeatPulse(bpm) {
     const beatIndex = Math.floor(currentTime / beatDur);
     if (beatIndex !== _lastBeatIndex) {
       _lastBeatIndex = beatIndex;
+      // Beat pulse on button
       const b = document.getElementById('fs-pp');
       if (b) {
         b.classList.remove('beat-pulse');
-        void b.offsetWidth; // reflow to restart animation
+        void b.offsetWidth;
         b.classList.add('beat-pulse');
       }
+      // Cover breathing on beat
+      const cover = document.getElementById('fs-cover');
+      if (cover) {
+        cover.style.transform = 'scale(1.022)';
+        setTimeout(() => { cover.style.transform = 'scale(1)'; }, 120);
+      }
+      // Spawn particles on beat
+      spawnParticles(3);
     }
     _beatPulseRaf = requestAnimationFrame(tick);
   }
@@ -5315,8 +5340,67 @@ function startFsBeatPulse(bpm) {
 
 function stopFsBeatPulse() {
   if (_beatPulseRaf) { cancelAnimationFrame(_beatPulseRaf); _beatPulseRaf = null; }
+  if (_particlesRaf) { cancelAnimationFrame(_particlesRaf); _particlesRaf = null; }
   _lastBeatIndex = -1;
+  _particles = [];
   document.getElementById('fs-pp')?.classList.remove('beat-pulse');
+  const cover = document.getElementById('fs-cover');
+  if (cover) cover.style.transform = '';
+  const canvas = document.getElementById('fs-particles');
+  if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+}
+
+// ── Ambient particles ──
+function spawnParticles(n) {
+  const canvas = document.getElementById('fs-particles');
+  if (!canvas) return;
+  const W = canvas.width, H = canvas.height;
+  for (let i = 0; i < n; i++) {
+    _particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: 1.5 + Math.random() * 2.5,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: -(0.4 + Math.random() * 0.8),
+      alpha: 0.7 + Math.random() * 0.3,
+      decay: 0.008 + Math.random() * 0.006,
+    });
+  }
+  if (!_particlesRaf) tickParticles();
+}
+
+function tickParticles() {
+  const canvas = document.getElementById('fs-particles');
+  if (!canvas || !fsOpen) { _particlesRaf = null; return; }
+  const ctx = canvas.getContext('2d');
+  // Resize if needed
+  if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  _particles = _particles.filter(p => p.alpha > 0.01);
+  for (const p of _particles) {
+    p.x += p.vx; p.y += p.vy; p.alpha -= p.decay;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${_particleColor},${p.alpha.toFixed(2)})`;
+    ctx.fill();
+  }
+  if (_particles.length > 0) {
+    _particlesRaf = requestAnimationFrame(tickParticles);
+  } else {
+    _particlesRaf = null;
+  }
+}
+
+// Extract accent color from cover for particles
+function updateParticleColor(p) {
+  const cover = getCover(p);
+  if (!cover) { _particleColor = '200,255,50'; return; }
+  extractCoverColor(cover, rgb => {
+    _particleColor = rgb || '200,255,50';
+  });
 }
 // ══════════════════════════════════════
 
