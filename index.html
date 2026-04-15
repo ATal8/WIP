@@ -593,19 +593,21 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 
 /* ─── FULLSCREEN VIEW ─── */
 #fs-view {
-  position: fixed; inset: 0; z-index: 400;
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  left: var(--sidebar-w);
+  z-index: 400;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
   transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
   background: #06060a;
-  /* Account for sidebar so content is centered over the main area */
-  padding-left: var(--sidebar-w, 0px);
 }
 #fs-view.open { opacity: 1; pointer-events: all; }
 
 .fs-bg {
   position: absolute;
-  inset: -60px;
+  top: -60px; right: -60px; bottom: -60px;
+  left: calc(-60px - var(--sidebar-w));
   background-color: #06060a;
   background-size: cover;
   background-position: center;
@@ -619,15 +621,19 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 /* Dark base layer under the blur */
 #fs-view::before {
   content: '';
-  position: absolute; inset: 0;
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  left: calc(-1 * var(--sidebar-w));
   background: #06060a;
   z-index: 0;
   pointer-events: none;
 }
-/* Gradient vignette: darker at edges, lets blur color show in middle */
+/* Gradient vignette */
 #fs-view::after {
   content: '';
-  position: absolute; inset: 0;
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  left: calc(-1 * var(--sidebar-w));
   background:
     radial-gradient(ellipse at center, transparent 30%, rgba(4,4,8,0.65) 100%),
     linear-gradient(to bottom, rgba(4,4,8,0.55) 0%, transparent 22%, transparent 72%, rgba(4,4,8,0.75) 100%);
@@ -1530,7 +1536,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   .no-sel-hint { display: none; }
 
   /* ══ FULLSCREEN — mobile optimized ══ */
-  #fs-view { z-index: 500; padding-left: 0; }
+  #fs-view { z-index: 500; left: 0; padding-left: 0; }
 
   /* Hide X button — swipe down to close instead */
   .fs-close { display: none; }
@@ -1992,7 +1998,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.0</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.1</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
