@@ -1990,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.2</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.3</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3549,14 +3549,12 @@ function toggleFullscreen() {
   fsOpen = !fsOpen;
   const v = document.getElementById('fs-view');
   v.classList.toggle('open', fsOpen);
+  v.style.paddingLeft = '';
   if (fsOpen) {
-    // Measure actual sidebar to center content over main area
-    const sidebar = document.getElementById('sidebar');
-    const sw = (!isMobile() && sidebar) ? sidebar.getBoundingClientRect().width : 0;
-    v.style.paddingLeft = sw ? sw + 'px' : '';
+    if (!isMobile()) v.requestFullscreen?.().catch(() => {});
     updateFsView();
   } else {
-    v.style.paddingLeft = '';
+    if (!isMobile() && document.fullscreenElement) document.exitFullscreen?.();
     stopFsBeatPulse();
   }
 }
