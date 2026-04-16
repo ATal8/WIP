@@ -1990,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.4</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.5</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4214,7 +4214,9 @@ function deleteAudio(id) {
 
 // ─── AUTO-SAVE TO FILE ───
 
-let _lastSelfSaveTs = 0; // used by initLiveSync to detect self-saves
+let _lastSelfSaveTs = 0;
+let _isSavingToFirebase = false;
+let _selfSaveTimer = null;
 
 // ─── DEBOUNCE ───
 let _saveDbTimer = null;
@@ -4276,10 +4278,11 @@ function _scheduleFirebaseSave(payload) {
 }
 
 async function saveDBToFirebase(payload) {
-  if (!window._fbReady || !currentGoogleUser) {
-    console.warn('[WIP] saveDBToFirebase skipped — fbReady:', window._fbReady, 'user:', !!currentGoogleUser);
-    return;
-  }
+  if (!window._fbReady || !currentGoogleUser) return;
+  // Mark as self-save for 8 seconds to suppress live sync echo
+  _isSavingToFirebase = true;
+  clearTimeout(_selfSaveTimer);
+  _selfSaveTimer = setTimeout(() => { _isSavingToFirebase = false; }, 8000);
   try {
     const uid = currentGoogleUser.uid;
     const docRef = window._fbDoc(window._fbDb, 'users', uid);
@@ -5119,8 +5122,8 @@ function initLiveSync(uid) {
     const data = snap.data();
     if (!data.albums) return;
 
-    // Skip if this is our own save (same updatedAt timestamp)
-    if (data.updatedAt && data.updatedAt === _lastSelfSaveTs) return;
+    // Skip if we just saved ourselves (suppress echo)
+    if (_isSavingToFirebase) return;
 
     // Build a map of existing local track URLs so we don't lose them
     const localUrls = {};
