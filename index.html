@@ -1990,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.3</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.4</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5122,11 +5122,26 @@ function initLiveSync(uid) {
     // Skip if this is our own save (same updatedAt timestamp)
     if (data.updatedAt && data.updatedAt === _lastSelfSaveTs) return;
 
+    // Build a map of existing local track URLs so we don't lose them
+    const localUrls = {};
+    for (const projects of Object.values(DB.albums)) {
+      for (const p of projects) {
+        for (const t of (p.tracks || [])) {
+          if (t.url) localUrls[t.id] = t.url;
+        }
+      }
+    }
+
     const cloudAlbums = data.albums[uid] || data.albums[Object.keys(data.albums)[0]] || [];
     DB.albums[uid] = cloudAlbums.map(p => ({
       ...p,
       cover: p.coverUrl || p.cover || null,
-      coverUrl: p.coverUrl || null
+      coverUrl: p.coverUrl || null,
+      tracks: (p.tracks || []).map(t => ({
+        ...t,
+        // Preserve local blob URL if available, fallback to cloudUrl
+        url: localUrls[t.id] || t.cloudUrl || t.url || null
+      }))
     }));
 
     if (data.preferredName) DB.preferredName = data.preferredName;
