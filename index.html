@@ -1990,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.5</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.6</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5117,15 +5117,20 @@ function initLiveSync(uid) {
   if (!window._fbReady) return;
 
   const docRef = window._fbDoc(window._fbDb, 'users', uid);
+  let firstSnapshot = true; // Firestore always fires immediately with cached data — skip it
+
   _liveSyncUnsub = window._fbOnSnapshot(docRef, async (snap) => {
+    // Always skip the first emission — it duplicates what loadDBFromFirebase already loaded
+    if (firstSnapshot) { firstSnapshot = false; return; }
+
     if (!snap.exists()) return;
     const data = snap.data();
     if (!data.albums) return;
 
-    // Skip if we just saved ourselves (suppress echo)
+    // Skip if we just saved ourselves
     if (_isSavingToFirebase) return;
 
-    // Build a map of existing local track URLs so we don't lose them
+    // Preserve existing local track URLs before merging
     const localUrls = {};
     for (const projects of Object.values(DB.albums)) {
       for (const p of projects) {
@@ -5142,7 +5147,6 @@ function initLiveSync(uid) {
       coverUrl: p.coverUrl || null,
       tracks: (p.tracks || []).map(t => ({
         ...t,
-        // Preserve local blob URL if available, fallback to cloudUrl
         url: localUrls[t.id] || t.cloudUrl || t.url || null
       }))
     }));
