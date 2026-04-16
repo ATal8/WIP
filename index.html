@@ -1990,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.6</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.7</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3178,6 +3178,7 @@ function playTrack(tid) {
   if (S.curTid === tid) { togglePlay(); return; }
   const p = findPByTrack(tid); if (!p) return;
   const t = p.tracks.find(x => x.id === tid); if (!t) return;
+  if (!t.url && t.cloudUrl) t.url = t.cloudUrl;
   if (!t.url) { toast('re-add this file to play it again'); return; }
   S.curTid = tid; S.playing = true;
   audio.src = t.url; audio.play();
