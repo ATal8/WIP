@@ -1578,7 +1578,34 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     opacity: 0.55;
   }
 } /* end @media mobile */
-/* ── Welcome Flow ── */
+/* ── Admin Panel ── */
+#admin-panel {
+  position: fixed; inset: 0; z-index: 8000;
+  background: #06060a; overflow-y: auto;
+  display: none; padding: 40px 24px;
+  font-family: 'DM Mono', monospace;
+}
+#admin-panel.open { display: block; }
+.adm-header { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+.adm-logo { font-size: 20px; color: var(--accent); letter-spacing: 0.1em; font-weight: 500; }
+.adm-tag { font-size: 9px; background: var(--accent); color: var(--bg); padding: 2px 8px; border-radius: 100px; letter-spacing: 0.12em; font-weight: 600; }
+.adm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.adm-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.adm-stat-n { font-size: 36px; font-weight: 500; color: var(--text); line-height: 1; margin-bottom: 6px; }
+.adm-stat-l { font-size: 10px; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
+.adm-section { margin-bottom: 32px; }
+.adm-section-title { font-size: 10px; color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.adm-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.adm-bar-label { font-size: 12px; color: var(--mid); width: 110px; flex-shrink: 0; }
+.adm-bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 100px; overflow: hidden; }
+.adm-bar-fill { height: 100%; background: var(--accent); border-radius: 100px; transition: width 0.6s ease; }
+.adm-bar-pct { font-size: 11px; color: var(--mid); width: 36px; text-align: right; flex-shrink: 0; }
+.adm-user-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.adm-user-name { font-size: 12px; color: var(--text); flex: 1; }
+.adm-user-role { font-size: 10px; color: var(--dim); }
+.adm-user-date { font-size: 10px; color: var(--dim); }
+.adm-loading { color: var(--dim); font-size: 12px; letter-spacing: 0.06em; text-align: center; padding: 60px; }
+</style>
 #welcome-flow {
   position: fixed; inset: 0; z-index: 9000;
   background: #06060a;
@@ -1664,6 +1691,17 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     </button>
 
     <div id="ob-error" style="font-size:10px;color:#ff5555;letter-spacing:0.06em;display:none;text-align:center">sign-in failed — try again</div>
+  </div>
+</div>
+
+<!-- ─── ADMIN PANEL ─── -->
+<div id="admin-panel">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="adm-header">
+      <div class="adm-logo">◈ WIP</div>
+      <div class="adm-tag">ADMIN</div>
+    </div>
+    <div id="adm-content"><div class="adm-loading">loading data...</div></div>
   </div>
 </div>
 
@@ -2073,7 +2111,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.2</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.3</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4876,6 +4914,14 @@ const waitForFb = setInterval(() => {
 
       // Handle share link — open the project if it belongs to this user
       const shareId = await resolveShareParam();
+
+      // Admin panel
+      if (new URLSearchParams(location.search).get('admin') === 'true' && user.uid === 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3') {
+        history.replaceState(null, '', location.pathname);
+        showAdminPanel();
+        return;
+      }
+
       if (shareId) {
         history.replaceState(null, '', location.pathname); // clean URL
         const sharedProject = curAlbums().find(p => p.id === shareId);
@@ -5886,8 +5932,120 @@ function closeNotifDrawer() {
 }
 
 // ══════════════════════════════════════
-// WELCOME FLOW
+// ADMIN PANEL
 // ══════════════════════════════════════
+async function showAdminPanel() {
+  document.body.classList.remove('auth-loading');
+  document.getElementById('onboarding')?.classList.remove('open');
+  document.getElementById('app').style.display = 'none';
+  const panel = document.getElementById('admin-panel');
+  panel.classList.add('open');
+  await loadAdminData();
+}
+
+async function loadAdminData() {
+  try {
+    // Fetch all users
+    const usersSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'users'));
+    const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Fetch all saved projects
+    const savedSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'savedProjects'));
+    const savedCount = savedSnap.docs.length;
+
+    // Fetch all shared projects
+    const sharedSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'shared'));
+    const sharedCount = sharedSnap.docs.length;
+
+    // Aggregate stats
+    const totalUsers = users.length;
+    let totalProjects = 0, totalTracks = 0;
+    const roleCounts = {};
+    const recentUsers = [];
+
+    for (const u of users) {
+      // Count projects + tracks
+      const albumsMap = u.albums || {};
+      for (const projs of Object.values(albumsMap)) {
+        if (!Array.isArray(projs)) continue;
+        totalProjects += projs.length;
+        for (const p of projs) totalTracks += (p.tracks?.length || 0);
+      }
+      // Roles
+      for (const role of (u.roles || [])) {
+        roleCounts[role] = (roleCounts[role] || 0) + 1;
+      }
+      // Recent
+      recentUsers.push({
+        name: u.preferredName || u.displayName || u.id.slice(0,8),
+        roles: (u.roles || []).join(', ') || '—',
+        rolesSetAt: u.rolesSetAt || null
+      });
+    }
+
+    // Sort roles
+    const sortedRoles = Object.entries(roleCounts).sort((a,b) => b[1]-a[1]);
+    const usersWithRoles = users.filter(u => u.roles?.length).length;
+
+    // Sort recent users by rolesSetAt
+    recentUsers.sort((a,b) => (b.rolesSetAt||0) - (a.rolesSetAt||0));
+
+    // Render
+    const roleLabels = { producer:'🎛 producer', rapper:'🎤 rapper', singer:'🎶 singer', listener:'👂 music fan', songwriter:'✍️ songwriter', band:'🎸 band member', other:'✨ other' };
+
+    const rolesHtml = sortedRoles.length ? sortedRoles.map(([role, count]) => {
+      const pct = Math.round((count / Math.max(usersWithRoles, 1)) * 100);
+      return `<div class="adm-bar-row">
+        <div class="adm-bar-label">${roleLabels[role] || role}</div>
+        <div class="adm-bar-track"><div class="adm-bar-fill" style="width:${pct}%"></div></div>
+        <div class="adm-bar-pct">${pct}%</div>
+      </div>`;
+    }).join('') : '<div style="color:var(--dim);font-size:12px">no role data yet</div>';
+
+    const recentHtml = recentUsers.slice(0,20).map(u => `
+      <div class="adm-user-row">
+        <div class="adm-user-name">${u.name}</div>
+        <div class="adm-user-role">${u.roles}</div>
+        <div class="adm-user-date">${u.rolesSetAt ? new Date(u.rolesSetAt).toLocaleDateString() : '—'}</div>
+      </div>`).join('');
+
+    document.getElementById('adm-content').innerHTML = `
+      <div class="adm-grid">
+        <div class="adm-stat"><div class="adm-stat-n">${totalUsers}</div><div class="adm-stat-l">total users</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${totalProjects}</div><div class="adm-stat-l">projects</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${totalTracks}</div><div class="adm-stat-l">tracks uploaded</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${sharedCount}</div><div class="adm-stat-l">shared projects</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${savedCount}</div><div class="adm-stat-l">saves by others</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${usersWithRoles}</div><div class="adm-stat-l">filled welcome</div></div>
+      </div>
+
+      <div class="adm-section">
+        <div class="adm-section-title">who's using WIP</div>
+        ${rolesHtml}
+      </div>
+
+      <div class="adm-section">
+        <div class="adm-section-title">recent users</div>
+        <div style="display:flex;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px">
+          <div style="flex:1;font-size:9px;color:var(--dim);letter-spacing:0.1em">NAME</div>
+          <div style="font-size:9px;color:var(--dim);letter-spacing:0.1em">ROLES</div>
+          <div style="font-size:9px;color:var(--dim);letter-spacing:0.1em">DATE</div>
+        </div>
+        ${recentHtml || '<div style="color:var(--dim);font-size:12px;padding:16px 0">no users yet</div>'}
+      </div>
+
+      <div style="text-align:center;padding:20px 0">
+        <button class="btn-outline" onclick="location.href=location.pathname" style="font-size:11px">← back to WIP</button>
+      </div>
+    `;
+
+  } catch(e) {
+    document.getElementById('adm-content').innerHTML = `<div class="adm-loading">error loading data: ${e.message}</div>`;
+    console.error('admin load failed', e);
+  }
+}
+
+
 let _wfSelectedRoles = [];
 let _wfResolve = null;
 
