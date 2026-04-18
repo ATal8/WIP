@@ -2112,7 +2112,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.10</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.11</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4890,8 +4890,16 @@ const waitForFb = setInterval(() => {
           DB.preferredName = await claimUniqueUsername(user.displayName || user.email?.split('@')[0] || 'user', user.uid);
           DB.albums[user.uid].forEach(p => { if (!p.artist || p.artist === user.uid || p.artist.length > 30) p.artist = DB.preferredName; });
 
-          // New user — show welcome flow before entering the app
-          await showWelcomeFlow(user.uid);
+          // Only show welcome flow if user has never set roles (truly new user)
+          try {
+            const userDoc = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', user.uid));
+            const alreadyOnboarded = userDoc.exists() && userDoc.data().rolesSetAt;
+            if (!alreadyOnboarded) {
+              await showWelcomeFlow(user.uid);
+            }
+          } catch(e) {
+            // If can't check, skip welcome flow to be safe
+          }
         }
       }
 
