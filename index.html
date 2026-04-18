@@ -1990,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.7.8</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.0</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3135,27 +3135,168 @@ function renameTrack(tid, name) {
   saveDB();
   if (S.curTid === tid) document.getElementById('pl-name').textContent = name;
 }
+// ── Open Graph meta updater — for WhatsApp/Telegram/iMessage previews ──
+function updateOGMeta(p, ownerName) {
+  const title = p ? `${p.name}${ownerName ? ` — ${ownerName}` : ''} | WIP` : 'WIP — Work In Progress';
+  const desc  = p ? `${p.tracks?.length || 0} track${p.tracks?.length !== 1 ? 's' : ''} · Work In Progress` : 'Share your music. Track your progress.';
+  const img   = getCover(p) || null;
+  const set = (sel, attr, val) => { const el = document.querySelector(sel); if (el && val) el.setAttribute(attr, val); };
+  set('meta[property="og:title"]',       'content', title);
+  set('meta[property="og:description"]', 'content', desc);
+  set('meta[name="twitter:title"]',      'content', title);
+  set('meta[name="twitter:description"]','content', desc);
+  set('meta[name="description"]',        'content', desc);
+  if (img) {
+    set('meta[property="og:image"]',     'content', img);
+    set('meta[name="twitter:image"]',    'content', img);
+  }
+  document.title = title;
+}
+
 async function shareAlbum() {
   const p = curP(); if (!p) return;
   if (!window._fbReady) { toast('firebase not ready yet'); return; }
-  toast('generating link...');
+
+  // Show custom slug modal
+  openShareModal(p);
+}
+
+function openShareModal(p) {
+  const existing = `${location.origin}${location.pathname}?share=${p.id}`;
+  const modalHtml = `
+  <div class="modal-overlay open" id="share-modal" onclick="if(event.target===this)closeShareModal()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:400px">
+      <div class="modal-title">share project</div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px;letter-spacing:0.06em">DEFAULT LINK</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="flex:1;font-size:11px;color:var(--mid);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${existing}</div>
+          <button class="btn-outline" onclick="copyShareLink('${existing}')" style="flex-shrink:0;font-size:11px">copy</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:16px">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px;letter-spacing:0.06em">CUSTOM LINK <span style="color:var(--accent)">NEW</span></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="font-size:11px;color:var(--dim);white-space:nowrap">wipmusic.app/?s=</div>
+          <input id="slug-input" class="m-input" placeholder="my-project-name" style="flex:1;font-size:12px" oninput="slugPreview(this.value)" maxlength="40">
+        </div>
+        <div id="slug-status" style="font-size:10px;color:var(--dim);margin-top:6px;min-height:14px;letter-spacing:0.04em"></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn-outline" onclick="closeShareModal()">cancel</button>
+        <button class="btn-confirm" onclick="saveCustomSlug('${p.id}')">create custom link</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  // Pre-fill with existing slug if any
+  checkExistingSlug(p.id);
+}
+
+async function checkExistingSlug(projectId) {
   try {
-    const shareId = p.id;
-    const docRef = window._fbDoc(window._fbDb, 'shared', shareId);
-    await window._fbSetDoc(docRef, {
-      shareId,
+    const col = window._fbCollection(window._fbDb, 'slugs');
+    const snap = await window._fbGetDocs(col);
+    for (const doc of snap.docs) {
+      if (doc.data().shareId === projectId) {
+        const input = document.getElementById('slug-input');
+        const status = document.getElementById('slug-status');
+        if (input) input.value = doc.id;
+        if (status) status.textContent = `active: wipmusic.app/?s=${doc.id}`;
+        if (status) status.style.color = 'var(--accent)';
+        return;
+      }
+    }
+  } catch(e) {}
+}
+
+let _slugTimer = null;
+function slugPreview(val) {
+  const status = document.getElementById('slug-status');
+  if (!status) return;
+  val = val.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const input = document.getElementById('slug-input');
+  if (input) input.value = val;
+  if (!val) { status.textContent = ''; return; }
+  status.textContent = 'checking...';
+  status.style.color = 'var(--dim)';
+  clearTimeout(_slugTimer);
+  _slugTimer = setTimeout(() => checkSlugAvailability(val), 600);
+}
+
+async function checkSlugAvailability(slug) {
+  const status = document.getElementById('slug-status');
+  if (!status || !slug) return;
+  try {
+    const doc = await window._fbGetDoc(window._fbDoc(window._fbDb, 'slugs', slug));
+    if (doc.exists()) {
+      status.textContent = '✗ already taken';
+      status.style.color = '#ff6b6b';
+    } else {
+      status.textContent = `✓ wipmusic.app/?s=${slug} is available`;
+      status.style.color = 'var(--accent)';
+    }
+  } catch(e) { status.textContent = ''; }
+}
+
+async function saveCustomSlug(projectId) {
+  const input = document.getElementById('slug-input');
+  const slug = input?.value?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!slug) { toast('enter a custom link name'); return; }
+
+  // First make sure we have a shared doc
+  const p = curAlbums().find(x => x.id === projectId); if (!p) return;
+  try {
+    toast('saving...');
+    // Create shared doc if needed
+    await window._fbSetDoc(window._fbDoc(window._fbDb, 'shared', projectId), {
+      shareId: projectId,
+      ownerUid: currentGoogleUser.uid,
+      ownerName: DB.preferredName || currentGoogleUser?.displayName || '',
+      projectId,
+      sharedAt: Date.now()
+    });
+    // Check slug isn't taken
+    const existing = await window._fbGetDoc(window._fbDoc(window._fbDb, 'slugs', slug));
+    if (existing.exists() && existing.data().shareId !== projectId) {
+      toast('that name is taken — try another'); return;
+    }
+    // Save slug
+    await window._fbSetDoc(window._fbDoc(window._fbDb, 'slugs', slug), {
+      shareId: projectId,
+      ownerUid: currentGoogleUser.uid,
+      createdAt: Date.now()
+    });
+    const url = `${location.origin}${location.pathname}?s=${slug}`;
+    await navigator.clipboard.writeText(url).catch(() => {});
+    closeShareModal();
+    toast('custom link copied ✓');
+  } catch(e) {
+    console.warn('slug save failed', e);
+    toast('failed — try again');
+  }
+}
+
+async function copyShareLink(url) {
+  // Also ensure shared doc exists
+  const p = curP(); if (!p) return;
+  try {
+    await window._fbSetDoc(window._fbDoc(window._fbDb, 'shared', p.id), {
+      shareId: p.id,
       ownerUid: currentGoogleUser.uid,
       ownerName: DB.preferredName || currentGoogleUser?.displayName || '',
       projectId: p.id,
       sharedAt: Date.now()
     });
-    const url = `${location.origin}${location.pathname}?share=${shareId}`;
     await navigator.clipboard.writeText(url).catch(() => {});
     toast('link copied ✓');
-  } catch(e) {
-    console.warn('share failed', e);
-    toast('share failed');
-  }
+    closeShareModal();
+  } catch(e) { toast('copy failed'); }
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal')?.remove();
 }
 function shareTrack(tid) {
   const l = `https://wip.app/t/${tid.slice(0, 6)}`;
@@ -4677,9 +4818,19 @@ function statusBadge(t) {
 // ─── EXPORT / IMPORT PROJECT ───
 // ─── SHARE VIEW MODE ───
 // ─── SHARE MODE ───
-// If URL has ?share=ID, after login navigate to that project
+// If URL has ?share=ID or ?s=slug, after login navigate to that project
 function getShareParam() {
   return new URLSearchParams(location.search).get('share');
+}
+async function resolveShareParam() {
+  const direct = new URLSearchParams(location.search).get('share');
+  if (direct) return direct;
+  const slug = new URLSearchParams(location.search).get('s');
+  if (!slug) return null;
+  try {
+    const doc = await window._fbGetDoc(window._fbDoc(window._fbDb, 'slugs', slug));
+    return doc.exists() ? doc.data().shareId : null;
+  } catch(e) { return null; }
 }
 
 // ─── INIT ───
@@ -4764,7 +4915,7 @@ const waitForFb = setInterval(() => {
       }
 
       // Handle share link — open the project if it belongs to this user
-      const shareId = getShareParam();
+      const shareId = await resolveShareParam();
       if (shareId) {
         history.replaceState(null, '', location.pathname); // clean URL
         const sharedProject = curAlbums().find(p => p.id === shareId);
@@ -4787,7 +4938,7 @@ const waitForFb = setInterval(() => {
 
     } else {
       // No user — check if there's a share link, auto sign-in anonymously
-      const shareIdForAnon = getShareParam();
+      const shareIdForAnon = await resolveShareParam();
       if (shareIdForAnon) {
         try {
           await window._fbSignInAnonymously();
@@ -4920,7 +5071,11 @@ async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect, a
       tracks: project.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
     });
 
-    if (andSelect) { renderSidebar(); selectProject(fakeId); }
+    if (andSelect) {
+      renderSidebar();
+      selectProject(fakeId);
+      updateOGMeta(project, ownerName);
+    }
 
     // Live updates
     window._fbOnSnapshot(window._fbDoc(window._fbDb, 'users', ownerUid), (snap) => {
