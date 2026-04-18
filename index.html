@@ -2112,7 +2112,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.4</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.5</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2249,7 +2249,7 @@ import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSn
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, uploadString, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, linkWithPopup, signOut, onAuthStateChanged, signInAnonymously }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, linkWithPopup, signOut, onAuthStateChanged, signInAnonymously }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -2284,6 +2284,8 @@ window._fbOnSnapshot = onSnapshot;
 window._fbAuth = auth;
 window._fbGoogleProvider = googleProvider;
 window._fbSignInWithPopup = signInWithPopup;
+window._fbSignInWithRedirect = signInWithRedirect;
+window._fbGetRedirectResult = getRedirectResult;
 window._fbSignOut = signOut;
 window._fbOnAuthStateChanged = onAuthStateChanged;
 window._fbSignInAnonymously = () => signInAnonymously(auth);
@@ -2337,22 +2339,29 @@ function allAlbums() {
 // ─── GOOGLE AUTH ───
 let currentGoogleUser = null; // Firebase User object
 
+// Detect iOS PWA (standalone mode)
+function isIOSPWA() {
+  return navigator.standalone === true;
+}
+
 async function signInWithGoogle() {
   const btn = document.getElementById('google-signin-btn');
   const errEl = document.getElementById('ob-error');
   if (btn) { btn.textContent = '...'; btn.disabled = true; }
   try {
+    if (isIOSPWA()) {
+      // iOS PWA doesn't support popups — use redirect
+      await window._fbSignInWithRedirect(window._fbAuth, window._fbGoogleProvider);
+      return; // page will reload after redirect
+    }
     if (currentGoogleUser?.isAnonymous && window._fbLinkWithPopup) {
-      // Link anon account to Google — preserves session
       try { await window._fbLinkWithPopup(window._fbGoogleProvider); }
       catch(linkErr) {
-        // If already linked, fall through to normal sign-in
         await window._fbSignInWithPopup(window._fbAuth, window._fbGoogleProvider);
       }
     } else {
       await window._fbSignInWithPopup(window._fbAuth, window._fbGoogleProvider);
     }
-    // onAuthStateChanged will handle the rest
   } catch(e) {
     console.warn('Google sign-in failed', e);
     if (errEl) errEl.style.display = 'block';
@@ -4836,6 +4845,11 @@ document.getElementById('app').style.display = 'none';
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
   clearInterval(waitForFb);
+
+  // Handle redirect result from iOS PWA sign-in
+  if (window._fbGetRedirectResult) {
+    window._fbGetRedirectResult(window._fbAuth).catch(() => {});
+  }
 
   window._fbOnAuthStateChanged(window._fbAuth, async (user) => {
     if (user) {
