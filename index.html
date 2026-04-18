@@ -1578,6 +1578,54 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     opacity: 0.55;
   }
 } /* end @media mobile */
+/* ── Welcome Flow ── */
+#welcome-flow {
+  position: fixed; inset: 0; z-index: 9000;
+  background: #06060a;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+#welcome-flow.open { opacity: 1; pointer-events: all; }
+.wf-box {
+  width: 90%; max-width: 420px;
+  display: flex; flex-direction: column; gap: 28px;
+  align-items: center; text-align: center;
+}
+.wf-step { display: none; flex-direction: column; gap: 20px; align-items: center; width: 100%; }
+.wf-step.active { display: flex; animation: wfIn 0.35s ease; }
+@keyframes wfIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+.wf-emoji { font-size: 48px; line-height: 1; }
+.wf-q { font-size: 22px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; line-height: 1.3; }
+.wf-hint { font-size: 12px; color: var(--dim); letter-spacing: 0.06em; }
+.wf-input {
+  width: 100%; padding: 14px 16px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-family: inherit; font-size: 16px;
+  outline: none; text-align: center; letter-spacing: 0.02em;
+  transition: border-color 0.15s;
+}
+.wf-input:focus { border-color: var(--accent); }
+.wf-roles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
+.wf-role-btn {
+  padding: 10px 18px; border-radius: 100px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--mid); font-family: inherit; font-size: 13px;
+  cursor: pointer; transition: all 0.15s; letter-spacing: 0.03em;
+}
+.wf-role-btn:hover { border-color: var(--accent); color: var(--text); }
+.wf-role-btn.selected { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 500; }
+.wf-next {
+  padding: 13px 32px; border-radius: 100px;
+  background: var(--accent); color: var(--bg);
+  border: none; font-family: inherit; font-size: 14px; font-weight: 500;
+  cursor: pointer; letter-spacing: 0.04em;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.wf-next:hover { opacity: 0.9; transform: translateY(-1px); }
+.wf-next:disabled { opacity: 0.3; cursor: default; transform: none; }
+.wf-skip { font-size: 11px; color: var(--dim); cursor: pointer; letter-spacing: 0.06em; text-decoration: underline; opacity: 0.5; }
+.wf-skip:hover { opacity: 1; }
 </style>
 </head>
 <body class="auth-loading">
@@ -1616,6 +1664,41 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     </button>
 
     <div id="ob-error" style="font-size:10px;color:#ff5555;letter-spacing:0.06em;display:none;text-align:center">sign-in failed — try again</div>
+  </div>
+</div>
+
+<!-- ─── WELCOME FLOW ─── -->
+<div id="welcome-flow">
+  <div class="wf-box">
+
+    <!-- Step 1: Name -->
+    <div class="wf-step active" id="wf-step-1">
+      <div class="wf-emoji">👋</div>
+      <div class="wf-q">what do people call you?</div>
+      <div class="wf-hint">this is how you'll appear on WIP</div>
+      <input class="wf-input" id="wf-name" placeholder="your name or alias" maxlength="30" oninput="wfCheckName()">
+      <button class="wf-next" id="wf-next-1" onclick="wfNext(2)" disabled>continue →</button>
+      <span class="wf-skip" onclick="wfSkip()">skip for now</span>
+    </div>
+
+    <!-- Step 2: Role -->
+    <div class="wf-step" id="wf-step-2">
+      <div class="wf-emoji">🎵</div>
+      <div class="wf-q">why are you here?</div>
+      <div class="wf-hint">pick everything that fits</div>
+      <div class="wf-roles">
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'producer')">🎛 producer</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'rapper')">🎤 rapper</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'singer')">🎶 singer</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'listener')">👂 music fan</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'songwriter')">✍️ songwriter</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'band')">🎸 band member</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'other')">✨ other</button>
+      </div>
+      <button class="wf-next" id="wf-next-2" onclick="wfFinish()" disabled>let's go →</button>
+      <span class="wf-skip" onclick="wfSkip()">skip</span>
+    </div>
+
   </div>
 </div>
 
@@ -1990,7 +2073,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.1</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.2</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4768,6 +4851,9 @@ const waitForFb = setInterval(() => {
         if (!DB.preferredName && window._fbReady) {
           DB.preferredName = await claimUniqueUsername(user.displayName || user.email?.split('@')[0] || 'user', user.uid);
           DB.albums[user.uid].forEach(p => { if (!p.artist || p.artist === user.uid || p.artist.length > 30) p.artist = DB.preferredName; });
+
+          // New user — show welcome flow before entering the app
+          await showWelcomeFlow(user.uid);
         }
       }
 
@@ -5797,6 +5883,86 @@ function closeNotifDrawer() {
   overlay.classList.remove('open');
   document.getElementById('bnav-notif')?.classList.remove('active');
   setTimeout(() => { if (!overlay.classList.contains('open')) overlay.style.display = 'none'; }, 300);
+}
+
+// ══════════════════════════════════════
+// WELCOME FLOW
+// ══════════════════════════════════════
+let _wfSelectedRoles = [];
+let _wfResolve = null;
+
+function showWelcomeFlow(uid) {
+  return new Promise(resolve => {
+    _wfResolve = resolve;
+    _wfSelectedRoles = [];
+    const el = document.getElementById('welcome-flow');
+    if (!el) { resolve(); return; }
+    // Pre-fill name from DB
+    const input = document.getElementById('wf-name');
+    if (input && DB.preferredName) { input.value = DB.preferredName; wfCheckName(); }
+    el.classList.add('open');
+  });
+}
+
+function wfCheckName() {
+  const val = document.getElementById('wf-name')?.value?.trim();
+  const btn = document.getElementById('wf-next-1');
+  if (btn) btn.disabled = !val || val.length < 1;
+}
+
+function wfToggleRole(btn, role) {
+  const i = _wfSelectedRoles.indexOf(role);
+  if (i >= 0) { _wfSelectedRoles.splice(i, 1); btn.classList.remove('selected'); }
+  else { _wfSelectedRoles.push(role); btn.classList.add('selected'); }
+  const next = document.getElementById('wf-next-2');
+  if (next) next.disabled = _wfSelectedRoles.length === 0;
+}
+
+function wfNext(step) {
+  // Save name from step 1
+  const nameInput = document.getElementById('wf-name')?.value?.trim();
+  if (nameInput) DB.preferredName = nameInput;
+
+  // Switch step
+  document.querySelectorAll('.wf-step').forEach(s => s.classList.remove('active'));
+  const next = document.getElementById(`wf-step-${step}`);
+  if (next) next.classList.add('active');
+}
+
+async function wfFinish() {
+  await _wfSaveAndClose();
+}
+
+async function wfSkip() {
+  await _wfSaveAndClose();
+}
+
+async function _wfSaveAndClose() {
+  // Save name if changed
+  const nameInput = document.getElementById('wf-name')?.value?.trim();
+  if (nameInput && nameInput !== DB.preferredName) {
+    DB.preferredName = nameInput;
+  }
+
+  // Save role to Firestore
+  if (_wfSelectedRoles.length > 0 && window._fbReady && DB.currentUser) {
+    try {
+      await window._fbSetDoc(
+        window._fbDoc(window._fbDb, 'users', DB.currentUser),
+        { roles: _wfSelectedRoles, rolesSetAt: Date.now() },
+        { merge: true }
+      );
+    } catch(e) { console.warn('roles save failed', e); }
+  }
+
+  // Save name
+  saveDB();
+
+  // Close
+  const el = document.getElementById('welcome-flow');
+  if (el) { el.style.opacity = '0'; setTimeout(() => { el.classList.remove('open'); el.style.opacity = ''; }, 400); }
+
+  if (_wfResolve) { _wfResolve(); _wfResolve = null; }
 }
 
 </script>
