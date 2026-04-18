@@ -2060,6 +2060,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div class="modal-btns" style="justify-content:space-between">
       <button class="btn-cancel" style="color:#ff5555;border-color:rgba(255,85,85,0.4);opacity:0.7" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7" onclick="deleteProject()">delete</button>
       <div style="display:flex;gap:8px">
+        <button class="btn-outline" onclick="inviteCollab()" style="font-size:11px;gap:5px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          invite collab
+        </button>
         <button class="btn-cancel" onclick="closeProjectSettings()">cancel</button>
         <button class="btn-confirm" onclick="saveProjectSettings()">done</button>
       </div>
@@ -2112,7 +2116,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.11</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.0</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3317,7 +3321,14 @@ function playTrack(tid) {
   if (!t.url && t.cloudUrl) t.url = t.cloudUrl;
   if (!t.url) { toast('re-add this file to play it again'); return; }
   S.curTid = tid; S.playing = true;
-  audio.src = t.url; audio.play();
+  audio.src = t.url;
+  audio.play().catch(e => {
+    if (e.name === 'NotAllowedError') {
+      S.playing = false;
+      updBtn();
+      toast('tap play to start');
+    }
+  });
   S.queue = p.tracks.map(x => x.id);
   updatePlayerUI(t, p); renderTrackList();
 
@@ -3374,7 +3385,8 @@ function playById(id) {
   const p = findPByTrack(id); if (!p) return;
   const t = p.tracks.find(x => x.id === id); if (!t) return;
   S.curTid = id; S.playing = true;
-  audio.src = t.url; audio.play();
+  audio.src = t.url;
+  audio.play().catch(e => { if (e.name === 'NotAllowedError') { S.playing = false; updBtn(); } });
   updatePlayerUI(t, p); renderTrackList();
 }
 function toggleShuffle() {
@@ -3989,7 +4001,7 @@ function renderSidebar() {
 // ─── RENDER MAIN ───
 let _lastRenderedPid = null;
 
-function renderMain() {
+async function renderMain() {
   const c = document.getElementById('main-content');
   const p = curP();
 
@@ -4038,8 +4050,8 @@ function renderMain() {
       <div class="album-info">
         <div class="album-type">WIP · ${(p.type || 'project').toUpperCase()}</div>
         <div class="album-title">${p.name}</div>
-        <div>
-          <span class="album-artist">${p.artist || 'unknown artist'}</span>
+        <div id="collab-artists-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
+          ${await buildArtistRow(p)}
         </div>
         <div class="album-meta">
           <span class="album-year">${p.year || new Date().getFullYear()}</span>
@@ -4052,7 +4064,16 @@ function renderMain() {
         </div>
         <div class="album-actions">
           <button class="btn-play-album" id="album-play-btn" onclick="playAlbum()">${S.playing && findPByTrack(S.curTid)?.id === p.id ? PAUSE_SVG_MD : PLAY_SVG_MD}</button>
-          ${p._isShared ? `
+          ${p._isCollab ? `
+          <button class="btn-outline" onclick="leaveCollab('${p.id}')" style="color:#ff5555;border-color:rgba(255,85,85,0.4);font-size:11px">leave</button>
+          <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            share
+          </button>
+          <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          ` : `
             ${currentGoogleUser && !currentGoogleUser.isAnonymous ? `
             <button id="shared-save-btn" onclick="saveSharedProject('${p._shareId}','${p._ownerUid}','${p.id.replace('__shared__','')}','${DB.currentUser}')"
               class="btn-outline" style="gap:5px;${p._alreadySaved?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}">
@@ -4092,7 +4113,13 @@ function renderMain() {
           <input type="file" accept="audio/*" multiple onchange="addTracks(this.files)">
           + add tracks
         </button>
-      </div>` : ''}
+      </div>` : (p._isCollab ? `
+      <div style="margin-top: 8px; display: flex; justify-content: center;">
+        <button class="btn-add-tracks">
+          <input type="file" accept="audio/*" multiple onchange="addCollabTrack(this.files)">
+          + add track
+        </button>
+      </div>` : '')}
     </div>
     ${p.notes ? `
     <div class="project-notes-wrap">
@@ -4918,19 +4945,22 @@ const waitForFb = setInterval(() => {
         initNotifications(user.uid);
         initLiveSync(user.uid);
         loadSavedProjects(user);
+        loadCollabProjects(user);
       }
 
       // Handle share link — open the project if it belongs to this user
       const shareId = await resolveShareParam();
+      const collabToken = new URLSearchParams(location.search).get('collab');
 
-      // Admin panel
-      if (new URLSearchParams(location.search).get('admin') === 'true' && user.uid === 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3') {
+      // Collab invite
+      if (collabToken && !isAnon) {
+        history.replaceState(null, '', location.pathname);
+        await acceptCollabInvite(collabToken, user);
+      } else if (new URLSearchParams(location.search).get('admin') === 'true' && user.uid === 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3') {
         history.replaceState(null, '', location.pathname);
         showAdminPanel();
         return;
-      }
-
-      if (shareId) {
+      } else if (shareId) {
         history.replaceState(null, '', location.pathname); // clean URL
         const sharedProject = curAlbums().find(p => p.id === shareId);
         if (sharedProject) {
@@ -5821,6 +5851,15 @@ function renderNotifList(items, profiles) {
             <span style="color:var(--accent)">${n.projectName}</span>
             <span style="color:var(--mid)"> — </span>
             <span style="font-weight:500">${n.trackName}</span>`;
+        } else if (n.type === 'collab_joined') {
+          msgHtml = `<span style="font-weight:500">${name}</span>
+            <span style="color:var(--mid)"> joined </span>
+            <span style="color:var(--accent)">${n.projectName}</span>
+            <span style="color:var(--mid)"> as collaborator</span>`;
+        } else if (n.type === 'collab_track') {
+          msgHtml = `<span style="font-weight:500">${name}</span>
+            <span style="color:var(--mid)"> added a track to </span>
+            <span style="color:var(--accent)">${n.projectName}</span>`;
         } else {
           // default: listen
           msgHtml = `<span style="font-weight:500">${name}</span>
@@ -5937,6 +5976,263 @@ function closeNotifDrawer() {
   overlay.classList.remove('open');
   document.getElementById('bnav-notif')?.classList.remove('active');
   setTimeout(() => { if (!overlay.classList.contains('open')) overlay.style.display = 'none'; }, 300);
+}
+
+// ══════════════════════════════════════
+// COLLAB SYSTEM
+// ══════════════════════════════════════
+
+// Build artist row with avatars (owner + collab)
+async function buildArtistRow(p) {
+  const ownerName = p._collabOwnerName || p.artist || 'unknown artist';
+  const ownerUid  = p._collabOwnerUid  || p._ownerUid || DB.currentUser;
+  const collabUid  = p._collabUid  || null;
+  const collabName = p._collabName || null;
+
+  // Fetch owner profile avatar
+  const ownerAvatar = await getProfileAvatar(ownerUid);
+  const ownerHtml = `<div style="display:flex;align-items:center;gap:6px">
+    ${avatarCircle(ownerAvatar, ownerName, 22)}
+    <span class="album-artist">${ownerName}</span>
+  </div>`;
+
+  if (!collabUid) return ownerHtml;
+
+  const collabAvatar = await getProfileAvatar(collabUid);
+  return `${ownerHtml}
+    <span style="color:var(--dim);font-size:11px">,</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      ${avatarCircle(collabAvatar, collabName, 22)}
+      <span class="album-artist">${collabName}</span>
+    </div>`;
+}
+
+function avatarCircle(photoUrl, name, size) {
+  const s = size || 22;
+  const initials = (name || '?')[0].toUpperCase();
+  return photoUrl
+    ? `<img src="${photoUrl}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.1)">`
+    : `<div style="width:${s}px;height:${s}px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:${Math.round(s*0.5)}px;color:var(--accent);font-weight:500;flex-shrink:0">${initials}</div>`;
+}
+
+const _avatarCache = {};
+async function getProfileAvatar(uid) {
+  if (!uid || !window._fbReady) return null;
+  if (_avatarCache[uid] !== undefined) return _avatarCache[uid];
+  try {
+    const doc = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', uid));
+    const data = doc.exists() ? doc.data() : {};
+    const avatar = data.customAvatar || data.photoURL || null;
+    _avatarCache[uid] = avatar;
+    return avatar;
+  } catch(e) { _avatarCache[uid] = null; return null; }
+}
+
+// Invite collab — create one-time link
+async function inviteCollab() {
+  const p = curP(); if (!p) return;
+  if (!window._fbReady || !currentGoogleUser) return;
+  toast('generating invite link...');
+  try {
+    const token = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    await window._fbSetDoc(window._fbDoc(window._fbDb, 'collabInvites', token), {
+      projectId: p.id,
+      ownerUid: currentGoogleUser.uid,
+      ownerName: DB.preferredName || currentGoogleUser.displayName || '',
+      projectName: p.name,
+      used: false,
+      createdAt: Date.now()
+    });
+    const url = `${location.origin}${location.pathname}?collab=${token}`;
+    await navigator.clipboard.writeText(url).catch(() => {});
+    closeProjectSettings();
+    toast('collab invite link copied ✓');
+  } catch(e) { toast('failed — try again'); }
+}
+
+// Accept collab invite
+async function acceptCollabInvite(token, user) {
+  try {
+    const inviteRef = window._fbDoc(window._fbDb, 'collabInvites', token);
+    const inviteSnap = await window._fbGetDoc(inviteRef);
+    if (!inviteSnap.exists()) { toast('invite link is invalid'); renderMain(); return; }
+    const inv = inviteSnap.data();
+    if (inv.used) { toast('this invite has already been used'); renderMain(); return; }
+    if (inv.ownerUid === user.uid) { toast("that's your own project!"); renderMain(); return; }
+
+    // Mark invite as used
+    await window._fbSetDoc(inviteRef, { used: true, collabUid: user.uid, usedAt: Date.now() }, { merge: true });
+
+    // Add collab entry to project owner's doc
+    await window._fbSetDoc(
+      window._fbDoc(window._fbDb, 'collabs', `${inv.projectId}_${user.uid}`),
+      {
+        projectId: inv.projectId,
+        ownerUid: inv.ownerUid,
+        ownerName: inv.ownerName,
+        projectName: inv.projectName,
+        collabUid: user.uid,
+        collabName: DB.preferredName || user.displayName || '',
+        joinedAt: Date.now()
+      }
+    );
+
+    // Notify owner
+    sendProjectNotification(inv.ownerUid, inv.projectName, 'collab_joined');
+
+    toast(`joined "${inv.projectName}" as collaborator ✓`);
+
+    // Load the project
+    await loadCollabProject(inv.projectId, inv.ownerUid, user);
+  } catch(e) {
+    console.warn('collab invite failed', e);
+    toast('failed to join — try again');
+    renderMain();
+  }
+}
+
+async function loadCollabProject(projectId, ownerUid, user) {
+  try {
+    const userSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
+    if (!userSnap.exists()) return;
+    const albumsMap = userSnap.data().albums || {};
+    const allProjects = Object.values(albumsMap).flat();
+    const project = allProjects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const collabSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'collabs', `${projectId}_${user.uid}`));
+    const collabData = collabSnap.exists() ? collabSnap.data() : {};
+
+    const fakeId = '__collab__' + projectId;
+    if (!DB.albums['__shared__']) DB.albums['__shared__'] = [];
+
+    const entry = {
+      ...project,
+      id: fakeId,
+      _isCollab: true,
+      _isShared: false,
+      _collabOwnerUid: ownerUid,
+      _collabOwnerName: collabData.ownerName || project.artist || '',
+      _collabUid: user.uid,
+      _collabName: collabData.collabName || DB.preferredName || '',
+      tracks: (project.tracks || []).map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
+    };
+
+    const existing = DB.albums['__shared__'].findIndex(p => p.id === fakeId);
+    if (existing >= 0) DB.albums['__shared__'][existing] = entry;
+    else DB.albums['__shared__'].push(entry);
+
+    renderSidebar(); renderMobileDrawer();
+    selectProject(fakeId);
+
+    // Live sync for collab project
+    window._fbOnSnapshot(window._fbDoc(window._fbDb, 'users', ownerUid), (snap) => {
+      if (!snap.exists()) return;
+      const updated = Object.values(snap.data().albums || {}).flat().find(p => p.id === projectId);
+      if (!updated) return;
+      const idx = (DB.albums['__shared__'] || []).findIndex(p => p.id === fakeId);
+      if (idx >= 0) {
+        DB.albums['__shared__'][idx] = {
+          ...DB.albums['__shared__'][idx], ...updated,
+          id: fakeId, _isCollab: true, _isShared: false,
+          _collabOwnerUid: ownerUid,
+          _collabOwnerName: collabData.ownerName || '',
+          _collabUid: user.uid,
+          _collabName: collabData.collabName || '',
+          tracks: (updated.tracks || []).map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
+        };
+        if (S.curPid === fakeId) renderMain();
+        renderSidebar(); renderMobileDrawer();
+      }
+    });
+  } catch(e) { console.warn('loadCollabProject failed', e); }
+}
+
+async function loadCollabProjects(user) {
+  try {
+    const col = window._fbCollection(window._fbDb, 'collabs');
+    const snaps = await window._fbGetDocs(col);
+    const mine = snaps.docs.filter(d => d.data().collabUid === user.uid);
+    await Promise.all(mine.map(async d => {
+      const { projectId, ownerUid } = d.data();
+      await loadCollabProject(projectId, ownerUid, user);
+    }));
+  } catch(e) { console.warn('loadCollabProjects failed', e); }
+}
+
+async function addCollabTrack(files) {
+  const p = curP(); if (!p?._isCollab) return;
+  const ownerUid = p._collabOwnerUid;
+  const projectId = p.id.replace('__collab__', '');
+  if (!ownerUid || !projectId) return;
+
+  Array.from(files).forEach(async f => {
+    if (!f.type.match(/audio/)) return;
+    const localUrl = URL.createObjectURL(f);
+    const trackId = uid();
+    const t = {
+      id: trackId, name: f.name.replace(/\.[^.]+$/, ''),
+      originalName: f.name, fileType: f.name.split('.').pop().toUpperCase(),
+      url: localUrl, dur: 0, added: Date.now(),
+      pid: projectId, bpm: null, cloudUrl: null,
+      addedByUid: DB.currentUser,
+      addedByName: DB.preferredName || currentGoogleUser?.displayName || ''
+    };
+
+    // Add to local collab project for immediate display
+    p.tracks.push(t);
+    renderTrackList(); updateMetaRow();
+
+    // Get duration
+    const tmp = new Audio(localUrl);
+    tmp.addEventListener('loadedmetadata', () => { t.dur = tmp.duration; renderTrackList(); });
+
+    // Upload audio to Storage
+    if (window._fbReady && window._fbStorage && currentGoogleUser) {
+      try {
+        const storageRef = window._fbRef(window._fbStorage, `users/${ownerUid}/tracks/${trackId}`);
+        const snapshot = await window._fbUploadBytes(storageRef, f);
+        t.cloudUrl = await window._fbGetDownloadURL(snapshot.ref);
+      } catch(e) { console.warn('collab upload failed', e); }
+    }
+
+    // Write new track to owner's Firestore doc
+    try {
+      const ownerSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
+      if (!ownerSnap.exists()) return;
+      const ownerData = ownerSnap.data();
+      const albumsMap = ownerData.albums || {};
+      const userProjects = albumsMap[ownerUid] || [];
+      const projIdx = userProjects.findIndex(x => x.id === projectId);
+      if (projIdx < 0) return;
+
+      const trackToSave = { ...t, url: null };
+      userProjects[projIdx].tracks.push(trackToSave);
+      albumsMap[ownerUid] = userProjects;
+
+      await window._fbSetDoc(
+        window._fbDoc(window._fbDb, 'users', ownerUid),
+        { albums: albumsMap, updatedAt: Date.now() },
+        { merge: true }
+      );
+      toast(`${t.name} added to project ✓`);
+      sendProjectNotification(ownerUid, p.name, 'collab_track');
+    } catch(e) { console.warn('collab track save failed', e); toast('upload failed'); }
+  });
+}
+  const p = DB.albums['__shared__']?.find(x => x.id === fakeId);
+  if (!p?._isCollab) return;
+  if (!confirm(`Leave "${p.name}"? You can rejoin with a new invite.`)) return;
+  try {
+    const projectId = p._collabOwnerUid ? fakeId.replace('__collab__', '') : null;
+    if (projectId) {
+      await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'collabs', `${projectId}_${DB.currentUser}`)).catch(() => {});
+    }
+    DB.albums['__shared__'] = (DB.albums['__shared__'] || []).filter(x => x.id !== fakeId);
+    if (S.curPid === fakeId) { S.curPid = null; }
+    renderSidebar(); renderMobileDrawer(); renderMain();
+    toast('left the project');
+  } catch(e) { toast('failed — try again'); }
 }
 
 // ══════════════════════════════════════
