@@ -2116,7 +2116,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.0</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.1</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4064,35 +4064,7 @@ async function renderMain() {
         </div>
         <div class="album-actions">
           <button class="btn-play-album" id="album-play-btn" onclick="playAlbum()">${S.playing && findPByTrack(S.curTid)?.id === p.id ? PAUSE_SVG_MD : PLAY_SVG_MD}</button>
-          ${p._isCollab ? `
-          <button class="btn-outline" onclick="leaveCollab('${p.id}')" style="color:#ff5555;border-color:rgba(255,85,85,0.4);font-size:11px">leave</button>
-          <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            share
-          </button>
-          <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
-          ` : `
-            ${currentGoogleUser && !currentGoogleUser.isAnonymous ? `
-            <button id="shared-save-btn" onclick="saveSharedProject('${p._shareId}','${p._ownerUid}','${p.id.replace('__shared__','')}','${DB.currentUser}')"
-              class="btn-outline" style="gap:5px;${p._alreadySaved?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}">
-              ${p._alreadySaved ? '✓ saved' : '+ save to library'}
-            </button>
-            ` : `
-            <button class="btn-outline" onclick="signInWithGoogle()" style="gap:5px">
-              Sign in to save
-            </button>
-            `}
-          ` : `
-          <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            share
-          </button>
-          <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
-          `}
+          ${buildAlbumActions(p)}
         </div>
       </div>
     </div>
@@ -5981,6 +5953,29 @@ function closeNotifDrawer() {
 // ══════════════════════════════════════
 // COLLAB SYSTEM
 // ══════════════════════════════════════
+
+function buildAlbumActions(p) {
+  const SHARE_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+  const GEAR_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+
+  if (p._isCollab) {
+    return `
+      <button class="btn-outline" onclick="leaveCollab('${p.id}')" style="color:#ff5555;border-color:rgba(255,85,85,0.4);font-size:11px">leave</button>
+      <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">${SHARE_ICON} share</button>
+      <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">${GEAR_ICON}</button>`;
+  }
+  if (p._isShared) {
+    if (currentGoogleUser && !currentGoogleUser.isAnonymous) {
+      const saved = p._alreadySaved;
+      return '<button id="shared-save-btn" onclick="saveSharedProject(\'' + p._shareId + '\',\'' + p._ownerUid + '\',\'' + p.id.replace('__shared__','') + '\',\'' + DB.currentUser + '\')" class="btn-outline" style="gap:5px;' + (saved ? 'background:var(--accent);color:var(--bg);border-color:var(--accent)' : '') + '">' + (saved ? '✓ saved' : '+ save to library') + '</button>';
+    }
+    return '<button class="btn-outline" onclick="signInWithGoogle()" style="gap:5px">Sign in to save</button>';
+  }
+  // Own project
+  return `
+    <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">${SHARE_ICON} share</button>
+    <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">${GEAR_ICON}</button>`;
+}
 
 // Build artist row with avatars (owner + collab)
 async function buildArtistRow(p) {
