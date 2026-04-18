@@ -1658,6 +1658,14 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 </head>
 <body class="auth-loading">
 
+<!-- MAINTENANCE SCREEN -->
+<div id="maintenance-screen" style="display:none;position:fixed;inset:0;z-index:99999;background:#06060a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;padding:40px">
+  <div style="font-size:32px">🔧</div>
+  <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em">site under maintenance</div>
+  <div style="font-size:13px;color:var(--dim);letter-spacing:0.04em;line-height:1.7;max-width:300px">we're working on something new.<br>back soon.</div>
+  <div style="font-size:10px;color:var(--dim);opacity:0.4;margin-top:10px;letter-spacing:0.08em">◈ WIP</div>
+</div>
+
 <!-- ONBOARDING — Google Sign-In -->
 <div id="onboarding" class="loading">
   <div class="ob-box">
@@ -2060,7 +2068,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div class="modal-btns" style="justify-content:space-between">
       <button class="btn-cancel" style="color:#ff5555;border-color:rgba(255,85,85,0.4);opacity:0.7" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7" onclick="deleteProject()">delete</button>
       <div style="display:flex;gap:8px">
-        <button class="btn-outline" onclick="inviteCollab()" style="font-size:11px;gap:5px">
+        <button class="btn-cancel" onclick="inviteCollab()" style="font-size:11px;gap:5px">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           invite collab
         </button>
@@ -2116,7 +2124,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.2</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.3</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4831,11 +4839,22 @@ async function resolveShareParam() {
 setupGlobalDrag();
 document.getElementById('app').style.display = 'none';
 
+const MAINTENANCE_MODE = true;
+const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
+
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
   clearInterval(waitForFb);
 
   window._fbOnAuthStateChanged(window._fbAuth, async (user) => {
+
+    // Maintenance mode — only owner can access
+    if (MAINTENANCE_MODE && (!user || user.uid !== OWNER_UID)) {
+      document.body.classList.remove('auth-loading');
+      document.getElementById('onboarding')?.classList.remove('open');
+      document.getElementById('maintenance-screen').style.display = 'flex';
+      return;
+    }
     if (user) {
       currentGoogleUser = user;
       DB.currentUser = user.uid;
@@ -6025,7 +6044,9 @@ async function getProfileAvatar(uid) {
 
 // Invite collab — create one-time link
 async function inviteCollab() {
-  const p = curP(); if (!p) return;
+  const pid = psProjectId;
+  const p = curAlbums().find(x => x.id === pid);
+  if (!p) return;
   if (!window._fbReady || !currentGoogleUser) return;
   toast('generating invite link...');
   try {
