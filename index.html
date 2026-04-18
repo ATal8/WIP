@@ -2069,9 +2069,9 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim)">project age</span>
       <span id="ps-timer" style="font-size:11px;color:var(--mid);font-variant-numeric:tabular-nums;letter-spacing:0.04em">—</span>
     </div>
-    <div class="modal-btns" style="justify-content:space-between">
+    <div class="modal-btns" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
       <button class="btn-cancel" style="color:#ff5555;border-color:rgba(255,85,85,0.4);opacity:0.7" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7" onclick="deleteProject()">delete</button>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn-cancel" onclick="inviteCollab()" style="font-size:11px;gap:5px">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           invite collab
@@ -2128,7 +2128,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.4</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.5</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4847,7 +4847,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.9.4', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.9.5', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -6053,8 +6053,8 @@ async function getProfileAvatar(uid) {
 async function inviteCollab() {
   const pid = psProjectId;
   const p = curAlbums().find(x => x.id === pid);
-  if (!p) return;
-  if (!window._fbReady || !currentGoogleUser) return;
+  if (!p) { toast('no project selected'); return; }
+  if (!window._fbReady || !currentGoogleUser) { toast('not signed in'); return; }
   toast('generating invite link...');
   try {
     const token = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -6070,7 +6070,10 @@ async function inviteCollab() {
     await navigator.clipboard.writeText(url).catch(() => {});
     closeProjectSettings();
     toast('collab invite link copied ✓');
-  } catch(e) { toast('failed — try again'); }
+  } catch(e) {
+    console.error('inviteCollab failed:', e);
+    toast('failed: ' + (e.message || 'check Firestore rules'));
+  }
 }
 
 // Accept collab invite
