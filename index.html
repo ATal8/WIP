@@ -2112,7 +2112,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.6</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.7</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2339,21 +2339,11 @@ function allAlbums() {
 // ─── GOOGLE AUTH ───
 let currentGoogleUser = null; // Firebase User object
 
-// Detect iOS PWA (standalone mode)
-function isIOSPWA() {
-  return navigator.standalone === true;
-}
-
 async function signInWithGoogle() {
   const btn = document.getElementById('google-signin-btn');
   const errEl = document.getElementById('ob-error');
   if (btn) { btn.textContent = '...'; btn.disabled = true; }
   try {
-    if (isIOSPWA()) {
-      // iOS PWA doesn't support popups — use redirect
-      await window._fbSignInWithRedirect(window._fbAuth, window._fbGoogleProvider);
-      return; // page will reload after redirect
-    }
     if (currentGoogleUser?.isAnonymous && window._fbLinkWithPopup) {
       try { await window._fbLinkWithPopup(window._fbGoogleProvider); }
       catch(linkErr) {
@@ -2364,7 +2354,6 @@ async function signInWithGoogle() {
     }
   } catch(e) {
     console.warn('Google sign-in failed', e);
-    // Reset button regardless of error type
     if (errEl && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
       errEl.style.display = 'block';
     }
