@@ -1841,7 +1841,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   <main id="main">
     <div id="main-ambient"></div>
     <!-- Mobile Home Screen -->
-    <div id="mobile-home" style="display:none;padding:20px 16px;overflow-y:auto">
+    <div id="mobile-home" style="display:none;padding:20px 16px;overflow-y:auto;height:100%">
       <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em;margin-bottom:20px">your library</div>
       <div id="mobile-home-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
       <div id="mobile-home-saved-section" style="margin-top:28px;display:none">
@@ -1849,11 +1849,14 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
         <div id="mobile-home-saved-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
       </div>
     </div>
-    <div id="main-content">
-      <div class="no-sel">
-        <div class="no-sel-icon">◈</div>
-        <div class="no-sel-txt">select an album</div>
-        <div class="no-sel-hint">or create a new one to get started</div>
+    <!-- Mobile Project Panel — always in DOM, GPU layer ready -->
+    <div id="mobile-project-panel" style="position:fixed;inset:0;z-index:180;background:var(--bg);transform:translate3d(100%,0,0);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;padding-bottom:calc(var(--mobile-player-h,80px) + var(--bottom-nav-h,62px) + 16px);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden">
+      <div id="main-content">
+        <div class="no-sel">
+          <div class="no-sel-icon">◈</div>
+          <div class="no-sel-txt">select an album</div>
+          <div class="no-sel-hint">or create a new one to get started</div>
+        </div>
       </div>
     </div>
   </main>
@@ -2216,7 +2219,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.14</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.15</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4998,7 +5001,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.14', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.15', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -5430,10 +5433,7 @@ function mobileProjSelect(id) {
 function goHome() {
   if (!isMobile()) return;
   const panel = document.getElementById('mobile-project-panel');
-  if (panel) {
-    panel.style.transform = 'translateX(100%)';
-    setTimeout(() => { panel.style.display = 'none'; }, 320);
-  }
+  if (panel) panel.style.transform = 'translate3d(100%,0,0)';
   document.getElementById('mobile-home').style.display = 'block';
   document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('bnav-home')?.classList.add('active');
@@ -5446,28 +5446,14 @@ function openMobileProject(id) {
   S.curPid = id; _lastRenderedPid = null;
   savePlayerState(); renderSidebar();
 
-  let panel = document.getElementById('mobile-project-panel');
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'mobile-project-panel';
-    panel.style.cssText = `position:fixed;inset:0;z-index:180;background:var(--bg);
-      transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);
-      overflow-y:auto;padding-bottom:calc(var(--mobile-player-h) + var(--bottom-nav-h) + 16px);
-      will-change:transform;`;
-    // Move main-content inside
-    const mc = document.getElementById('main-content');
-    panel.appendChild(mc);
-    document.getElementById('main').appendChild(panel);
-  } else {
-    panel.style.display = 'block';
-  }
-
+  const panel = document.getElementById('mobile-project-panel');
+  // Render content first, then animate in
+  renderMain();
   requestAnimationFrame(() => {
-    panel.style.transform = 'translateX(0)';
+    panel.style.transform = 'translate3d(0,0,0)';
   });
 
   document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
-  renderMain();
 }
 
 function renderMobileHome() {
@@ -5516,8 +5502,7 @@ function initSwipeBackToHome() {
   let startX = 0, startY = 0, tracking = false, swiping = false;
 
   document.addEventListener('touchstart', e => {
-    const panel = document.getElementById('mobile-project-panel');
-    if (!panel || !isMobile() || !S.curPid) return;
+    if (!isMobile() || !S.curPid) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     tracking = true;
@@ -5534,16 +5519,15 @@ function initSwipeBackToHome() {
 
     if (!swiping) {
       if (dy > 10 && dy > Math.abs(dx)) { tracking = false; return; }
-      if (Math.abs(dx) > 6 && dx > 0) swiping = true;
+      if (dx > 6) swiping = true;
     }
     if (!swiping) return;
 
-    // Block scroll while swiping horizontally
     e.preventDefault();
     if (dx <= 0) return;
     panel.style.transition = 'none';
-    panel.style.transform = `translateX(${dx}px)`;
-  }, { passive: false }); // passive:false so we can preventDefault
+    panel.style.transform = `translate3d(${dx}px,0,0)`;
+  }, { passive: false });
 
   document.addEventListener('touchend', e => {
     if (!tracking) return;
@@ -5555,16 +5539,13 @@ function initSwipeBackToHome() {
     panel.style.transition = 'transform 0.32s cubic-bezier(0.32,0.72,0,1)';
 
     if (swiping && dx > 80) {
-      panel.style.transform = 'translateX(100%)';
-      setTimeout(() => {
-        panel.style.display = 'none';
-        S.curPid = null;
-        renderMobileHome();
-        document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('bnav-home')?.classList.add('active');
-      }, 320);
+      panel.style.transform = 'translate3d(100%,0,0)';
+      S.curPid = null;
+      renderMobileHome();
+      document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('bnav-home')?.classList.add('active');
     } else {
-      panel.style.transform = 'translateX(0)';
+      panel.style.transform = 'translate3d(0,0,0)';
     }
     swiping = false;
   }, { passive: true });
