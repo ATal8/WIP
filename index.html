@@ -1549,6 +1549,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   /* ══ MISC ══ */
   .ob-box { width: 90%; max-width: 360px; }
   .no-sel-hint { display: none; }
+  .no-sel { display: none; }
 
   /* ══ FULLSCREEN — mobile optimized ══ */
   #fs-view { z-index: 500; }
@@ -2215,7 +2216,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.11</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.12</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4997,7 +4998,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.11', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.12', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -5126,12 +5127,22 @@ const waitForFb = setInterval(() => {
         }
       } else if (!isAnon) {
         // Normal session restore
-        const ps = loadPlayerState();
-        if (ps?.curPid) {
-          const p = curAlbums().find(x => x.id === ps.curPid);
-          if (p) selectProject(ps.curPid);
-          else renderMain();
-        } else renderMain();
+        if (isMobile()) {
+          // Mobile — already showing home, nothing to do
+        } else {
+          const ps = loadPlayerState();
+          if (ps?.curPid) {
+            const p = curAlbums().find(x => x.id === ps.curPid);
+            if (p) selectProject(ps.curPid);
+            else {
+              const first = curAlbums()[0];
+              if (first) selectProject(first.id); else renderMain();
+            }
+          } else {
+            const first = curAlbums()[0];
+            if (first) selectProject(first.id); else renderMain();
+          }
+        }
       } else {
         renderMain();
       }
