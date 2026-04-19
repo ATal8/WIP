@@ -1926,6 +1926,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     </svg>
     <span class="bnav-label">home</span>
   </button>
+  <button class="bnav-btn" id="bnav-account" onclick="openUserSettings()">
+    <div class="bnav-avatar" id="bnav-avatar">?</div>
+    <span class="bnav-label">account</span>
+  </button>
   <button class="bnav-btn" id="bnav-notif" onclick="toggleNotifDrawer()">
     <div style="position:relative;display:inline-flex">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1935,10 +1939,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <span id="notif-badge" style="display:none;position:absolute;top:-3px;right:-4px;width:8px;height:8px;background:#ff5555;border-radius:50%;border:1.5px solid var(--bg)"></span>
     </div>
     <span class="bnav-label">notifications</span>
-  </button>
-  <button class="bnav-btn" id="bnav-account" onclick="openUserSettings()">
-    <div class="bnav-avatar" id="bnav-avatar">?</div>
-    <span class="bnav-label">account</span>
   </button>
 </nav>
 
@@ -4891,7 +4891,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.6', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px')', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.6', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
