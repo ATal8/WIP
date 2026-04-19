@@ -2069,12 +2069,21 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim)">project age</span>
       <span id="ps-timer" style="font-size:11px;color:var(--mid);font-variant-numeric:tabular-nums;letter-spacing:0.04em">—</span>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+    <button onclick="inviteCollab()" id="ps-collab-btn" style="width:100%;box-sizing:border-box;padding:9px;border-radius:8px;border:0.5px dashed var(--border);background:transparent;color:var(--dim);font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:14px;transition:border-color 0.15s,color 0.15s" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      invite collaborator
+    </button>
+    <div id="ps-collab-member" style="display:none;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--surface2);border:0.5px solid var(--border);margin-bottom:14px">
+      <div id="ps-collab-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent);font-weight:500;overflow:hidden;position:relative"></div>
+      <div style="flex:1;min-width:0">
+        <div id="ps-collab-name" style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+        <div style="font-size:10px;color:var(--dim);letter-spacing:0.04em">collaborator</div>
+      </div>
+      <button onclick="removeCollab()" style="font-size:10px;color:#ff5555;background:transparent;border:0.5px solid rgba(255,85,85,0.35);border-radius:5px;padding:4px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">remove</button>
+    </div>
+    <div style="border-top:0.5px solid var(--border);padding-top:14px;display:flex;align-items:center;justify-content:space-between">
       <button class="btn-cancel" style="color:#ff5555;border-color:rgba(255,85,85,0.4);opacity:0.7" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7" onclick="deleteProject()">delete</button>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="inviteCollab()" title="invite collaborator" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--mid);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--mid)'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </button>
+      <div style="display:flex;gap:8px">
         <button class="btn-cancel" onclick="closeProjectSettings()">cancel</button>
         <button class="btn-confirm" onclick="saveProjectSettings()">done</button>
       </div>
@@ -2127,7 +2136,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.6</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.9.7</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3452,6 +3461,9 @@ function openProjectSettings(pid) {
 
   resetModalTransform('ps-modal');
   document.getElementById('ps-modal').classList.add('open');
+
+  // Load collab member if exists
+  loadCollabMemberForSettings(pid);
 
   setTimeout(() => document.getElementById('ps-name').focus(), 80);
 }
@@ -4846,7 +4858,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.9.6', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.9.7', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -6049,6 +6061,52 @@ async function getProfileAvatar(uid) {
 }
 
 // Invite collab — create one-time link
+async function loadCollabMemberForSettings(pid) {
+  const memberEl = document.getElementById('ps-collab-member');
+  const btnEl = document.getElementById('ps-collab-btn');
+  if (!memberEl || !btnEl) return;
+  memberEl.style.display = 'none';
+  btnEl.style.display = 'flex';
+
+  if (!window._fbReady || !currentGoogleUser) return;
+  try {
+    const col = window._fbCollection(window._fbDb, 'collabs');
+    const snaps = await window._fbGetDocs(col);
+    const collab = snaps.docs.find(d => d.data().projectId === pid && d.data().ownerUid === currentGoogleUser.uid);
+    if (!collab) return;
+
+    const data = collab.data();
+    const name = data.collabName || 'collaborator';
+    const avatar = await getProfileAvatar(data.collabUid);
+
+    const nameEl = document.getElementById('ps-collab-name');
+    const avatarEl = document.getElementById('ps-collab-avatar');
+    if (nameEl) nameEl.textContent = name;
+    if (avatarEl) {
+      avatarEl.innerHTML = avatar
+        ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+        : `<span>${name[0]?.toUpperCase() || '?'}</span>`;
+    }
+
+    memberEl.style.display = 'flex';
+    btnEl.style.display = 'none';
+    memberEl.dataset.collabDocId = collab.id;
+  } catch(e) {}
+}
+
+async function removeCollab() {
+  const memberEl = document.getElementById('ps-collab-member');
+  const docId = memberEl?.dataset.collabDocId;
+  if (!docId) return;
+  if (!confirm('Remove this collaborator from the project?')) return;
+  try {
+    await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'collabs', docId));
+    memberEl.style.display = 'none';
+    document.getElementById('ps-collab-btn').style.display = 'flex';
+    toast('collaborator removed');
+  } catch(e) { toast('failed — try again'); }
+}
+
 async function inviteCollab() {
   const pid = psProjectId;
   const p = curAlbums().find(x => x.id === pid);
