@@ -1026,9 +1026,20 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px; width: 460px; transform: translateY(10px); transition: transform 0.18s; }
 .modal-overlay.open .modal { transform: translateY(0); }
 .modal-title { font-size: 12px; font-weight: 500; margin-bottom: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); }
-.type-selector {
-  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+.np-step { display: none; animation: wfIn 0.3s ease; }
+.np-step.active { display: block; }
+.np-type-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 10px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--surface2); color: var(--mid);
+  font-family: 'DM Mono','Fredoka',monospace; font-size: 12px; letter-spacing: 0.04em;
+  cursor: pointer; transition: all 0.14s; width: 100%;
 }
+.np-type-btn:hover { border-color: var(--border-h); color: var(--text); }
+.np-type-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(200,255,50,0.07); }
+.np-type-icon { font-size: 24px; line-height: 1; }
+
+/* keep old type-btn for project settings */
 .type-btn {
   padding: 8px 16px; border: 1px solid var(--border); border-radius: 100px;
   background: var(--surface2); color: var(--dim); font-size: 12px; font-family: 'DM Mono', 'Fredoka', monospace;
@@ -2032,44 +2043,69 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 
 <!-- PROJECT MODAL -->
 <div class="modal-overlay" id="mo" onclick="closeModalOutside(event)">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-title">new project</div>
-    <div class="type-selector" id="type-selector">
-      <button class="type-btn selected" onclick="selectType(this,'single')">single</button>
-      <button class="type-btn" onclick="selectType(this,'ep')">ep</button>
-      <button class="type-btn" onclick="selectType(this,'album')">album</button>
-      <button class="type-btn" onclick="selectType(this,'mixtape')">mixtape</button>
-      <button class="type-btn" onclick="selectType(this,'podcast')">podcast</button>
-      <button class="type-btn" onclick="selectType(this,'demo')">demo</button>
-      <button class="type-btn" onclick="selectType(this,'soundtrack')">soundtrack</button>
-    </div>
-    <div class="modal-cover-row">
-      <div class="m-cover" id="m-cover-wrap">
-        <input type="file" accept="image/*" onchange="previewCover(event)">
-        <span class="m-cover-icon">🖼</span>
-        <span class="m-cover-lbl">tap to add cover</span>
-      </div>
-      <div class="m-fields">
-        <div class="m-field">
-          <div class="m-label">title</div>
-          <input class="m-input" id="m-title" placeholder="untitled project" onkeydown="mkey(event)">
-        </div>
-        <div class="m-field">
-          <div class="m-label">artist</div>
-          <input class="m-input" id="m-artist" placeholder="artist name" onkeydown="mkey(event)" readonly style="cursor:default;color:var(--mid);opacity:0.7">
-        </div>
-        <div class="m-row">
-          <div class="m-field">
-            <div class="m-label">year</div>
-            <input class="m-input" id="m-year" placeholder="2025" maxlength="4" onkeydown="mkey(event)">
-          </div>
-        </div>
+  <div class="modal" style="max-width:440px;padding:32px 28px" onclick="event.stopPropagation()">
+
+    <!-- Step 1: Name -->
+    <div id="np-step-1" class="np-step active">
+      <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em;margin-bottom:8px">what's it called?</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:24px">give your project a name</div>
+      <input class="m-input" id="m-title" placeholder="project name..." onkeydown="if(event.key==='Enter')npNext(2)" oninput="npCheckName()" style="font-size:16px;padding:14px 16px;border-radius:10px;text-align:center">
+      <div style="display:flex;justify-content:flex-end;margin-top:20px">
+        <button class="btn-confirm" id="np-btn-1" onclick="npNext(2)" disabled style="opacity:0.3">next →</button>
       </div>
     </div>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal()">cancel</button>
-      <button class="btn-confirm" onclick="createAlbum()">create project</button>
+
+    <!-- Step 2: Type -->
+    <div id="np-step-2" class="np-step">
+      <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em;margin-bottom:8px">what type?</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:24px">pick the format that fits</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px">
+        <button class="np-type-btn selected" onclick="npSelectType(this,'single')">
+          <div class="np-type-icon">🎵</div><div>single</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'ep')">
+          <div class="np-type-icon">📀</div><div>ep</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'album')">
+          <div class="np-type-icon">💿</div><div>album</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'mixtape')">
+          <div class="np-type-icon">📼</div><div>mixtape</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'podcast')">
+          <div class="np-type-icon">🎙</div><div>podcast</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'demo')">
+          <div class="np-type-icon">🎚</div><div>demo</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'soundtrack')" style="grid-column:span 3">
+          <div class="np-type-icon">🎬</div><div>soundtrack</div>
+        </button>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <button class="btn-cancel" onclick="npBack(1)">← back</button>
+        <button class="btn-confirm" onclick="npNext(3)">next →</button>
+      </div>
     </div>
+
+    <!-- Step 3: Cover -->
+    <div id="np-step-3" class="np-step">
+      <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em;margin-bottom:8px">got a cover?</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:24px">you can always add one later</div>
+      <div id="np-cover-wrap" style="width:100%;max-width:200px;aspect-ratio:1;margin:0 auto 24px;background:var(--surface2);border:1.5px dashed var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="npPreviewCover(event)">
+        <div style="font-size:36px;opacity:0.2">🖼</div>
+        <div style="font-size:11px;color:var(--dim);letter-spacing:0.08em">tap to upload</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:10px">
+        <button class="btn-cancel" onclick="npBack(2)">← back</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" onclick="createAlbumFromFlow()">not yet</button>
+          <button class="btn-confirm" id="np-btn-3" onclick="createAlbumFromFlow()" disabled style="opacity:0.3">done ✓</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -2179,7 +2215,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.8</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.9</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3115,39 +3151,96 @@ function timeAgo(ts) {
   return `${Math.floor(diff/3600)}h ago`;
 }
 
+let _npType = 'single';
+let _npCover = null;
+
 function openModal() {
-  mCover = null;
-  mCoverType = 'single';
-  document.getElementById('m-cover-wrap').innerHTML = `
-    <input type="file" accept="image/*" onchange="previewCover(event)">
-    <span class="m-cover-icon">🖼</span>
-    <span class="m-cover-lbl">cover</span>`;
-  document.getElementById('m-title').value = '';
-  document.getElementById('m-artist').value = DB.preferredName || currentGoogleUser?.displayName || DB.currentUser || '';
-  document.getElementById('m-year').value = new Date().getFullYear();
-  document.querySelectorAll('.type-btn').forEach((b,i) => b.classList.toggle('selected', i === 0));
+  _npType = 'single';
+  _npCover = null;
+  const titleInput = document.getElementById('m-title');
+  if (titleInput) { titleInput.value = ''; }
+  // Reset steps
+  document.querySelectorAll('.np-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('np-step-1')?.classList.add('active');
+  // Reset type buttons
+  document.querySelectorAll('.np-type-btn').forEach((b,i) => b.classList.toggle('selected', i === 0));
+  // Reset cover
+  const cw = document.getElementById('np-cover-wrap');
+  if (cw) {
+    cw.innerHTML = `<input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="npPreviewCover(event)">
+      <div style="font-size:36px;opacity:0.2">🖼</div>
+      <div style="font-size:11px;color:var(--dim);letter-spacing:0.08em">tap to upload</div>`;
+  }
+  const btn1 = document.getElementById('np-btn-1');
+  if (btn1) { btn1.disabled = true; btn1.style.opacity = '0.3'; }
+  const btn3 = document.getElementById('np-btn-3');
+  if (btn3) { btn3.disabled = true; btn3.style.opacity = '0.3'; }
   resetModalTransform('mo');
   document.getElementById('mo').classList.add('open');
-  setTimeout(() => document.getElementById('m-title').focus(), 120);
+  setTimeout(() => document.getElementById('m-title')?.focus(), 120);
 }
+
+function npCheckName() {
+  const val = document.getElementById('m-title')?.value?.trim();
+  const btn = document.getElementById('np-btn-1');
+  if (!btn) return;
+  btn.disabled = !val;
+  btn.style.opacity = val ? '1' : '0.3';
+}
+
+function npNext(step) {
+  document.querySelectorAll('.np-step').forEach(s => s.classList.remove('active'));
+  document.getElementById(`np-step-${step}`)?.classList.add('active');
+}
+
+function npBack(step) { npNext(step); }
+
+function npSelectType(btn, type) {
+  _npType = type;
+  document.querySelectorAll('.np-type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function npPreviewCover(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    _npCover = ev.target.result;
+    const cw = document.getElementById('np-cover-wrap');
+    cw.innerHTML = `<input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="npPreviewCover(event)">
+      <img src="${_npCover}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px">`;
+    const btn3 = document.getElementById('np-btn-3');
+    if (btn3) { btn3.disabled = false; btn3.style.opacity = '1'; }
+  };
+  r.readAsDataURL(f);
+}
+
+async function createAlbumFromFlow() {
+  const name = document.getElementById('m-title')?.value?.trim() || 'untitled project';
+  const artist = DB.preferredName || currentGoogleUser?.displayName || 'unknown artist';
+  const year = String(new Date().getFullYear());
+  const p = { id: uid(), name, artist, year, genre: '', type: _npType, cover: _npCover || null, coverUrl: null, tracks: [], created: Date.now() };
+  if (!DB.albums[DB.currentUser]) DB.albums[DB.currentUser] = [];
+  DB.albums[DB.currentUser].push(p);
+  closeModal();
+  renderSidebar(); renderMobileDrawer(); selectProject(p.id);
+  if (_npCover) await uploadCoverToStorage(p, _npCover);
+  else saveDB();
+  if (isMobile()) closeMobileHome();
+}
+
 function closeModal() { document.getElementById('mo').classList.remove('open'); }
 function closeModalOutside(e) { if (e.target.id === 'mo') closeModal(); }
-function mkey(e) { if (e.key === 'Enter') createAlbum(); if (e.key === 'Escape') closeModal(); }
+function mkey(e) { if (e.key === 'Enter') createAlbumFromFlow(); if (e.key === 'Escape') closeModal(); }
 function previewCover(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = ev => {
     mCover = ev.target.result;
     const w = document.getElementById('m-cover-wrap');
-    w.innerHTML = `<input type="file" accept="image/*" onchange="previewCover(event)"><img src="${mCover}">`;
+    if (w) w.innerHTML = `<input type="file" accept="image/*" onchange="previewCover(event)"><img src="${mCover}">`;
   };
   r.readAsDataURL(f);
-}
-let mCoverType = 'single';
-function selectType(btn, type) {
-  mCoverType = type;
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
 }
 
 async function createAlbum() {
@@ -4901,7 +4994,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.8', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.9', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -5373,17 +5466,37 @@ function initSwipeBackToHome() {
   let startX = 0, startY = 0;
   const main = document.getElementById('main-content');
   if (!main) return;
+  main.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+
   main.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
+
+  main.addEventListener('touchmove', e => {
+    if (!isMobile() || !S.curPid) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (dx > 0 && dy < 60) {
+      main.style.transform = `translateX(${Math.min(dx * 0.5, 80)}px)`;
+    }
+  }, { passive: true });
+
   main.addEventListener('touchend', e => {
     if (!isMobile() || !S.curPid) return;
     const dx = e.changedTouches[0].clientX - startX;
     const dy = Math.abs(e.changedTouches[0].clientY - startY);
     if (dx > 80 && dy < 60) {
-      S.curPid = null;
-      goHome();
+      main.style.transform = 'translateX(100vw)';
+      setTimeout(() => {
+        main.style.transition = 'none';
+        main.style.transform = '';
+        S.curPid = null;
+        goHome();
+        setTimeout(() => { main.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)'; }, 50);
+      }, 280);
+    } else {
+      main.style.transform = '';
     }
   }, { passive: true });
 }
