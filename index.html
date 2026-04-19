@@ -959,7 +959,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   font-size: 8.5px; color: var(--dim); letter-spacing: 0.12em;
   white-space: nowrap; flex-shrink: 0;
 }
-.lp-footer {
   display: flex; flex-direction: column; gap: 4px;
   padding: 10px 16px; border-top: 1px solid var(--border); flex-shrink: 0;
 }
@@ -1991,7 +1990,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.16</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.1</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2983,18 +2982,9 @@ async function createAlbum() {
 // ─── PROJECTS ───
 function selectProject(id) { S.curPid = id; _lastRenderedPid = null; savePlayerState(); renderSidebar(); renderMain(); }
 function curP() {
-  if (!S.curPid) return null;
   const own = curAlbums().find(p => p.id === S.curPid);
   if (own) return own;
-  const shared = (DB.albums['__shared__'] || []).find(p => p.id === S.curPid);
-  if (shared) return shared;
-  // Fallback: search ALL album collections in case of UID key mismatch
-  for (const [key, projects] of Object.entries(DB.albums)) {
-    if (key === '__shared__') continue;
-    const found = Array.isArray(projects) && projects.find(p => p.id === S.curPid);
-    if (found) return found;
-  }
-  return null;
+  return (DB.albums['__shared__'] || []).find(p => p.id === S.curPid);
 }
 function findPByTrack(tid) {
   for (const u of Object.values(DB.albums)) {
@@ -3881,7 +3871,6 @@ let _lastRenderedPid = null;
 function renderMain() {
   const c = document.getElementById('main-content');
   const p = curP();
-  console.log('[WIP] renderMain — curPid:', S.curPid, '| found:', !!p, '| currentUser:', DB.currentUser, '| albumCount:', curAlbums().length);
 
   if (!p) {
     _lastRenderedPid = null;
@@ -4797,7 +4786,6 @@ const waitForFb = setInterval(() => {
         initNotifications(user.uid);
         initLiveSync(user.uid);
         loadSavedProjects(user);
-        loadCollabProjects(user);
       }
 
       // Handle share link — open the project if it belongs to this user
@@ -5540,6 +5528,42 @@ function updateParticleColor(p) {
 // ══════════════════════════════════════
 
 let _notifUnsubscribe = null;
+const _profileUnsubs = {}; // uid → unsubscribe fn
+let _cachedNotifItems = [];
+const _cachedProfiles = {};
+
+function initNotifications(userUid) {
+  if (!window._fbReady) return;
+  if (_notifUnsubscribe) _notifUnsubscribe();
+
+  const col = window._fbCollection(window._fbDb, 'notifications', userUid, 'items');
+  _notifUnsubscribe = window._fbOnSnapshot(col, (snap) => {
+    _cachedNotifItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 50);
+
+    const unread = _cachedNotifItems.filter(x => !x.read).length;
+    const badge = document.getElementById('notif-badge');
+    if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+    const sbBadge = document.getElementById('sb-notif-badge');
+    if (sbBadge) sbBadge.style.display = unread > 0 ? 'inline-block' : 'none';
+
+    // Subscribe to each unique listener's profile with onSnapshot (live updates)
+    const uids = [...new Set(_cachedNotifItems.map(x => x.listenerUid).filter(Boolean))];
+    uids.forEach(uid => {
+      if (_profileUnsubs[uid]) return; // already watching
+      _profileUnsubs[uid] = window._fbOnSnapshot(
+        window._fbDoc(window._fbDb, 'users', uid),
+        (profileSnap) => {
+          if (profileSnap.exists()) _cachedProfiles[uid] = profileSnap.data();
+          renderNotifList(_cachedNotifItems, _cachedProfiles);
+        }
+      );
+    });
+
+    renderNotifList(_cachedNotifItems, _cachedProfiles);
+  });
+}
 
 async function sendListenNotification(ownerUid, trackName, projectName) {
   if (!window._fbReady || !DB.currentUser) return;
