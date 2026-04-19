@@ -2136,7 +2136,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.1</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.2</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4858,7 +4858,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.1', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.2', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -6130,6 +6130,9 @@ async function removeCollab() {
     memberEl.style.display = 'none';
     document.getElementById('ps-collab-btn').style.display = 'flex';
     toast('collaborator removed');
+    // Re-render main to update artist row immediately
+    closeProjectSettings();
+    renderMain();
   } catch(e) { toast('failed — try again'); }
 }
 
@@ -6279,6 +6282,27 @@ async function loadCollabProjects(user) {
       const { projectId, ownerUid } = d.data();
       await loadCollabProject(projectId, ownerUid, user);
     }));
+
+    // Real-time: detect when owner removes this user from a collab
+    window._fbOnSnapshot(col, (snap) => {
+      const myDocs = snap.docs.filter(d => d.data().collabUid === user.uid);
+      const myProjectIds = myDocs.map(d => d.data().projectId);
+
+      // Find any collab projects that no longer have a matching collab doc
+      if (!DB.albums['__shared__']) return;
+      const removed = DB.albums['__shared__'].filter(p =>
+        p._isCollab && !myProjectIds.includes(p.id.replace('__collab__', ''))
+      );
+      if (removed.length === 0) return;
+
+      removed.forEach(p => {
+        DB.albums['__shared__'] = DB.albums['__shared__'].filter(x => x.id !== p.id);
+        if (S.curPid === p.id) { S.curPid = null; }
+      });
+
+      toast('you were removed from a project');
+      renderSidebar(); renderMobileDrawer(); renderMain();
+    });
   } catch(e) { console.warn('loadCollabProjects failed', e); }
 }
 
