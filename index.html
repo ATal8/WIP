@@ -2136,7 +2136,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.3</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.4</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4858,7 +4858,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.3', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.4', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -4955,6 +4955,7 @@ const waitForFb = setInterval(() => {
         initLiveSync(user.uid);
         loadSavedProjects(user);
         loadCollabProjects(user);
+        initCollabOwnerSync(user.uid);
       }
 
       // Handle share link — open the project if it belongs to this user
@@ -6140,9 +6141,12 @@ async function removeCollab() {
     memberEl.style.display = 'none';
     document.getElementById('ps-collab-btn').style.display = 'flex';
     toast('collaborator removed');
-    // Clear collab cache so buildArtistRow re-fetches fresh data
+    // Clear collab cache entry and force full re-render
     if (psProjectId) _collabCache[psProjectId] = null;
+    const pidToRender = psProjectId;
     closeProjectSettings();
+    _lastRenderedPid = null;
+    renderMain();
     renderMain();
   } catch(e) { toast('failed — try again'); }
 }
@@ -6282,6 +6286,26 @@ async function loadCollabProject(projectId, ownerUid, user) {
       }
     });
   } catch(e) { console.warn('loadCollabProject failed', e); }
+}
+
+function initCollabOwnerSync(uid) {
+  // Watch collabs collection — detect when someone joins or leaves any of our projects
+  const col = window._fbCollection(window._fbDb, 'collabs');
+  window._fbOnSnapshot(col, (snap) => {
+    // Find collabs where we're the owner
+    snap.docChanges().forEach(change => {
+      const data = change.doc.data();
+      if (data.ownerUid !== uid) return;
+      const pid = data.projectId;
+      // Invalidate cache for this project
+      delete _collabCache[pid];
+      // If this project is currently open, re-render
+      if (S.curPid === pid) {
+        _lastRenderedPid = null;
+        renderMain();
+      }
+    });
+  });
 }
 
 async function loadCollabProjects(user) {
