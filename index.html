@@ -29,8 +29,8 @@ body { font-family: 'DM Mono', 'Fredoka', system-ui, sans-serif; }
   --border: #222226;
   --border-h: #33333a;
   --text: #e8e8ea;
-  --dim: #5a5a62;
-  --mid: #909098;
+  --dim: #787880;
+  --mid: #a8a8b0;
   --accent: #c8ff32;
   --adim: rgba(200,255,50,0.1);
   --aglow: rgba(200,255,50,0.05);
@@ -295,13 +295,13 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 
 .btn-add-tracks {
   display: flex; align-items: center; gap: 6px;
-  padding: 5px 12px; background: none;
-  border: 1px solid var(--border); border-radius: 5px;
-  color: var(--dim); font-size: 10px; font-family: 'DM Mono', 'Fredoka', monospace;
-  letter-spacing: 0.08em; cursor: pointer; position: relative; overflow: hidden;
+  padding: 7px 16px; background: var(--surface2);
+  border: 1px solid var(--border-h); border-radius: 6px;
+  color: var(--mid); font-size: 11px; font-family: 'DM Mono', 'Fredoka', monospace;
+  letter-spacing: 0.06em; cursor: pointer; position: relative; overflow: hidden;
   transition: border-color 0.15s, color 0.15s;
 }
-.btn-add-tracks:hover { border-color: var(--border-h); color: var(--mid); }
+.btn-add-tracks:hover { border-color: var(--accent); color: var(--text); }
 .btn-add-tracks input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
 /* ─── GLOBAL DRAG OVERLAY ─── */
@@ -1026,29 +1026,52 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px; width: 460px; transform: translateY(10px); transition: transform 0.18s; }
 .modal-overlay.open .modal { transform: translateY(0); }
 .modal-title { font-size: 12px; font-weight: 500; margin-bottom: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); }
-.type-selector {
-  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;
+.np-step { display: none; animation: wfIn 0.3s ease; }
+.np-step.active { display: block; }
+.np-type-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 10px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--surface2); color: var(--mid);
+  font-family: 'DM Mono','Fredoka',monospace; font-size: 12px; letter-spacing: 0.04em;
+  cursor: pointer; transition: all 0.14s; width: 100%;
 }
+.np-type-btn:hover { border-color: var(--border-h); color: var(--text); }
+.np-type-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(200,255,50,0.07); }
+.np-type-icon { font-size: 24px; line-height: 1; }
+
+/* keep old type-btn for project settings */
 .type-btn {
-  padding: 4px 11px; border: 1px solid var(--border); border-radius: 20px;
-  background: none; color: var(--dim); font-size: 9.5px; font-family: 'DM Mono', 'Fredoka', monospace;
-  letter-spacing: 0.08em; cursor: pointer; transition: all 0.12s;
+  padding: 8px 16px; border: 1px solid var(--border); border-radius: 100px;
+  background: var(--surface2); color: var(--dim); font-size: 12px; font-family: 'DM Mono', 'Fredoka', monospace;
+  letter-spacing: 0.04em; cursor: pointer; transition: all 0.12s;
 }
 .type-btn:hover { border-color: var(--border-h); color: var(--mid); }
-.type-btn.selected { border-color: var(--accent); color: var(--accent); background: var(--adim); }
+.type-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(200,255,50,0.08); font-weight: 500; }
 
-.modal-cover-row { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; margin-bottom: 18px; }
+.modal-cover-row { display: flex; flex-direction: column; gap: 16px; margin-bottom: 18px; }
+.m-cover-area {
+  width: 100%; aspect-ratio: 1; max-height: 220px;
+  background: var(--surface2); border: 1.5px dashed var(--border);
+  border-radius: 12px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  cursor: pointer; position: relative; overflow: hidden; transition: border-color 0.15s;
+  align-self: center;
+}
+.m-cover-area:hover { border-color: var(--accent); }
+.m-cover-area img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+.m-cover-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .m-cover {
-  width: 160px; height: 160px; flex-shrink: 0; background: var(--surface2);
-  border: 1px dashed var(--border); border-radius: 8px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; cursor: pointer; position: relative; overflow: hidden; transition: border-color 0.15s;
+  width: 100%; aspect-ratio: 1; max-height: 220px;
+  background: var(--surface2); border: 1.5px dashed var(--border);
+  border-radius: 12px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  cursor: pointer; position: relative; overflow: hidden; transition: border-color 0.15s;
 }
 .m-cover:hover { border-color: var(--accent); }
 .m-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .m-cover input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.m-cover-icon { font-size: 28px; opacity: 0.25; }
-.m-cover-lbl { font-size: 8px; color: var(--dim); letter-spacing: 0.18em; text-transform: uppercase; }
+.m-cover-icon { font-size: 36px; opacity: 0.2; }
+.m-cover-lbl { font-size: 10px; color: var(--dim); letter-spacing: 0.12em; text-transform: uppercase; }
 
 .m-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .m-row { display: flex; gap: 10px; }
@@ -1526,6 +1549,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   /* ══ MISC ══ */
   .ob-box { width: 90%; max-width: 360px; }
   .no-sel-hint { display: none; }
+  .no-sel { display: none; }
 
   /* ══ FULLSCREEN — mobile optimized ══ */
   #fs-view { z-index: 500; }
@@ -1578,9 +1602,118 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     opacity: 0.55;
   }
 } /* end @media mobile */
+
+/* Mobile home cards */
+.mob-home-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.12s, opacity 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mob-home-card:active { transform: scale(0.96); opacity: 0.8; }
+.mob-home-card-cover {
+  width: 100%; aspect-ratio: 1;
+  background: var(--surface3);
+  display: flex; align-items: center; justify-content: center;
+}
+.mob-home-card-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mob-home-card-info { padding: 9px 10px 11px; }
+.mob-home-card-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.01em; }
+.mob-home-card-sub { font-size: 10px; color: var(--dim); }
+/* ── Admin Panel ── */
+#admin-panel {
+  position: fixed; inset: 0; z-index: 8000;
+  background: #06060a; overflow-y: auto;
+  display: none; padding: 40px 24px;
+  font-family: 'DM Mono', monospace;
+}
+#admin-panel.open { display: block; }
+.adm-header { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+.adm-logo { font-size: 20px; color: var(--accent); letter-spacing: 0.1em; font-weight: 500; }
+.adm-tag { font-size: 9px; background: var(--accent); color: var(--bg); padding: 2px 8px; border-radius: 100px; letter-spacing: 0.12em; font-weight: 600; }
+.adm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.adm-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.adm-stat-n { font-size: 36px; font-weight: 500; color: var(--text); line-height: 1; margin-bottom: 6px; }
+.adm-stat-l { font-size: 10px; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
+.adm-section { margin-bottom: 32px; }
+.adm-section-title { font-size: 10px; color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.adm-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.adm-bar-label { font-size: 12px; color: var(--mid); width: 110px; flex-shrink: 0; }
+.adm-bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 100px; overflow: hidden; }
+.adm-bar-fill { height: 100%; background: var(--accent); border-radius: 100px; transition: width 0.6s ease; }
+.adm-bar-pct { font-size: 11px; color: var(--mid); width: 36px; text-align: right; flex-shrink: 0; }
+.adm-user-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.adm-user-name { font-size: 12px; color: var(--text); flex: 1; }
+.adm-user-role { font-size: 10px; color: var(--dim); }
+.adm-user-date { font-size: 10px; color: var(--dim); }
+.adm-loading { color: var(--dim); font-size: 12px; letter-spacing: 0.06em; text-align: center; padding: 60px; }
+
+/* ── Welcome Flow ── */
+#welcome-flow {
+  position: fixed; inset: 0; z-index: 9000;
+  background: #06060a;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+#welcome-flow.open { opacity: 1; pointer-events: all; }
+.wf-box {
+  width: 90%; max-width: 420px;
+  display: flex; flex-direction: column; gap: 28px;
+  align-items: center; text-align: center;
+}
+.wf-step { display: none; flex-direction: column; gap: 20px; align-items: center; width: 100%; }
+.wf-step.active { display: flex; animation: wfIn 0.35s ease; }
+@keyframes wfIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+.wf-emoji { font-size: 48px; line-height: 1; }
+.wf-q { font-size: 22px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; line-height: 1.3; }
+.wf-hint { font-size: 12px; color: var(--dim); letter-spacing: 0.06em; }
+.wf-input {
+  width: 100%; padding: 14px 16px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-family: inherit; font-size: 16px;
+  outline: none; text-align: center; letter-spacing: 0.02em;
+  transition: border-color 0.15s;
+}
+.wf-input:focus { border-color: var(--accent); }
+.wf-roles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
+.wf-role-btn {
+  padding: 10px 18px; border-radius: 100px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--mid); font-family: inherit; font-size: 13px;
+  cursor: pointer; transition: all 0.15s; letter-spacing: 0.03em;
+}
+.wf-role-btn:hover { border-color: var(--accent); color: var(--text); }
+.wf-role-btn.selected { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 500; }
+.wf-next {
+  padding: 13px 32px; border-radius: 100px;
+  background: var(--accent); color: var(--bg);
+  border: none; font-family: inherit; font-size: 14px; font-weight: 500;
+  cursor: pointer; letter-spacing: 0.04em;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.wf-next:hover { opacity: 0.9; transform: translateY(-1px); }
+.wf-next:disabled { opacity: 0.3; cursor: default; transform: none; }
+.wf-skip { font-size: 11px; color: var(--dim); cursor: pointer; letter-spacing: 0.06em; text-decoration: underline; opacity: 0.5; }
+.wf-skip:hover { opacity: 1; }
 </style>
 </head>
 <body class="auth-loading">
+
+<!-- MAINTENANCE SCREEN -->
+<div id="maintenance-screen" style="display:none;position:fixed;inset:0;z-index:99999;background:#06060a;align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;padding:40px">
+  <div style="font-size:32px">🔧</div>
+  <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em">site under maintenance</div>
+  <div style="font-size:13px;color:var(--dim);letter-spacing:0.04em;line-height:1.7;max-width:300px">we're working on something new.<br>back soon.</div>
+  <button onclick="signInWithGoogle()" style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 20px;background:#fff;color:#3c4043;border:none;border-radius:10px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.06em;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.3)">
+    <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+    sign in
+  </button>
+  <div style="font-size:10px;color:var(--dim);opacity:0.4;margin-top:4px;letter-spacing:0.08em">◈ WIP</div>
+</div>
 
 <!-- ONBOARDING — Google Sign-In -->
 <div id="onboarding" class="loading">
@@ -1616,6 +1749,52 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     </button>
 
     <div id="ob-error" style="font-size:10px;color:#ff5555;letter-spacing:0.06em;display:none;text-align:center">sign-in failed — try again</div>
+  </div>
+</div>
+
+<!-- ─── ADMIN PANEL ─── -->
+<div id="admin-panel">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="adm-header">
+      <div class="adm-logo">◈ WIP</div>
+      <div class="adm-tag">ADMIN</div>
+    </div>
+    <div id="adm-content"><div class="adm-loading">loading data...</div></div>
+  </div>
+</div>
+
+<!-- ─── WELCOME FLOW ─── -->
+<div id="welcome-flow">
+  <div class="wf-box">
+
+    <!-- Step 1: Name -->
+    <div class="wf-step active" id="wf-step-1">
+      <div class="wf-emoji">👋</div>
+      <div class="wf-q">what do people call you?</div>
+      <div class="wf-hint">this is how you'll appear on WIP</div>
+      <input class="wf-input" id="wf-name" placeholder="your name or alias" maxlength="30" oninput="wfCheckName()">
+      <button class="wf-next" id="wf-next-1" onclick="wfNext(2)" disabled>continue →</button>
+      <span class="wf-skip" onclick="wfSkip()">skip for now</span>
+    </div>
+
+    <!-- Step 2: Role -->
+    <div class="wf-step" id="wf-step-2">
+      <div class="wf-emoji">🎵</div>
+      <div class="wf-q">why are you here?</div>
+      <div class="wf-hint">pick everything that fits</div>
+      <div class="wf-roles">
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'producer')">🎛 producer</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'rapper')">🎤 rapper</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'singer')">🎶 singer</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'listener')">👂 music fan</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'songwriter')">✍️ songwriter</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'band')">🎸 band member</button>
+        <button class="wf-role-btn" onclick="wfToggleRole(this,'other')">✨ other</button>
+      </div>
+      <button class="wf-next" id="wf-next-2" onclick="wfFinish()" disabled>let's go →</button>
+      <span class="wf-skip" onclick="wfSkip()">skip</span>
+    </div>
+
   </div>
 </div>
 
@@ -1661,11 +1840,23 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 
   <main id="main">
     <div id="main-ambient"></div>
-    <div id="main-content">
-      <div class="no-sel">
-        <div class="no-sel-icon">◈</div>
-        <div class="no-sel-txt">select an album</div>
-        <div class="no-sel-hint">or create a new one to get started</div>
+    <!-- Mobile Home Screen -->
+    <div id="mobile-home" style="display:none;padding:20px 16px;overflow-y:auto;height:100%">
+      <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em;margin-bottom:20px">your library</div>
+      <div id="mobile-home-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+      <div id="mobile-home-saved-section" style="margin-top:28px;display:none">
+        <div style="font-size:13px;font-weight:500;color:var(--dim);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px">saved</div>
+        <div id="mobile-home-saved-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+      </div>
+    </div>
+    <!-- Mobile Project Panel — always in DOM, GPU layer ready -->
+    <div id="mobile-project-panel" style="position:fixed;inset:0;z-index:180;background:var(--bg);transform:translate3d(100%,0,0);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;padding-bottom:calc(var(--mobile-player-h,80px) + var(--bottom-nav-h,62px) + 16px);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden">
+      <div id="main-content">
+        <div class="no-sel">
+          <div class="no-sel-icon">◈</div>
+          <div class="no-sel-txt">select an album</div>
+          <div class="no-sel-hint">or create a new one to get started</div>
+        </div>
       </div>
     </div>
   </main>
@@ -1753,11 +1944,12 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 
 <!-- BOTTOM NAV (mobile only) -->
 <nav id="bottom-nav">
-  <button class="bnav-btn" id="bnav-library" onclick="toggleMobileDrawer()">
+  <button class="bnav-btn" id="bnav-home" onclick="goHome()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 6h18M3 12h18M3 18h18"/>
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+      <path d="M9 21V12h6v9"/>
     </svg>
-    <span class="bnav-label">library</span>
+    <span class="bnav-label">home</span>
   </button>
   <button class="bnav-btn" id="bnav-account" onclick="openUserSettings()">
     <div class="bnav-avatar" id="bnav-avatar">?</div>
@@ -1855,44 +2047,69 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 
 <!-- PROJECT MODAL -->
 <div class="modal-overlay" id="mo" onclick="closeModalOutside(event)">
-  <div class="modal">
-    <div class="modal-title">new project</div>
-    <div class="type-selector" id="type-selector">
-      <button class="type-btn selected" onclick="selectType(this,'single')">single</button>
-      <button class="type-btn" onclick="selectType(this,'ep')">ep</button>
-      <button class="type-btn" onclick="selectType(this,'album')">album</button>
-      <button class="type-btn" onclick="selectType(this,'mixtape')">mixtape</button>
-      <button class="type-btn" onclick="selectType(this,'podcast')">podcast</button>
-      <button class="type-btn" onclick="selectType(this,'demo')">demo</button>
-      <button class="type-btn" onclick="selectType(this,'soundtrack')">soundtrack</button>
-    </div>
-    <div class="modal-cover-row">
-      <div class="m-cover" id="m-cover-wrap">
-        <input type="file" accept="image/*" onchange="previewCover(event)">
-        <span class="m-cover-icon">🖼</span>
-        <span class="m-cover-lbl">cover</span>
-      </div>
-      <div class="m-fields">
-        <div class="m-field">
-          <div class="m-label">title</div>
-          <input class="m-input" id="m-title" placeholder="untitled project" onkeydown="mkey(event)">
-        </div>
-        <div class="m-field">
-          <div class="m-label">artist</div>
-          <input class="m-input" id="m-artist" placeholder="artist name" onkeydown="mkey(event)" readonly style="cursor:default;color:var(--mid);opacity:0.7">
-        </div>
-        <div class="m-row">
-          <div class="m-field">
-            <div class="m-label">year</div>
-            <input class="m-input" id="m-year" placeholder="2025" maxlength="4" onkeydown="mkey(event)">
-          </div>
-        </div>
+  <div class="modal" style="max-width:440px;padding:32px 28px" onclick="event.stopPropagation()">
+
+    <!-- Step 1: Name -->
+    <div id="np-step-1" class="np-step active">
+      <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em;margin-bottom:8px">what's it called?</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:24px">give your project a name</div>
+      <input class="m-input" id="m-title" placeholder="project name..." onkeydown="if(event.key==='Enter')npNext(2)" oninput="npCheckName()" style="font-size:16px;padding:14px 16px;border-radius:10px;text-align:center">
+      <div style="display:flex;justify-content:flex-end;margin-top:20px">
+        <button class="btn-confirm" id="np-btn-1" onclick="npNext(2)" disabled style="opacity:0.3">next →</button>
       </div>
     </div>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal()">cancel</button>
-      <button class="btn-confirm" onclick="createAlbum()">create project</button>
+
+    <!-- Step 2: Type -->
+    <div id="np-step-2" class="np-step">
+      <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em;margin-bottom:8px">what type?</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:24px">pick the format that fits</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px">
+        <button class="np-type-btn selected" onclick="npSelectType(this,'single')">
+          <div class="np-type-icon">🎵</div><div>single</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'ep')">
+          <div class="np-type-icon">📀</div><div>ep</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'album')">
+          <div class="np-type-icon">💿</div><div>album</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'mixtape')">
+          <div class="np-type-icon">📼</div><div>mixtape</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'podcast')">
+          <div class="np-type-icon">🎙</div><div>podcast</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'demo')">
+          <div class="np-type-icon">🎚</div><div>demo</div>
+        </button>
+        <button class="np-type-btn" onclick="npSelectType(this,'soundtrack')" style="grid-column:span 3">
+          <div class="np-type-icon">🎬</div><div>soundtrack</div>
+        </button>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <button class="btn-cancel" onclick="npBack(1)">← back</button>
+        <button class="btn-confirm" onclick="npNext(3)">next →</button>
+      </div>
     </div>
+
+    <!-- Step 3: Cover -->
+    <div id="np-step-3" class="np-step">
+      <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-0.02em;margin-bottom:8px">got a cover?</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:24px">you can always add one later</div>
+      <div id="np-cover-wrap" style="width:100%;max-width:200px;aspect-ratio:1;margin:0 auto 24px;background:var(--surface2);border:1.5px dashed var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="npPreviewCover(event)">
+        <div style="font-size:36px;opacity:0.2">🖼</div>
+        <div style="font-size:11px;color:var(--dim);letter-spacing:0.08em">tap to upload</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:10px">
+        <button class="btn-cancel" onclick="npBack(2)">← back</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" onclick="createAlbumFromFlow()">not yet</button>
+          <button class="btn-confirm" id="np-btn-3" onclick="createAlbumFromFlow()" disabled style="opacity:0.3">done ✓</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1935,7 +2152,19 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim)">project age</span>
       <span id="ps-timer" style="font-size:11px;color:var(--mid);font-variant-numeric:tabular-nums;letter-spacing:0.04em">—</span>
     </div>
-    <div class="modal-btns" style="justify-content:space-between">
+    <button onclick="inviteCollab()" id="ps-collab-btn" style="width:100%;box-sizing:border-box;padding:9px;border-radius:8px;border:0.5px dashed var(--border);background:transparent;color:var(--dim);font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:14px;transition:border-color 0.15s,color 0.15s" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      invite collaborator
+    </button>
+    <div id="ps-collab-member" style="display:none;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--surface2);border:0.5px solid var(--border);margin-bottom:14px">
+      <div id="ps-collab-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent);font-weight:500;overflow:hidden;position:relative"></div>
+      <div style="flex:1;min-width:0">
+        <div id="ps-collab-name" style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+        <div style="font-size:10px;color:var(--dim);letter-spacing:0.04em">collaborator</div>
+      </div>
+      <button onclick="removeCollab()" style="font-size:10px;color:#ff5555;background:transparent;border:0.5px solid rgba(255,85,85,0.35);border-radius:5px;padding:4px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">remove</button>
+    </div>
+    <div style="border-top:0.5px solid var(--border);padding-top:14px;display:flex;align-items:center;justify-content:space-between">
       <button class="btn-cancel" style="color:#ff5555;border-color:rgba(255,85,85,0.4);opacity:0.7" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7" onclick="deleteProject()">delete</button>
       <div style="display:flex;gap:8px">
         <button class="btn-cancel" onclick="closeProjectSettings()">cancel</button>
@@ -1990,7 +2219,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.8.1</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.15</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2221,19 +2450,18 @@ async function signInWithGoogle() {
   if (btn) { btn.textContent = '...'; btn.disabled = true; }
   try {
     if (currentGoogleUser?.isAnonymous && window._fbLinkWithPopup) {
-      // Link anon account to Google — preserves session
       try { await window._fbLinkWithPopup(window._fbGoogleProvider); }
       catch(linkErr) {
-        // If already linked, fall through to normal sign-in
         await window._fbSignInWithPopup(window._fbAuth, window._fbGoogleProvider);
       }
     } else {
       await window._fbSignInWithPopup(window._fbAuth, window._fbGoogleProvider);
     }
-    // onAuthStateChanged will handle the rest
   } catch(e) {
     console.warn('Google sign-in failed', e);
-    if (errEl) errEl.style.display = 'block';
+    if (errEl && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+      errEl.style.display = 'block';
+    }
     if (btn) {
       btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> continue with Google`;
       btn.disabled = false;
@@ -2927,39 +3155,96 @@ function timeAgo(ts) {
   return `${Math.floor(diff/3600)}h ago`;
 }
 
+let _npType = 'single';
+let _npCover = null;
+
 function openModal() {
-  mCover = null;
-  mCoverType = 'single';
-  document.getElementById('m-cover-wrap').innerHTML = `
-    <input type="file" accept="image/*" onchange="previewCover(event)">
-    <span class="m-cover-icon">🖼</span>
-    <span class="m-cover-lbl">cover</span>`;
-  document.getElementById('m-title').value = '';
-  document.getElementById('m-artist').value = DB.preferredName || currentGoogleUser?.displayName || DB.currentUser || '';
-  document.getElementById('m-year').value = new Date().getFullYear();
-  document.querySelectorAll('.type-btn').forEach((b,i) => b.classList.toggle('selected', i === 0));
+  _npType = 'single';
+  _npCover = null;
+  const titleInput = document.getElementById('m-title');
+  if (titleInput) { titleInput.value = ''; }
+  // Reset steps
+  document.querySelectorAll('.np-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('np-step-1')?.classList.add('active');
+  // Reset type buttons
+  document.querySelectorAll('.np-type-btn').forEach((b,i) => b.classList.toggle('selected', i === 0));
+  // Reset cover
+  const cw = document.getElementById('np-cover-wrap');
+  if (cw) {
+    cw.innerHTML = `<input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="npPreviewCover(event)">
+      <div style="font-size:36px;opacity:0.2">🖼</div>
+      <div style="font-size:11px;color:var(--dim);letter-spacing:0.08em">tap to upload</div>`;
+  }
+  const btn1 = document.getElementById('np-btn-1');
+  if (btn1) { btn1.disabled = true; btn1.style.opacity = '0.3'; }
+  const btn3 = document.getElementById('np-btn-3');
+  if (btn3) { btn3.disabled = true; btn3.style.opacity = '0.3'; }
   resetModalTransform('mo');
   document.getElementById('mo').classList.add('open');
-  setTimeout(() => document.getElementById('m-title').focus(), 120);
+  setTimeout(() => document.getElementById('m-title')?.focus(), 120);
 }
+
+function npCheckName() {
+  const val = document.getElementById('m-title')?.value?.trim();
+  const btn = document.getElementById('np-btn-1');
+  if (!btn) return;
+  btn.disabled = !val;
+  btn.style.opacity = val ? '1' : '0.3';
+}
+
+function npNext(step) {
+  document.querySelectorAll('.np-step').forEach(s => s.classList.remove('active'));
+  document.getElementById(`np-step-${step}`)?.classList.add('active');
+}
+
+function npBack(step) { npNext(step); }
+
+function npSelectType(btn, type) {
+  _npType = type;
+  document.querySelectorAll('.np-type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function npPreviewCover(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    _npCover = ev.target.result;
+    const cw = document.getElementById('np-cover-wrap');
+    cw.innerHTML = `<input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="npPreviewCover(event)">
+      <img src="${_npCover}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px">`;
+    const btn3 = document.getElementById('np-btn-3');
+    if (btn3) { btn3.disabled = false; btn3.style.opacity = '1'; }
+  };
+  r.readAsDataURL(f);
+}
+
+async function createAlbumFromFlow() {
+  const name = document.getElementById('m-title')?.value?.trim() || 'untitled project';
+  const artist = DB.preferredName || currentGoogleUser?.displayName || 'unknown artist';
+  const year = String(new Date().getFullYear());
+  const p = { id: uid(), name, artist, year, genre: '', type: _npType, cover: _npCover || null, coverUrl: null, tracks: [], created: Date.now() };
+  if (!DB.albums[DB.currentUser]) DB.albums[DB.currentUser] = [];
+  DB.albums[DB.currentUser].push(p);
+  closeModal();
+  renderSidebar(); renderMobileDrawer(); selectProject(p.id);
+  if (_npCover) await uploadCoverToStorage(p, _npCover);
+  else saveDB();
+  if (isMobile()) closeMobileHome();
+}
+
 function closeModal() { document.getElementById('mo').classList.remove('open'); }
 function closeModalOutside(e) { if (e.target.id === 'mo') closeModal(); }
-function mkey(e) { if (e.key === 'Enter') createAlbum(); if (e.key === 'Escape') closeModal(); }
+function mkey(e) { if (e.key === 'Enter') createAlbumFromFlow(); if (e.key === 'Escape') closeModal(); }
 function previewCover(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = ev => {
     mCover = ev.target.result;
     const w = document.getElementById('m-cover-wrap');
-    w.innerHTML = `<input type="file" accept="image/*" onchange="previewCover(event)"><img src="${mCover}">`;
+    if (w) w.innerHTML = `<input type="file" accept="image/*" onchange="previewCover(event)"><img src="${mCover}">`;
   };
   r.readAsDataURL(f);
-}
-let mCoverType = 'single';
-function selectType(btn, type) {
-  mCoverType = type;
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
 }
 
 async function createAlbum() {
@@ -2980,7 +3265,10 @@ async function createAlbum() {
 }
 
 // ─── PROJECTS ───
-function selectProject(id) { S.curPid = id; _lastRenderedPid = null; savePlayerState(); renderSidebar(); renderMain(); }
+function selectProject(id) {
+  if (isMobile()) { openMobileProject(id); return; }
+  S.curPid = id; _lastRenderedPid = null; savePlayerState(); renderSidebar(); renderMain();
+}
 function curP() {
   const own = curAlbums().find(p => p.id === S.curPid);
   if (own) return own;
@@ -3196,7 +3484,14 @@ function playTrack(tid) {
   if (!t.url && t.cloudUrl) t.url = t.cloudUrl;
   if (!t.url) { toast('re-add this file to play it again'); return; }
   S.curTid = tid; S.playing = true;
-  audio.src = t.url; audio.play();
+  audio.src = t.url;
+  audio.play().catch(e => {
+    if (e.name === 'NotAllowedError') {
+      S.playing = false;
+      updBtn();
+      toast('tap play to start');
+    }
+  });
   S.queue = p.tracks.map(x => x.id);
   updatePlayerUI(t, p); renderTrackList();
 
@@ -3253,7 +3548,8 @@ function playById(id) {
   const p = findPByTrack(id); if (!p) return;
   const t = p.tracks.find(x => x.id === id); if (!t) return;
   S.curTid = id; S.playing = true;
-  audio.src = t.url; audio.play();
+  audio.src = t.url;
+  audio.play().catch(e => { if (e.name === 'NotAllowedError') { S.playing = false; updBtn(); } });
   updatePlayerUI(t, p); renderTrackList();
 }
 function toggleShuffle() {
@@ -3308,6 +3604,9 @@ function openProjectSettings(pid) {
 
   resetModalTransform('ps-modal');
   document.getElementById('ps-modal').classList.add('open');
+
+  // Load collab member if exists
+  loadCollabMemberForSettings(pid);
 
   setTimeout(() => document.getElementById('ps-name').focus(), 80);
 }
@@ -3868,7 +4167,7 @@ function renderSidebar() {
 // ─── RENDER MAIN ───
 let _lastRenderedPid = null;
 
-function renderMain() {
+async function renderMain() {
   const c = document.getElementById('main-content');
   const p = curP();
 
@@ -3917,8 +4216,8 @@ function renderMain() {
       <div class="album-info">
         <div class="album-type">WIP · ${(p.type || 'project').toUpperCase()}</div>
         <div class="album-title">${p.name}</div>
-        <div>
-          <span class="album-artist">${p.artist || 'unknown artist'}</span>
+        <div id="collab-artists-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
+          ${await buildArtistRow(p)}
         </div>
         <div class="album-meta">
           <span class="album-year">${p.year || new Date().getFullYear()}</span>
@@ -3931,26 +4230,7 @@ function renderMain() {
         </div>
         <div class="album-actions">
           <button class="btn-play-album" id="album-play-btn" onclick="playAlbum()">${S.playing && findPByTrack(S.curTid)?.id === p.id ? PAUSE_SVG_MD : PLAY_SVG_MD}</button>
-          ${p._isShared ? `
-            ${currentGoogleUser && !currentGoogleUser.isAnonymous ? `
-            <button id="shared-save-btn" onclick="saveSharedProject('${p._shareId}','${p._ownerUid}','${p.id.replace('__shared__','')}','${DB.currentUser}')"
-              class="btn-outline" style="gap:5px;${p._alreadySaved?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}">
-              ${p._alreadySaved ? '✓ saved' : '+ save to library'}
-            </button>
-            ` : `
-            <button class="btn-outline" onclick="signInWithGoogle()" style="gap:5px">
-              Sign in to save
-            </button>
-            `}
-          ` : `
-          <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            share
-          </button>
-          <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
-          `}
+          ${buildAlbumActions(p)}
         </div>
       </div>
     </div>
@@ -3971,7 +4251,13 @@ function renderMain() {
           <input type="file" accept="audio/*" multiple onchange="addTracks(this.files)">
           + add tracks
         </button>
-      </div>` : ''}
+      </div>` : (p._isCollab ? `
+      <div style="margin-top: 8px; display: flex; justify-content: center;">
+        <button class="btn-add-tracks">
+          <input type="file" accept="audio/*" multiple onchange="addCollabTrack(this.files)">
+          + add track
+        </button>
+      </div>` : '')}
     </div>
     ${p.notes ? `
     <div class="project-notes-wrap">
@@ -4711,11 +4997,25 @@ async function resolveShareParam() {
 setupGlobalDrag();
 document.getElementById('app').style.display = 'none';
 
+const MAINTENANCE_MODE = true;
+const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
+const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
+
+console.log('%c◈ WIP — Work In Progress %cv3.10.15', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
   clearInterval(waitForFb);
 
   window._fbOnAuthStateChanged(window._fbAuth, async (user) => {
+
+    // Maintenance mode — only allowed UIDs can access
+    if (MAINTENANCE_MODE && (!user || !ALLOWED_UIDS.includes(user.uid))) {
+      document.body.classList.remove('auth-loading');
+      document.getElementById('onboarding')?.classList.remove('open');
+      document.getElementById('maintenance-screen').style.display = 'flex';
+      return;
+    }
     if (user) {
       currentGoogleUser = user;
       DB.currentUser = user.uid;
@@ -4768,6 +5068,17 @@ const waitForFb = setInterval(() => {
         if (!DB.preferredName && window._fbReady) {
           DB.preferredName = await claimUniqueUsername(user.displayName || user.email?.split('@')[0] || 'user', user.uid);
           DB.albums[user.uid].forEach(p => { if (!p.artist || p.artist === user.uid || p.artist.length > 30) p.artist = DB.preferredName; });
+
+          // Only show welcome flow if user has never set roles (truly new user)
+          try {
+            const userDoc = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', user.uid));
+            const alreadyOnboarded = userDoc.exists() && userDoc.data().rolesSetAt;
+            if (!alreadyOnboarded) {
+              await showWelcomeFlow(user.uid);
+            }
+          } catch(e) {
+            // If can't check, skip welcome flow to be safe
+          }
         }
       }
 
@@ -4782,15 +5093,34 @@ const waitForFb = setInterval(() => {
       renderSidebar();
       updateMobileNav();
 
+      // On mobile, always start at home screen
+      if (isMobile()) {
+        document.getElementById('mobile-home').style.display = 'block';
+        document.getElementById('bnav-home')?.classList.add('active');
+        renderMobileHome();
+      }
+
       if (!isAnon) {
         initNotifications(user.uid);
         initLiveSync(user.uid);
         loadSavedProjects(user);
+        loadCollabProjects(user);
+        initCollabOwnerSync(user.uid);
       }
 
       // Handle share link — open the project if it belongs to this user
       const shareId = await resolveShareParam();
-      if (shareId) {
+      const collabToken = new URLSearchParams(location.search).get('collab');
+
+      // Collab invite
+      if (collabToken && !isAnon) {
+        history.replaceState(null, '', location.pathname);
+        await acceptCollabInvite(collabToken, user);
+      } else if (new URLSearchParams(location.search).get('admin') === 'true' && user.uid === 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3') {
+        history.replaceState(null, '', location.pathname);
+        showAdminPanel();
+        return;
+      } else if (shareId) {
         history.replaceState(null, '', location.pathname); // clean URL
         const sharedProject = curAlbums().find(p => p.id === shareId);
         if (sharedProject) {
@@ -4800,12 +5130,22 @@ const waitForFb = setInterval(() => {
         }
       } else if (!isAnon) {
         // Normal session restore
-        const ps = loadPlayerState();
-        if (ps?.curPid) {
-          const p = curAlbums().find(x => x.id === ps.curPid);
-          if (p) selectProject(ps.curPid);
-          else renderMain();
-        } else renderMain();
+        if (isMobile()) {
+          // Mobile — already showing home, nothing to do
+        } else {
+          const ps = loadPlayerState();
+          if (ps?.curPid) {
+            const p = curAlbums().find(x => x.id === ps.curPid);
+            if (p) selectProject(ps.curPid);
+            else {
+              const first = curAlbums()[0];
+              if (first) selectProject(first.id); else renderMain();
+            }
+          } else {
+            const first = curAlbums()[0];
+            if (first) selectProject(first.id); else renderMain();
+          }
+        }
       } else {
         renderMain();
       }
@@ -4932,6 +5272,17 @@ async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect, a
     const ownerName = ownerData.preferredName || ownerData.displayName || '';
     const fakeId = '__shared__' + shareId;
 
+    // Fetch collab info for this project
+    let collabUid = null, collabName = null;
+    try {
+      const collabSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'collabs'));
+      const collabDoc = collabSnap.docs.find(d => d.data().projectId === projectId && d.data().ownerUid === ownerUid);
+      if (collabDoc) {
+        collabUid  = collabDoc.data().collabUid  || null;
+        collabName = collabDoc.data().collabName || null;
+      }
+    } catch(e) {}
+
     if (!DB.albums['__shared__']) DB.albums['__shared__'] = [];
     DB.albums['__shared__'] = DB.albums['__shared__'].filter(p => p.id !== fakeId);
     DB.albums['__shared__'].push({
@@ -4941,6 +5292,10 @@ async function _loadSharedEntry(shareId, ownerUid, projectId, user, andSelect, a
       _shareId: shareId,
       _ownerUid: ownerUid,
       _ownerName: ownerName,
+      _collabOwnerUid: ownerUid,
+      _collabOwnerName: ownerName,
+      _collabUid: collabUid,
+      _collabName: collabName,
       _alreadySaved: !!alreadySaved,
       tracks: project.tracks.map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
     });
@@ -5075,6 +5430,127 @@ function mobileProjSelect(id) {
 }
 
 // ── Bottom nav avatar sync ──
+function goHome() {
+  if (!isMobile()) return;
+  const panel = document.getElementById('mobile-project-panel');
+  if (panel) panel.style.transform = 'translate3d(100%,0,0)';
+  document.getElementById('mobile-home').style.display = 'block';
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('bnav-home')?.classList.add('active');
+  S.curPid = null;
+  renderMobileHome();
+}
+
+function openMobileProject(id) {
+  if (!isMobile()) return;
+  S.curPid = id; _lastRenderedPid = null;
+  savePlayerState(); renderSidebar();
+
+  const panel = document.getElementById('mobile-project-panel');
+  // Render content first, then animate in
+  renderMain();
+  requestAnimationFrame(() => {
+    panel.style.transform = 'translate3d(0,0,0)';
+  });
+
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+}
+
+function renderMobileHome() {
+  const grid = document.getElementById('mobile-home-grid');
+  const savedGrid = document.getElementById('mobile-home-saved-grid');
+  const savedSection = document.getElementById('mobile-home-saved-section');
+  if (!grid) return;
+
+  const ownProjects = curAlbums();
+  const shared = (DB.albums['__shared__'] || []).filter(p => !p._isCollab);
+  const collabs = (DB.albums['__shared__'] || []).filter(p => p._isCollab);
+  const allOwn = [...ownProjects, ...collabs];
+
+  function makeCard(p) {
+    const cover = getCover(p);
+    const trackCount = p.tracks?.length || 0;
+    const tag = p._isCollab ? '<span style="font-size:9px;background:rgba(200,255,50,0.12);color:var(--accent);border-radius:4px;padding:1px 5px;letter-spacing:0.06em">collab</span>' : '';
+    return `<div class="mob-home-card" onclick="openMobileProject('${p.id}')">
+      <div class="mob-home-card-cover">${cover ? `<img src="${cover}">` : '<span style="color:var(--border-h);font-size:32px">◈</span>'}</div>
+      <div class="mob-home-card-info">
+        <div class="mob-home-card-name">${p.name}</div>
+        <div class="mob-home-card-sub" style="display:flex;align-items:center;gap:5px;margin-top:3px">${trackCount} track${trackCount !== 1 ? 's' : ''}${tag ? ' ' + tag : ''}</div>
+      </div>
+    </div>`;
+  }
+
+  const newProjectCard = `<div class="mob-home-card" onclick="openModal()" style="background:var(--surface2);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;aspect-ratio:1 / 1.25">
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;color:var(--mid);font-size:24px;line-height:1">+</div>
+  </div>`;
+
+  grid.innerHTML = allOwn.map(makeCard).join('') + newProjectCard;
+
+  if (shared.length > 0) {
+    savedGrid.innerHTML = shared.map(makeCard).join('');
+    savedSection.style.display = 'block';
+  } else {
+    savedSection.style.display = 'none';
+  }
+}
+
+function closeMobileHome() {
+  // no-op — home stays behind
+}
+
+function initSwipeBackToHome() {
+  let startX = 0, startY = 0, tracking = false, swiping = false;
+
+  document.addEventListener('touchstart', e => {
+    if (!isMobile() || !S.curPid) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    tracking = true;
+    swiping = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    const panel = document.getElementById('mobile-project-panel');
+    if (!panel || !S.curPid) return;
+
+    const dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+
+    if (!swiping) {
+      if (dy > 10 && dy > Math.abs(dx)) { tracking = false; return; }
+      if (dx > 6) swiping = true;
+    }
+    if (!swiping) return;
+
+    e.preventDefault();
+    if (dx <= 0) return;
+    panel.style.transition = 'none';
+    panel.style.transform = `translate3d(${dx}px,0,0)`;
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const panel = document.getElementById('mobile-project-panel');
+    if (!panel || !S.curPid) return;
+
+    const dx = e.changedTouches[0].clientX - startX;
+    panel.style.transition = 'transform 0.32s cubic-bezier(0.32,0.72,0,1)';
+
+    if (swiping && dx > 80) {
+      panel.style.transform = 'translate3d(100%,0,0)';
+      S.curPid = null;
+      renderMobileHome();
+      document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('bnav-home')?.classList.add('active');
+    } else {
+      panel.style.transform = 'translate3d(0,0,0)';
+    }
+    swiping = false;
+  }, { passive: true });
+}
+
 function updateMobileNav() {
   if (!isMobile()) return;
   const name = DB.preferredName || currentGoogleUser?.displayName || '';
@@ -5297,6 +5773,7 @@ function addModalSwipeToClose(overlayId, closeFn) {
 window.addEventListener('DOMContentLoaded', () => {
   syncMobilePlayBtn();
   initMobilePlayer();
+  initSwipeBackToHome();
   if (isMobile()) {
     initMobileSwipeSeek();
     initFsSwipeClose();
@@ -5681,6 +6158,15 @@ function renderNotifList(items, profiles) {
             <span style="color:var(--accent)">${n.projectName}</span>
             <span style="color:var(--mid)"> — </span>
             <span style="font-weight:500">${n.trackName}</span>`;
+        } else if (n.type === 'collab_joined') {
+          msgHtml = `<span style="font-weight:500">${name}</span>
+            <span style="color:var(--mid)"> joined </span>
+            <span style="color:var(--accent)">${n.projectName}</span>
+            <span style="color:var(--mid)"> as collaborator</span>`;
+        } else if (n.type === 'collab_track') {
+          msgHtml = `<span style="font-weight:500">${name}</span>
+            <span style="color:var(--mid)"> added a track to </span>
+            <span style="color:var(--accent)">${n.projectName}</span>`;
         } else {
           // default: listen
           msgHtml = `<span style="font-weight:500">${name}</span>
@@ -5797,6 +6283,613 @@ function closeNotifDrawer() {
   overlay.classList.remove('open');
   document.getElementById('bnav-notif')?.classList.remove('active');
   setTimeout(() => { if (!overlay.classList.contains('open')) overlay.style.display = 'none'; }, 300);
+}
+
+// ══════════════════════════════════════
+// COLLAB SYSTEM
+// ══════════════════════════════════════
+
+function buildAlbumActions(p) {
+  const SHARE_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+  const GEAR_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+
+  if (p._isCollab) {
+    return `
+      <button class="btn-outline" onclick="leaveCollab('${p.id}')" style="color:#ff5555;border-color:rgba(255,85,85,0.4);font-size:11px">leave</button>
+      <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">${SHARE_ICON} share</button>
+      <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">${GEAR_ICON}</button>`;
+  }
+  if (p._isShared) {
+    if (currentGoogleUser && !currentGoogleUser.isAnonymous) {
+      const saved = p._alreadySaved;
+      return '<button id="shared-save-btn" onclick="saveSharedProject(\'' + p._shareId + '\',\'' + p._ownerUid + '\',\'' + p.id.replace('__shared__','') + '\',\'' + DB.currentUser + '\')" class="btn-outline" style="gap:5px;' + (saved ? 'background:var(--accent);color:var(--bg);border-color:var(--accent)' : '') + '">' + (saved ? '✓ saved' : '+ save to library') + '</button>';
+    }
+    return '<button class="btn-outline" onclick="signInWithGoogle()" style="gap:5px">Sign in to save</button>';
+  }
+  // Own project
+  return `
+    <button class="btn-outline" onclick="shareAlbum()" title="share project" style="gap:5px">${SHARE_ICON} share</button>
+    <button class="btn-outline" onclick="openProjectSettings('${p.id}')" style="width:35px;padding:0;justify-content:center">${GEAR_ICON}</button>`;
+}
+
+// Build artist row with avatars (owner + collab)
+const _collabCache = {}; // projectId -> { collabUid, collabName } or null
+
+async function buildArtistRow(p) {
+  const ownerName = p._collabOwnerName || p.artist || 'unknown artist';
+  const ownerUid  = p._collabOwnerUid  || p._ownerUid || DB.currentUser;
+  let collabUid  = p._collabUid  || null;
+  let collabName = p._collabName || null;
+
+  // For own projects — fetch collab, using cache
+  if (!collabUid && !p._isShared && !p._isCollab && window._fbReady && DB.currentUser) {
+    if (_collabCache[p.id] !== undefined) {
+      collabUid  = _collabCache[p.id]?.collabUid  || null;
+      collabName = _collabCache[p.id]?.collabName || null;
+    } else {
+      try {
+        const collabSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'collabs'));
+        const doc = collabSnap.docs.find(d => d.data().projectId === p.id && d.data().ownerUid === DB.currentUser);
+        if (doc) {
+          collabUid  = doc.data().collabUid  || null;
+          collabName = doc.data().collabName || null;
+          _collabCache[p.id] = { collabUid, collabName };
+        } else {
+          _collabCache[p.id] = null;
+        }
+      } catch(e) {}
+    }
+  }
+
+  const ownerAvatar = await getProfileAvatar(ownerUid);
+  const ownerHtml = `<div style="display:flex;align-items:center;gap:6px">
+    ${avatarCircle(ownerAvatar, ownerName, 22)}
+    <span class="album-artist" style="margin-top:0;line-height:1">${ownerName}</span>
+  </div>`;
+
+  if (!collabUid) return ownerHtml;
+
+  const collabAvatar = await getProfileAvatar(collabUid);
+  return `${ownerHtml}
+    <span style="color:var(--dim);font-size:11px;line-height:22px">,</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      ${avatarCircle(collabAvatar, collabName, 22)}
+      <span class="album-artist" style="margin-top:0;line-height:1">${collabName}</span>
+    </div>`;
+}
+
+function avatarCircle(photoUrl, name, size) {
+  const s = size || 22;
+  const initials = (name || '?')[0].toUpperCase();
+  return photoUrl
+    ? `<img src="${photoUrl}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.1)">`
+    : `<div style="width:${s}px;height:${s}px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:${Math.round(s*0.5)}px;color:var(--accent);font-weight:500;flex-shrink:0">${initials}</div>`;
+}
+
+const _avatarCache = {};
+async function getProfileAvatar(uid) {
+  if (!uid || !window._fbReady) return null;
+  if (_avatarCache[uid] !== undefined) return _avatarCache[uid];
+  try {
+    const doc = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', uid));
+    const data = doc.exists() ? doc.data() : {};
+    const avatar = data.customAvatar || data.photoURL || null;
+    _avatarCache[uid] = avatar;
+    return avatar;
+  } catch(e) { _avatarCache[uid] = null; return null; }
+}
+
+// Invite collab — create one-time link
+async function loadCollabMemberForSettings(pid) {
+  const memberEl = document.getElementById('ps-collab-member');
+  const btnEl = document.getElementById('ps-collab-btn');
+  if (!memberEl || !btnEl) return;
+  memberEl.style.display = 'none';
+  btnEl.style.display = 'flex';
+
+  if (!window._fbReady || !currentGoogleUser) return;
+  try {
+    const col = window._fbCollection(window._fbDb, 'collabs');
+    const snaps = await window._fbGetDocs(col);
+    const collab = snaps.docs.find(d => d.data().projectId === pid && d.data().ownerUid === currentGoogleUser.uid);
+    if (!collab) return;
+
+    const data = collab.data();
+    const name = data.collabName || 'collaborator';
+    const avatar = await getProfileAvatar(data.collabUid);
+
+    const nameEl = document.getElementById('ps-collab-name');
+    const avatarEl = document.getElementById('ps-collab-avatar');
+    if (nameEl) nameEl.textContent = name;
+    if (avatarEl) {
+      avatarEl.innerHTML = avatar
+        ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+        : `<span>${name[0]?.toUpperCase() || '?'}</span>`;
+    }
+
+    memberEl.style.display = 'flex';
+    btnEl.style.display = 'none';
+    memberEl.dataset.collabDocId = collab.id;
+  } catch(e) {}
+}
+
+async function removeCollab() {
+  const memberEl = document.getElementById('ps-collab-member');
+  const docId = memberEl?.dataset.collabDocId;
+  if (!docId) return;
+  if (!confirm('Remove this collaborator from the project?')) return;
+  try {
+    await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'collabs', docId));
+    memberEl.style.display = 'none';
+    document.getElementById('ps-collab-btn').style.display = 'flex';
+    toast('collaborator removed');
+    // Clear collab cache entry and force full re-render
+    if (psProjectId) _collabCache[psProjectId] = null;
+    const pidToRender = psProjectId;
+    closeProjectSettings();
+    _lastRenderedPid = null;
+    renderMain();
+    renderMain();
+  } catch(e) { toast('failed — try again'); }
+}
+
+async function inviteCollab() {
+  const pid = psProjectId;
+  const p = curAlbums().find(x => x.id === pid);
+  if (!p) { toast('no project selected'); return; }
+  if (!window._fbReady || !currentGoogleUser) { toast('not signed in'); return; }
+  toast('generating invite link...');
+  try {
+    const token = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    await window._fbSetDoc(window._fbDoc(window._fbDb, 'collabInvites', token), {
+      projectId: p.id,
+      ownerUid: currentGoogleUser.uid,
+      ownerName: DB.preferredName || currentGoogleUser.displayName || '',
+      projectName: p.name,
+      used: false,
+      createdAt: Date.now()
+    });
+    const url = `${location.origin}${location.pathname}?collab=${token}`;
+    await navigator.clipboard.writeText(url).catch(() => {});
+    closeProjectSettings();
+    toast('collab invite link copied ✓');
+  } catch(e) {
+    console.error('inviteCollab failed:', e);
+    toast('failed: ' + (e.message || 'check Firestore rules'));
+  }
+}
+
+// Accept collab invite
+async function acceptCollabInvite(token, user) {
+  try {
+    const inviteRef = window._fbDoc(window._fbDb, 'collabInvites', token);
+    const inviteSnap = await window._fbGetDoc(inviteRef);
+    if (!inviteSnap.exists()) { toast('invite link is invalid'); renderMain(); return; }
+    const inv = inviteSnap.data();
+    if (inv.used) { toast('this invite has already been used'); renderMain(); return; }
+    if (inv.ownerUid === user.uid) { toast("that's your own project!"); renderMain(); return; }
+
+    // Mark invite as used
+    await window._fbSetDoc(inviteRef, { used: true, collabUid: user.uid, usedAt: Date.now() }, { merge: true });
+
+    // Add collab entry to project owner's doc
+    await window._fbSetDoc(
+      window._fbDoc(window._fbDb, 'collabs', `${inv.projectId}_${user.uid}`),
+      {
+        projectId: inv.projectId,
+        ownerUid: inv.ownerUid,
+        ownerName: inv.ownerName,
+        projectName: inv.projectName,
+        collabUid: user.uid,
+        collabName: DB.preferredName || user.displayName || '',
+        joinedAt: Date.now()
+      }
+    );
+
+    // Notify owner
+    sendProjectNotification(inv.ownerUid, inv.projectName, 'collab_joined');
+
+    // Remove saved version of this project if exists (collab replaces saved)
+    const savedDocId = `${user.uid}_${inv.projectId}`;
+    try {
+      await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'savedProjects', savedDocId)).catch(() => {});
+    } catch(e) {}
+    // Remove from local memory too
+    if (DB.albums['__shared__']) {
+      DB.albums['__shared__'] = DB.albums['__shared__'].filter(p => {
+        const rid = p.id.replace('__shared__', '');
+        return rid !== inv.projectId;
+      });
+    }
+
+    toast(`joined "${inv.projectName}" as collaborator ✓`);
+
+    // Load the project
+    await loadCollabProject(inv.projectId, inv.ownerUid, user);
+  } catch(e) {
+    console.warn('collab invite failed', e);
+    toast('failed to join — try again');
+    renderMain();
+  }
+}
+
+async function loadCollabProject(projectId, ownerUid, user) {
+  try {
+    const userSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
+    if (!userSnap.exists()) return;
+    const albumsMap = userSnap.data().albums || {};
+    const allProjects = Object.values(albumsMap).flat();
+    const project = allProjects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const collabSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'collabs', `${projectId}_${user.uid}`));
+    const collabData = collabSnap.exists() ? collabSnap.data() : {};
+
+    const fakeId = '__collab__' + projectId;
+    if (!DB.albums['__shared__']) DB.albums['__shared__'] = [];
+
+    const entry = {
+      ...project,
+      id: fakeId,
+      _isCollab: true,
+      _isShared: false,
+      _collabOwnerUid: ownerUid,
+      _collabOwnerName: collabData.ownerName || project.artist || '',
+      _collabUid: user.uid,
+      _collabName: collabData.collabName || DB.preferredName || '',
+      tracks: (project.tracks || []).map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
+    };
+
+    const existing = DB.albums['__shared__'].findIndex(p => p.id === fakeId);
+    if (existing >= 0) DB.albums['__shared__'][existing] = entry;
+    else DB.albums['__shared__'].push(entry);
+
+    renderSidebar(); renderMobileDrawer();
+    selectProject(fakeId);
+
+    // Live sync for collab project
+    window._fbOnSnapshot(window._fbDoc(window._fbDb, 'users', ownerUid), (snap) => {
+      if (!snap.exists()) return;
+      const updated = Object.values(snap.data().albums || {}).flat().find(p => p.id === projectId);
+      if (!updated) return;
+      const idx = (DB.albums['__shared__'] || []).findIndex(p => p.id === fakeId);
+      if (idx >= 0) {
+        DB.albums['__shared__'][idx] = {
+          ...DB.albums['__shared__'][idx], ...updated,
+          id: fakeId, _isCollab: true, _isShared: false,
+          _collabOwnerUid: ownerUid,
+          _collabOwnerName: collabData.ownerName || '',
+          _collabUid: user.uid,
+          _collabName: collabData.collabName || '',
+          tracks: (updated.tracks || []).map(t => ({ ...t, url: t.cloudUrl || t.url || null }))
+        };
+        if (S.curPid === fakeId) renderMain();
+        renderSidebar(); renderMobileDrawer();
+      }
+    });
+  } catch(e) { console.warn('loadCollabProject failed', e); }
+}
+
+function initCollabOwnerSync(uid) {
+  // Watch collabs collection — detect when someone joins or leaves any of our projects
+  const col = window._fbCollection(window._fbDb, 'collabs');
+  window._fbOnSnapshot(col, (snap) => {
+    // Find collabs where we're the owner
+    snap.docChanges().forEach(change => {
+      const data = change.doc.data();
+      if (data.ownerUid !== uid) return;
+      const pid = data.projectId;
+      // Invalidate cache for this project
+      delete _collabCache[pid];
+      // If this project is currently open, re-render
+      if (S.curPid === pid) {
+        _lastRenderedPid = null;
+        renderMain();
+      }
+    });
+  });
+}
+
+async function loadCollabProjects(user) {
+  try {
+    const col = window._fbCollection(window._fbDb, 'collabs');
+    const snaps = await window._fbGetDocs(col);
+    const mine = snaps.docs.filter(d => d.data().collabUid === user.uid);
+    await Promise.all(mine.map(async d => {
+      const { projectId, ownerUid } = d.data();
+      await loadCollabProject(projectId, ownerUid, user);
+    }));
+
+    // Real-time: detect when owner removes this user from a collab
+    window._fbOnSnapshot(col, (snap) => {
+      const myDocs = snap.docs.filter(d => d.data().collabUid === user.uid);
+      const myProjectIds = myDocs.map(d => d.data().projectId);
+
+      // Find any collab projects that no longer have a matching collab doc
+      if (!DB.albums['__shared__']) return;
+      const removed = DB.albums['__shared__'].filter(p =>
+        p._isCollab && !myProjectIds.includes(p.id.replace('__collab__', ''))
+      );
+      if (removed.length === 0) return;
+
+      removed.forEach(p => {
+        DB.albums['__shared__'] = DB.albums['__shared__'].filter(x => x.id !== p.id);
+        if (S.curPid === p.id) { S.curPid = null; }
+      });
+
+      toast('you were removed from a project');
+      renderSidebar(); renderMobileDrawer(); renderMain();
+    });
+  } catch(e) { console.warn('loadCollabProjects failed', e); }
+}
+
+async function addCollabTrack(files) {
+  const p = curP(); if (!p?._isCollab) return;
+  const ownerUid = p._collabOwnerUid;
+  const projectId = p.id.replace('__collab__', '');
+  if (!ownerUid || !projectId) return;
+
+  Array.from(files).forEach(async f => {
+    if (!f.type.match(/audio/)) return;
+    const localUrl = URL.createObjectURL(f);
+    const trackId = uid();
+    const t = {
+      id: trackId, name: f.name.replace(/\.[^.]+$/, ''),
+      originalName: f.name, fileType: f.name.split('.').pop().toUpperCase(),
+      url: localUrl, dur: 0, added: Date.now(),
+      pid: projectId, bpm: null, cloudUrl: null,
+      addedByUid: DB.currentUser,
+      addedByName: DB.preferredName || currentGoogleUser?.displayName || ''
+    };
+
+    // Add to local collab project for immediate display
+    p.tracks.push(t);
+    renderTrackList(); updateMetaRow();
+
+    // Get duration
+    const tmp = new Audio(localUrl);
+    tmp.addEventListener('loadedmetadata', () => { t.dur = tmp.duration; renderTrackList(); });
+
+    // Upload audio to Storage
+    if (window._fbReady && window._fbStorage && currentGoogleUser) {
+      try {
+        const storageRef = window._fbRef(window._fbStorage, `users/${ownerUid}/tracks/${trackId}`);
+        const snapshot = await window._fbUploadBytes(storageRef, f);
+        t.cloudUrl = await window._fbGetDownloadURL(snapshot.ref);
+      } catch(e) { console.warn('collab upload failed', e); }
+    }
+
+    // Write new track to owner's Firestore doc
+    try {
+      const ownerSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
+      if (!ownerSnap.exists()) return;
+      const ownerData = ownerSnap.data();
+      const albumsMap = ownerData.albums || {};
+      const userProjects = albumsMap[ownerUid] || [];
+      const projIdx = userProjects.findIndex(x => x.id === projectId);
+      if (projIdx < 0) return;
+
+      const trackToSave = { ...t, url: null };
+      userProjects[projIdx].tracks.push(trackToSave);
+      albumsMap[ownerUid] = userProjects;
+
+      await window._fbSetDoc(
+        window._fbDoc(window._fbDb, 'users', ownerUid),
+        { albums: albumsMap, updatedAt: Date.now() },
+        { merge: true }
+      );
+      toast(`${t.name} added to project ✓`);
+      sendProjectNotification(ownerUid, p.name, 'collab_track');
+    } catch(e) { console.warn('collab track save failed', e); toast('upload failed'); }
+  });
+}
+
+async function leaveCollab(fakeId) {
+  const p = DB.albums['__shared__']?.find(x => x.id === fakeId);
+  if (!p?._isCollab) return;
+  if (!confirm(`Leave "${p.name}"? You can rejoin with a new invite.`)) return;
+  try {
+    const projectId = p._collabOwnerUid ? fakeId.replace('__collab__', '') : null;
+    if (projectId) {
+      await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'collabs', `${projectId}_${DB.currentUser}`)).catch(() => {});
+    }
+    DB.albums['__shared__'] = (DB.albums['__shared__'] || []).filter(x => x.id !== fakeId);
+    if (S.curPid === fakeId) { S.curPid = null; }
+    renderSidebar(); renderMobileDrawer(); renderMain();
+    toast('left the project');
+  } catch(e) { toast('failed — try again'); }
+}
+
+// ══════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════
+async function showAdminPanel() {
+  document.body.classList.remove('auth-loading');
+  document.getElementById('onboarding')?.classList.remove('open');
+  document.getElementById('app').style.display = 'none';
+  const panel = document.getElementById('admin-panel');
+  panel.classList.add('open');
+  await loadAdminData();
+}
+
+async function loadAdminData() {
+  try {
+    // Fetch all users
+    const usersSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'users'));
+    const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Fetch all saved projects
+    const savedSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'savedProjects'));
+    const savedCount = savedSnap.docs.length;
+
+    // Fetch all shared projects
+    const sharedSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'shared'));
+    const sharedCount = sharedSnap.docs.length;
+
+    // Aggregate stats
+    const totalUsers = users.length;
+    let totalProjects = 0, totalTracks = 0;
+    const roleCounts = {};
+    const recentUsers = [];
+
+    for (const u of users) {
+      // Count projects + tracks
+      const albumsMap = u.albums || {};
+      for (const projs of Object.values(albumsMap)) {
+        if (!Array.isArray(projs)) continue;
+        totalProjects += projs.length;
+        for (const p of projs) totalTracks += (p.tracks?.length || 0);
+      }
+      // Roles
+      for (const role of (u.roles || [])) {
+        roleCounts[role] = (roleCounts[role] || 0) + 1;
+      }
+      // Recent
+      recentUsers.push({
+        name: u.preferredName || u.displayName || u.id.slice(0,8),
+        roles: (u.roles || []).join(', ') || '—',
+        rolesSetAt: u.rolesSetAt || null
+      });
+    }
+
+    // Sort roles
+    const sortedRoles = Object.entries(roleCounts).sort((a,b) => b[1]-a[1]);
+    const usersWithRoles = users.filter(u => u.roles?.length).length;
+
+    // Sort recent users by rolesSetAt
+    recentUsers.sort((a,b) => (b.rolesSetAt||0) - (a.rolesSetAt||0));
+
+    // Render
+    const roleLabels = { producer:'🎛 producer', rapper:'🎤 rapper', singer:'🎶 singer', listener:'👂 music fan', songwriter:'✍️ songwriter', band:'🎸 band member', other:'✨ other' };
+
+    const rolesHtml = sortedRoles.length ? sortedRoles.map(([role, count]) => {
+      const pct = Math.round((count / Math.max(usersWithRoles, 1)) * 100);
+      return `<div class="adm-bar-row">
+        <div class="adm-bar-label">${roleLabels[role] || role}</div>
+        <div class="adm-bar-track"><div class="adm-bar-fill" style="width:${pct}%"></div></div>
+        <div class="adm-bar-pct">${pct}%</div>
+      </div>`;
+    }).join('') : '<div style="color:var(--dim);font-size:12px">no role data yet</div>';
+
+    const recentHtml = recentUsers.slice(0,20).map(u => `
+      <div class="adm-user-row">
+        <div class="adm-user-name">${u.name}</div>
+        <div class="adm-user-role">${u.roles}</div>
+        <div class="adm-user-date">${u.rolesSetAt ? new Date(u.rolesSetAt).toLocaleDateString() : '—'}</div>
+      </div>`).join('');
+
+    document.getElementById('adm-content').innerHTML = `
+      <div class="adm-grid">
+        <div class="adm-stat"><div class="adm-stat-n">${totalUsers}</div><div class="adm-stat-l">total users</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${totalProjects}</div><div class="adm-stat-l">projects</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${totalTracks}</div><div class="adm-stat-l">tracks uploaded</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${sharedCount}</div><div class="adm-stat-l">shared projects</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${savedCount}</div><div class="adm-stat-l">saves by others</div></div>
+        <div class="adm-stat"><div class="adm-stat-n">${usersWithRoles}</div><div class="adm-stat-l">filled welcome</div></div>
+      </div>
+
+      <div class="adm-section">
+        <div class="adm-section-title">who's using WIP</div>
+        ${rolesHtml}
+      </div>
+
+      <div class="adm-section">
+        <div class="adm-section-title">recent users</div>
+        <div style="display:flex;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:4px">
+          <div style="flex:1;font-size:9px;color:var(--dim);letter-spacing:0.1em">NAME</div>
+          <div style="font-size:9px;color:var(--dim);letter-spacing:0.1em">ROLES</div>
+          <div style="font-size:9px;color:var(--dim);letter-spacing:0.1em">DATE</div>
+        </div>
+        ${recentHtml || '<div style="color:var(--dim);font-size:12px;padding:16px 0">no users yet</div>'}
+      </div>
+
+      <div style="text-align:center;padding:20px 0">
+        <button class="btn-outline" onclick="location.href=location.pathname" style="font-size:11px">← back to WIP</button>
+      </div>
+    `;
+
+  } catch(e) {
+    document.getElementById('adm-content').innerHTML = `<div class="adm-loading">error loading data: ${e.message}</div>`;
+    console.error('admin load failed', e);
+  }
+}
+
+
+let _wfSelectedRoles = [];
+let _wfResolve = null;
+
+function showWelcomeFlow(uid) {
+  return new Promise(resolve => {
+    _wfResolve = resolve;
+    _wfSelectedRoles = [];
+    const el = document.getElementById('welcome-flow');
+    if (!el) { resolve(); return; }
+    // Pre-fill name from DB
+    const input = document.getElementById('wf-name');
+    if (input && DB.preferredName) { input.value = DB.preferredName; wfCheckName(); }
+    el.classList.add('open');
+  });
+}
+
+function wfCheckName() {
+  const val = document.getElementById('wf-name')?.value?.trim();
+  const btn = document.getElementById('wf-next-1');
+  if (btn) btn.disabled = !val || val.length < 1;
+}
+
+function wfToggleRole(btn, role) {
+  const i = _wfSelectedRoles.indexOf(role);
+  if (i >= 0) { _wfSelectedRoles.splice(i, 1); btn.classList.remove('selected'); }
+  else { _wfSelectedRoles.push(role); btn.classList.add('selected'); }
+  const next = document.getElementById('wf-next-2');
+  if (next) next.disabled = _wfSelectedRoles.length === 0;
+}
+
+function wfNext(step) {
+  // Save name from step 1
+  const nameInput = document.getElementById('wf-name')?.value?.trim();
+  if (nameInput) DB.preferredName = nameInput;
+
+  // Switch step
+  document.querySelectorAll('.wf-step').forEach(s => s.classList.remove('active'));
+  const next = document.getElementById(`wf-step-${step}`);
+  if (next) next.classList.add('active');
+}
+
+async function wfFinish() {
+  await _wfSaveAndClose();
+}
+
+async function wfSkip() {
+  await _wfSaveAndClose();
+}
+
+async function _wfSaveAndClose() {
+  // Save name if changed
+  const nameInput = document.getElementById('wf-name')?.value?.trim();
+  if (nameInput && nameInput !== DB.preferredName) {
+    DB.preferredName = nameInput;
+  }
+
+  // Save role to Firestore
+  if (_wfSelectedRoles.length > 0 && window._fbReady && DB.currentUser) {
+    try {
+      await window._fbSetDoc(
+        window._fbDoc(window._fbDb, 'users', DB.currentUser),
+        { roles: _wfSelectedRoles, rolesSetAt: Date.now() },
+        { merge: true }
+      );
+    } catch(e) { console.warn('roles save failed', e); }
+  }
+
+  // Save name
+  saveDB();
+
+  // Close
+  const el = document.getElementById('welcome-flow');
+  if (el) { el.style.opacity = '0'; setTimeout(() => { el.classList.remove('open'); el.style.opacity = ''; }, 400); }
+
+  if (_wfResolve) { _wfResolve(); _wfResolve = null; }
 }
 
 </script>
