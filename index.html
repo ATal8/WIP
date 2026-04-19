@@ -2215,7 +2215,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.9</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.10</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -3261,7 +3261,10 @@ async function createAlbum() {
 }
 
 // ─── PROJECTS ───
-function selectProject(id) { S.curPid = id; _lastRenderedPid = null; savePlayerState(); renderSidebar(); renderMain(); }
+function selectProject(id) {
+  if (isMobile()) { openMobileProject(id); return; }
+  S.curPid = id; _lastRenderedPid = null; savePlayerState(); renderSidebar(); renderMain();
+}
 function curP() {
   const own = curAlbums().find(p => p.id === S.curPid);
   if (own) return own;
@@ -4994,7 +4997,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.9', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.10', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -5408,13 +5411,45 @@ function mobileProjSelect(id) {
 // ── Bottom nav avatar sync ──
 function goHome() {
   if (!isMobile()) return;
-  // Deselect project
-  S.curPid = null;
+  const panel = document.getElementById('mobile-project-panel');
+  if (panel) {
+    panel.style.transform = 'translateX(100%)';
+    setTimeout(() => { panel.style.display = 'none'; }, 320);
+  }
+  document.getElementById('mobile-home').style.display = 'block';
   document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('bnav-home')?.classList.add('active');
-  document.getElementById('mobile-home').style.display = 'block';
-  document.getElementById('main-content').style.display = 'none';
+  S.curPid = null;
   renderMobileHome();
+}
+
+function openMobileProject(id) {
+  if (!isMobile()) return;
+  S.curPid = id; _lastRenderedPid = null;
+  savePlayerState(); renderSidebar();
+
+  let panel = document.getElementById('mobile-project-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'mobile-project-panel';
+    panel.style.cssText = `position:fixed;inset:0;z-index:180;background:var(--bg);
+      transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);
+      overflow-y:auto;padding-bottom:calc(var(--mobile-player-h) + var(--bottom-nav-h) + 16px);
+      will-change:transform;`;
+    // Move main-content inside
+    const mc = document.getElementById('main-content');
+    panel.appendChild(mc);
+    document.getElementById('main').appendChild(panel);
+  } else {
+    panel.style.display = 'block';
+  }
+
+  requestAnimationFrame(() => {
+    panel.style.transform = 'translateX(0)';
+  });
+
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  renderMain();
 }
 
 function renderMobileHome() {
@@ -5432,7 +5467,7 @@ function renderMobileHome() {
     const cover = getCover(p);
     const trackCount = p.tracks?.length || 0;
     const tag = p._isCollab ? '<span style="font-size:9px;background:rgba(200,255,50,0.12);color:var(--accent);border-radius:4px;padding:1px 5px;letter-spacing:0.06em">collab</span>' : '';
-    return `<div class="mob-home-card" onclick="closeMobileHome();selectProject('${p.id}')">
+    return `<div class="mob-home-card" onclick="openMobileProject('${p.id}')">
       <div class="mob-home-card-cover">${cover ? `<img src="${cover}">` : '<span style="color:var(--border-h);font-size:32px">◈</span>'}</div>
       <div class="mob-home-card-info">
         <div class="mob-home-card-name">${p.name}</div>
@@ -5441,9 +5476,8 @@ function renderMobileHome() {
     </div>`;
   }
 
-  const newProjectCard = `<div class="mob-home-card" onclick="closeMobileHome();openModal()" style="border:1px dashed var(--border-h);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:1 / 1.25;gap:8px">
-    <div style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border-h);display:flex;align-items:center;justify-content:center;color:var(--mid);font-size:22px;line-height:1">+</div>
-    <span style="font-size:11px;color:var(--dim);letter-spacing:0.04em">new project</span>
+  const newProjectCard = `<div class="mob-home-card" onclick="openModal()" style="background:var(--surface2);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;color:var(--mid);font-size:24px;line-height:1">+</div>
   </div>`;
 
   grid.innerHTML = allOwn.map(makeCard).join('') + newProjectCard;
@@ -5457,46 +5491,44 @@ function renderMobileHome() {
 }
 
 function closeMobileHome() {
-  document.getElementById('mobile-home').style.display = 'none';
-  document.getElementById('main-content').style.display = '';
-  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  // no-op — home stays behind
 }
 
 function initSwipeBackToHome() {
-  let startX = 0, startY = 0;
-  const main = document.getElementById('main-content');
-  if (!main) return;
-  main.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
-
-  main.addEventListener('touchstart', e => {
+  let startX = 0, startY = 0, dragging = false;
+  document.addEventListener('touchstart', e => {
+    const panel = document.getElementById('mobile-project-panel');
+    if (!panel || !isMobile() || !S.curPid) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
+    dragging = startX < 40; // only from left edge
   }, { passive: true });
 
-  main.addEventListener('touchmove', e => {
-    if (!isMobile() || !S.curPid) return;
-    const dx = e.touches[0].clientX - startX;
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const panel = document.getElementById('mobile-project-panel');
+    if (!panel) return;
+    const dx = Math.max(0, e.touches[0].clientX - startX);
     const dy = Math.abs(e.touches[0].clientY - startY);
-    if (dx > 0 && dy < 60) {
-      main.style.transform = `translateX(${Math.min(dx * 0.5, 80)}px)`;
-    }
+    if (dy > 60) { dragging = false; panel.style.transform = 'translateX(0)'; return; }
+    panel.style.transition = 'none';
+    panel.style.transform = `translateX(${dx}px)`;
   }, { passive: true });
 
-  main.addEventListener('touchend', e => {
-    if (!isMobile() || !S.curPid) return;
+  document.addEventListener('touchend', e => {
+    if (!dragging) return;
+    dragging = false;
+    const panel = document.getElementById('mobile-project-panel');
+    if (!panel) return;
     const dx = e.changedTouches[0].clientX - startX;
-    const dy = Math.abs(e.changedTouches[0].clientY - startY);
-    if (dx > 80 && dy < 60) {
-      main.style.transform = 'translateX(100vw)';
-      setTimeout(() => {
-        main.style.transition = 'none';
-        main.style.transform = '';
-        S.curPid = null;
-        goHome();
-        setTimeout(() => { main.style.transition = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)'; }, 50);
-      }, 280);
+    panel.style.transition = 'transform 0.32s cubic-bezier(0.32,0.72,0,1)';
+    if (dx > 100) {
+      panel.style.transform = 'translateX(100%)';
+      setTimeout(() => { panel.style.display = 'none'; S.curPid = null; renderMobileHome(); }, 320);
+      document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('bnav-home')?.classList.add('active');
     } else {
-      main.style.transform = '';
+      panel.style.transform = 'translateX(0)';
     }
   }, { passive: true });
 }
