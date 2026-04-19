@@ -2216,7 +2216,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.13</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.14</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4998,7 +4998,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.13', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.14', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -5532,16 +5532,18 @@ function initSwipeBackToHome() {
     const dx = e.touches[0].clientX - startX;
     const dy = Math.abs(e.touches[0].clientY - startY);
 
-    // Lock direction on first significant move
     if (!swiping) {
-      if (dy > 10 && dy > dx) { tracking = false; return; } // vertical — ignore
-      if (dx > 6) swiping = true;
+      if (dy > 10 && dy > Math.abs(dx)) { tracking = false; return; }
+      if (Math.abs(dx) > 6 && dx > 0) swiping = true;
     }
-    if (!swiping || dx <= 0) return;
+    if (!swiping) return;
 
+    // Block scroll while swiping horizontally
+    e.preventDefault();
+    if (dx <= 0) return;
     panel.style.transition = 'none';
     panel.style.transform = `translateX(${dx}px)`;
-  }, { passive: true });
+  }, { passive: false }); // passive:false so we can preventDefault
 
   document.addEventListener('touchend', e => {
     if (!tracking) return;
