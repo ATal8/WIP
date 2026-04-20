@@ -1849,16 +1849,16 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
         <div id="mobile-home-saved-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
       </div>
     </div>
-    <!-- Mobile Project Panel — always in DOM, GPU layer ready -->
-    <div id="mobile-project-panel" style="position:fixed;inset:0;z-index:180;background:var(--bg);transform:translate3d(100%,0,0);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;padding-bottom:calc(var(--mobile-player-h,80px) + var(--bottom-nav-h,62px) + 16px);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden">
-      <div id="main-content">
-        <div class="no-sel">
-          <div class="no-sel-icon">◈</div>
-          <div class="no-sel-txt">select an album</div>
-          <div class="no-sel-hint">or create a new one to get started</div>
-        </div>
+    <!-- Desktop: main-content lives here directly -->
+    <div id="main-content">
+      <div class="no-sel">
+        <div class="no-sel-icon">◈</div>
+        <div class="no-sel-txt">select a project</div>
+        <div class="no-sel-hint">or create a new one to get started</div>
       </div>
     </div>
+    <!-- Mobile Project Panel — GPU layer, slides in on mobile only -->
+    <div id="mobile-project-panel" style="position:fixed;inset:0;z-index:180;background:var(--bg);transform:translate3d(100%,0,0);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;padding-bottom:calc(var(--mobile-player-h,80px) + var(--bottom-nav-h,62px) + 16px);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
   </main>
 
   <footer id="player">
@@ -2219,7 +2219,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.15</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.16</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5001,7 +5001,7 @@ const MAINTENANCE_MODE = true;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.15', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.16', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -5434,6 +5434,14 @@ function goHome() {
   if (!isMobile()) return;
   const panel = document.getElementById('mobile-project-panel');
   if (panel) panel.style.transform = 'translate3d(100%,0,0)';
+
+  // Move main-content back to <main> (out of the panel)
+  const mc = document.getElementById('main-content');
+  const mainEl = document.getElementById('main');
+  if (mc && mainEl && mc.parentNode !== mainEl) {
+    mainEl.appendChild(mc);
+  }
+
   document.getElementById('mobile-home').style.display = 'block';
   document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('bnav-home')?.classList.add('active');
@@ -5447,7 +5455,14 @@ function openMobileProject(id) {
   savePlayerState(); renderSidebar();
 
   const panel = document.getElementById('mobile-project-panel');
-  // Render content first, then animate in
+  const mc = document.getElementById('main-content');
+
+  // On mobile: move main-content into the slide panel if not already there
+  if (mc && mc.parentNode !== panel) {
+    panel.appendChild(mc);
+  }
+
+  // Render content, then animate panel in
   renderMain();
   requestAnimationFrame(() => {
     panel.style.transform = 'translate3d(0,0,0)';
@@ -5540,6 +5555,10 @@ function initSwipeBackToHome() {
 
     if (swiping && dx > 80) {
       panel.style.transform = 'translate3d(100%,0,0)';
+      // Move main-content back to <main>
+      const mc = document.getElementById('main-content');
+      const mainEl = document.getElementById('main');
+      if (mc && mainEl && mc.parentNode !== mainEl) mainEl.appendChild(mc);
       S.curPid = null;
       renderMobileHome();
       document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
