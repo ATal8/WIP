@@ -2366,7 +2366,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.16</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.17</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5190,7 +5190,7 @@ const MAINTENANCE_MODE = false;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.16', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.17', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -7261,7 +7261,9 @@ async function _renderUserProfile(username) {
         : '◈';
       const trackCount = (p.tracks?.length || 0);
       const dur = totalDur(p.tracks || []);
-      return '<div class="prof-project-row" onclick="_openProfileProject(' + JSON.stringify(JSON.stringify(p)) + ','' + uid + '','' + (canonicalName) + '')">' +
+      const safeJson = JSON.stringify(JSON.stringify(p)).replace(/'/g, "\\'");
+      const safeOwner = canonicalName.replace(/'/g, "\\'");
+      return '<div class="prof-project-row" onclick="_openProfileProject(' + safeJson + ',\'' + uid + '\',\'' + safeOwner + '\')">' +
         '<div class="prof-proj-thumb">' + thumbHtml + '</div>' +
         '<div class="prof-proj-info">' +
           '<div class="prof-proj-name">' + (p.name || 'untitled') + '</div>' +
@@ -7300,7 +7302,8 @@ function checkProfileParam() {
 // Make artist name clickable in shared project views
 function _makeArtistClickable(artistName) {
   if (!artistName) return artistName;
-  return '<span style="cursor:pointer;transition:color 0.12s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''" onclick="openUserProfile('' + artistName + '')">@' + artistName + '</span>';
+  const safe = artistName.replace(/'/g, "\\'");
+  return '<span style="cursor:pointer;transition:color 0.12s" onmouseenter="this.style.color=\'var(--accent)\'" onmouseleave="this.style.color=\'\';" onclick="openUserProfile(\'' + safe + '\')">@' + artistName + '</span>';
 }
 
 </script>
