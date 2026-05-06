@@ -1699,6 +1699,153 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 .wf-next:disabled { opacity: 0.3; cursor: default; transform: none; }
 .wf-skip { font-size: 11px; color: var(--dim); cursor: pointer; letter-spacing: 0.06em; text-decoration: underline; opacity: 0.5; }
 .wf-skip:hover { opacity: 1; }
+
+/* ─── USER PROFILE PAGE ─── */
+#profile-view {
+  position: fixed; inset: 0; z-index: 350;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  overflow-y: auto;
+}
+#profile-view.open { opacity: 1; pointer-events: all; }
+
+.prof-header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 24px;
+  background: rgba(10,10,11,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.prof-back {
+  width: 32px; height: 32px; border: none;
+  background: var(--surface2); border-radius: 50%;
+  color: var(--mid); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s; flex-shrink: 0;
+}
+.prof-back:hover { background: var(--surface3); color: var(--text); }
+.prof-header-logo { font-size: 10px; letter-spacing: 0.28em; color: var(--accent); flex: 1; text-align: center; }
+
+.prof-body {
+  max-width: 780px; margin: 0 auto; width: 100%;
+  padding: 48px 40px 80px;
+}
+
+.prof-identity {
+  display: flex; align-items: center; gap: 24px;
+  margin-bottom: 36px;
+}
+.prof-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--surface2); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 500; color: var(--accent);
+  flex-shrink: 0; position: relative; overflow: hidden;
+}
+.prof-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.prof-meta { flex: 1; min-width: 0; }
+.prof-name {
+  font-size: 26px; font-weight: 500; color: var(--text);
+  letter-spacing: -0.02em; line-height: 1.15;
+}
+.prof-handle {
+  font-size: 11px; color: var(--dim); letter-spacing: 0.08em;
+  margin-top: 3px;
+}
+.prof-joined {
+  font-size: 10px; color: var(--dim); letter-spacing: 0.06em;
+  margin-top: 6px; opacity: 0.6;
+}
+
+.prof-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 40px;
+}
+.prof-stat {
+  padding: 16px 14px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  text-align: center;
+}
+.prof-stat-n {
+  font-size: 22px; font-weight: 500; color: var(--text);
+  letter-spacing: -0.01em; line-height: 1.1;
+}
+.prof-stat-l {
+  font-size: 9px; color: var(--dim); letter-spacing: 0.14em;
+  text-transform: uppercase; margin-top: 5px;
+}
+
+.prof-section-title {
+  font-size: 9px; font-weight: 500; letter-spacing: 0.2em;
+  color: var(--dim); text-transform: uppercase;
+  margin-bottom: 14px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.prof-projects { display: flex; flex-direction: column; gap: 6px; }
+.prof-project-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  cursor: pointer; transition: background 0.12s, border-color 0.12s;
+}
+.prof-project-row:hover { background: var(--surface2); border-color: var(--border-h); }
+.prof-proj-thumb {
+  width: 44px; height: 44px; border-radius: 5px;
+  background: var(--surface2); border: 1px solid var(--border);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--dim); overflow: hidden; position: relative;
+}
+.prof-proj-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.prof-proj-info { flex: 1; min-width: 0; }
+.prof-proj-name {
+  font-size: 13px; font-weight: 400; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+}
+.prof-proj-meta {
+  font-size: 10px; color: var(--dim); margin-top: 3px;
+  letter-spacing: 0.04em;
+}
+.prof-proj-type {
+  font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--dim); padding: 2px 7px; border: 1px solid var(--border);
+  border-radius: 10px; flex-shrink: 0;
+}
+.prof-play-btn {
+  width: 32px; height: 32px; border: none;
+  background: var(--surface2); border-radius: 50%;
+  color: var(--mid); cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  padding-left: 2px; transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.prof-play-btn:hover { background: var(--accent); color: var(--bg); }
+
+.prof-empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 48px 24px;
+  color: var(--dim); gap: 8px;
+}
+.prof-empty-icon { font-size: 28px; opacity: 0.2; }
+.prof-empty-txt { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.prof-loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 80px; color: var(--dim); font-size: 11px; letter-spacing: 0.1em;
+}
+
+@media (max-width: 640px) {
+  .prof-body { padding: 28px 16px 80px; }
+  .prof-stats { grid-template-columns: repeat(2, 1fr); }
+  .prof-identity { gap: 16px; }
+  .prof-avatar { width: 60px; height: 60px; font-size: 22px; }
+  .prof-name { font-size: 20px; }
+}
 </style>
 </head>
 <body class="auth-loading">
@@ -2344,6 +2491,48 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div class="beat-box" id="beat-2"></div>
     <div class="beat-box" id="beat-3"></div>
     <div class="lp-bpm-label" id="lp-bpm-label">— bpm</div>
+  </div>
+</div>
+
+<!-- ─── USER PROFILE PAGE ─── -->
+<div id="profile-view">
+  <div class="prof-header">
+    <button class="prof-back" onclick="closeProfileView()" title="back">←</button>
+    <div class="prof-header-logo">◈ WIP</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="prof-body">
+    <div id="prof-loading" class="prof-loading">loading profile...</div>
+    <div id="prof-content" style="display:none">
+      <div class="prof-identity">
+        <div class="prof-avatar" id="prof-avatar">?</div>
+        <div class="prof-meta">
+          <div class="prof-name" id="prof-name">—</div>
+          <div class="prof-handle" id="prof-handle"></div>
+          <div class="prof-joined" id="prof-joined"></div>
+        </div>
+      </div>
+      <div class="prof-stats">
+        <div class="prof-stat">
+          <div class="prof-stat-n" id="prof-stat-projects">—</div>
+          <div class="prof-stat-l">projects</div>
+        </div>
+        <div class="prof-stat">
+          <div class="prof-stat-n" id="prof-stat-tracks">—</div>
+          <div class="prof-stat-l">tracks</div>
+        </div>
+        <div class="prof-stat">
+          <div class="prof-stat-n" id="prof-stat-listens">—</div>
+          <div class="prof-stat-l">listens</div>
+        </div>
+        <div class="prof-stat">
+          <div class="prof-stat-n" id="prof-stat-saves">—</div>
+          <div class="prof-stat-l">saves</div>
+        </div>
+      </div>
+      <div class="prof-section-title">projects</div>
+      <div class="prof-projects" id="prof-projects-list"></div>
+    </div>
   </div>
 </div>
 
@@ -5111,6 +5300,14 @@ const waitForFb = setInterval(() => {
       // Handle share link — open the project if it belongs to this user
       const shareId = await resolveShareParam();
       const collabToken = new URLSearchParams(location.search).get('collab');
+      const profileParam = new URLSearchParams(location.search).get('u');
+
+      // Profile link
+      if (profileParam) {
+        history.replaceState(null, '', location.pathname);
+        openUserProfile(profileParam);
+        return;
+      }
 
       // Collab invite
       if (collabToken && !isAnon) {
@@ -5151,6 +5348,15 @@ const waitForFb = setInterval(() => {
       }
 
     } else {
+      // No user — check if there's a profile link first
+      const profileParamAnon = new URLSearchParams(location.search).get('u');
+      if (profileParamAnon) {
+        document.body.classList.remove('auth-loading');
+        document.getElementById('app').style.display = 'grid';
+        document.getElementById('onboarding').classList.remove('loading');
+        openUserProfile(profileParamAnon);
+        return;
+      }
       // No user — check if there's a share link, auto sign-in anonymously
       const shareIdForAnon = await resolveShareParam();
       if (shareIdForAnon) {
@@ -6361,9 +6567,11 @@ async function buildArtistRow(p) {
   }
 
   const ownerAvatar = await getProfileAvatar(ownerUid);
+  const isSharedView = p._isShared || p._isCollab;
+  const ownerNameForProfile = ownerName;
   const ownerHtml = `<div style="display:flex;align-items:center;gap:6px">
     ${avatarCircle(ownerAvatar, ownerName, 22)}
-    <span class="album-artist" style="margin-top:0;line-height:1">${ownerName}</span>
+    <span class="album-artist" style="margin-top:0;line-height:1;${isSharedView ? 'cursor:pointer' : ''}" ${isSharedView ? `onclick="openUserProfile('${ownerNameForProfile}')" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''"` : ''}>${ownerName}</span>
   </div>`;
 
   if (!collabUid) return ownerHtml;
@@ -6909,6 +7117,190 @@ async function _wfSaveAndClose() {
   if (el) { el.style.opacity = '0'; setTimeout(() => { el.classList.remove('open'); el.style.opacity = ''; }, 400); }
 
   if (_wfResolve) { _wfResolve(); _wfResolve = null; }
+}
+
+// ─── USER PROFILE PAGE ───
+let _profileCurrentUsername = null;
+let _profileBack = null; // fn to call when back button pressed
+
+// Open profile by username (e.g. 'ATal')
+async function openUserProfile(username, backFn) {
+  if (!username) return;
+  _profileCurrentUsername = username;
+  _profileBack = backFn || null;
+
+  const view = document.getElementById('profile-view');
+  const loading = document.getElementById('prof-loading');
+  const content = document.getElementById('prof-content');
+
+  view.classList.add('open');
+  loading.style.display = 'flex';
+  content.style.display = 'none';
+
+  // Update URL
+  const url = new URL(location.href);
+  url.searchParams.delete('share');
+  url.searchParams.delete('s');
+  url.searchParams.set('u', username);
+  history.pushState(null, '', url.toString());
+
+  try {
+    await _renderUserProfile(username);
+  } catch(e) {
+    console.warn('profile load failed', e);
+    loading.textContent = 'profile not found';
+  }
+}
+
+function closeProfileView() {
+  const view = document.getElementById('profile-view');
+  view.classList.remove('open');
+  _profileCurrentUsername = null;
+
+  // Remove ?u= from URL
+  const url = new URL(location.href);
+  url.searchParams.delete('u');
+  history.pushState(null, '', url.toString());
+
+  if (_profileBack) { _profileBack(); _profileBack = null; }
+}
+
+async function _renderUserProfile(username) {
+  if (!window._fbReady) return;
+
+  // 1) look up uid from username
+  const unSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'usernames', username.toLowerCase()));
+  if (!unSnap.exists()) {
+    document.getElementById('prof-loading').textContent = 'user not found';
+    return;
+  }
+  const uid = unSnap.data().uid;
+  const canonicalName = unSnap.data().name || username;
+
+  // 2) load user profile doc
+  let userDoc = {};
+  try {
+    const uSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', uid));
+    if (uSnap.exists()) userDoc = uSnap.data();
+  } catch(e) {}
+
+  const displayName = userDoc.preferredName || userDoc.displayName || canonicalName;
+  const photo = userDoc.customAvatar || userDoc.photoURL || null;
+  const joinedTs = userDoc.createdAt || null;
+
+  // 3) load user's projects from Firestore
+  let projects = [];
+  try {
+    const dbSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'userdata', uid));
+    if (dbSnap.exists()) {
+      const data = dbSnap.data();
+      const albums = data.albums || {};
+      const key = Object.keys(albums)[0];
+      if (key) projects = albums[key] || [];
+    }
+  } catch(e) {}
+
+  // Only projects that have a shareId (are publicly shareable)
+  const publicProjects = projects.filter(p => p.id);
+
+  // 4) compute stats
+  const totalTracks = publicProjects.reduce((a, p) => a + (p.tracks?.length || 0), 0);
+
+  // listens — sum plays from all tracks across all projects
+  let totalListens = 0;
+  try {
+    const playsSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'plays'));
+    playsSnap.docs.forEach(d => {
+      const data = d.data();
+      if (data.ownerUid === uid) totalListens += (data.count || 1);
+    });
+  } catch(e) {}
+
+  // saves — how many people saved this user's projects
+  let totalSaves = 0;
+  try {
+    const savesSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'savedProjects'));
+    savesSnap.docs.forEach(d => {
+      const data = d.data();
+      if (data.ownerUid === uid && d.data().listenerUid !== uid) totalSaves++;
+    });
+  } catch(e) {}
+
+  // 5) fill UI
+  const avatarEl = document.getElementById('prof-avatar');
+  if (photo) {
+    avatarEl.innerHTML = '<img src="' + photo + '">';
+  } else {
+    avatarEl.innerHTML = '';
+    avatarEl.textContent = (displayName || '?')[0].toUpperCase();
+  }
+
+  document.getElementById('prof-name').textContent = displayName;
+  document.getElementById('prof-handle').textContent = '@' + canonicalName;
+  if (joinedTs) {
+    const d = new Date(joinedTs);
+    document.getElementById('prof-joined').textContent = 'joined ' + d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  } else {
+    document.getElementById('prof-joined').textContent = '';
+  }
+
+  document.getElementById('prof-stat-projects').textContent = publicProjects.length;
+  document.getElementById('prof-stat-tracks').textContent = totalTracks;
+  document.getElementById('prof-stat-listens').textContent = _fmtBig(totalListens);
+  document.getElementById('prof-stat-saves').textContent = _fmtBig(totalSaves);
+
+  // 6) render project list
+  const list = document.getElementById('prof-projects-list');
+  if (publicProjects.length === 0) {
+    list.innerHTML = '<div class="prof-empty"><div class="prof-empty-icon">◈</div><div class="prof-empty-txt">no public projects yet</div></div>';
+  } else {
+    list.innerHTML = publicProjects.map(p => {
+      const coverSrc = p.coverUrl || p.cover || null;
+      const thumbHtml = coverSrc
+        ? '<img src="' + coverSrc + '">'
+        : '◈';
+      const trackCount = (p.tracks?.length || 0);
+      const dur = totalDur(p.tracks || []);
+      return '<div class="prof-project-row" onclick="_openProfileProject(' + JSON.stringify(JSON.stringify(p)) + ','' + uid + '','' + (canonicalName) + '')">' +
+        '<div class="prof-proj-thumb">' + thumbHtml + '</div>' +
+        '<div class="prof-proj-info">' +
+          '<div class="prof-proj-name">' + (p.name || 'untitled') + '</div>' +
+          '<div class="prof-proj-meta">' + trackCount + ' track' + (trackCount !== 1 ? 's' : '') + ' · ' + dur + '</div>' +
+        '</div>' +
+        '<span class="prof-proj-type">' + (p.type || 'project') + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  document.getElementById('prof-loading').style.display = 'none';
+  document.getElementById('prof-content').style.display = 'block';
+}
+
+function _fmtBig(n) {
+  if (!n) return '0';
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return String(n);
+}
+
+function _openProfileProject(projectJson, ownerUid, ownerName) {
+  let p;
+  try { p = JSON.parse(projectJson); } catch(e) { return; }
+  if (!p.id) return;
+  closeProfileView();
+  loadAndShowSharedProject(p.id, currentGoogleUser, { ownerUid, ownerName });
+}
+
+// Check URL for ?u= on load
+function checkProfileParam() {
+  const uParam = new URLSearchParams(location.search).get('u');
+  if (uParam) openUserProfile(uParam);
+}
+
+// Make artist name clickable in shared project views
+function _makeArtistClickable(artistName) {
+  if (!artistName) return artistName;
+  return '<span style="cursor:pointer;transition:color 0.12s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''" onclick="openUserProfile('' + artistName + '')">@' + artistName + '</span>';
 }
 
 </script>
