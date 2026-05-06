@@ -2440,7 +2440,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.23</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.24</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2915,31 +2915,56 @@ async function handleUserAvatarUpload(e) {
 }
 
 // Extract username/ID from a social URL or raw handle
+// Allowed domains per platform
+const _SOC_DOMAINS = {
+  instagram: ['instagram.com', 'www.instagram.com'],
+  tiktok:    ['tiktok.com', 'www.tiktok.com', 'vm.tiktok.com'],
+  twitter:   ['x.com', 'twitter.com', 'www.x.com', 'www.twitter.com'],
+  spotify:   ['open.spotify.com', 'spotify.com', 'www.spotify.com'],
+};
+
 function _extractSocial(raw, platform) {
   if (!raw) return '';
   raw = raw.trim();
   if (!raw) return '';
+  // Strip leading @  — treat as plain handle if no slash
+  if (!raw.includes('/') && !raw.includes('.')) return raw.replace(/^@/, '');
   try {
-    // If it looks like a URL, parse it
     const url = raw.startsWith('http') ? new URL(raw) : new URL('https://' + raw.replace(/^\/\//, ''));
+    const host = url.hostname.replace(/^www\./, '');
+    const allowed = (_SOC_DOMAINS[platform] || []).map(d => d.replace(/^www\./, ''));
+    // Reject wrong domain
+    if (!allowed.includes(host)) return '';
     const parts = url.pathname.split('/').filter(Boolean);
     if (platform === 'spotify') {
-      // spotify: keep full path after /artist/ or return as-is
+      // spotify.com/artist/<id> → store just the ID
       const artistIdx = parts.indexOf('artist');
-      return artistIdx >= 0 ? parts[artistIdx + 1] || parts[parts.length - 1] : parts[parts.length - 1] || raw;
+      return artistIdx >= 0 && parts[artistIdx + 1] ? parts[artistIdx + 1] : '';
     }
-    // instagram, tiktok, twitter: last non-empty path segment, strip @
-    const handle = (parts[parts.length - 1] || '').replace(/^@/, '');
-    return handle || raw.replace(/^@/, '');
+    // others: first path segment (strip leading @)
+    return (parts[0] || '').replace(/^@/, '');
   } catch(e) {
-    // Not a URL — return as-is, strip leading @
+    // Plain handle like "talmadee" with no domain — fine
     return raw.replace(/^@/, '');
   }
 }
 
-// Live normalize as user types (optional feedback)
+// Live feedback as user types — highlight input red if wrong domain
 function _socNormalize(input, platform) {
-  // Nothing to do live — extraction happens on save
+  const raw = input.value.trim();
+  if (!raw || !raw.includes('/')) { input.style.borderColor = ''; input.title = ''; return; }
+  try {
+    const url = raw.startsWith('http') ? new URL(raw) : new URL('https://' + raw.replace(/^\/\//, ''));
+    const host = url.hostname.replace(/^www\./, '');
+    const allowed = (_SOC_DOMAINS[platform] || []).map(d => d.replace(/^www\./, ''));
+    if (!allowed.includes(host)) {
+      input.style.borderColor = '#ff5555';
+      input.title = 'Wrong platform — paste a ' + platform + ' link';
+    } else {
+      input.style.borderColor = 'var(--accent)';
+      input.title = '';
+    }
+  } catch(e) { input.style.borderColor = ''; }
 }
 
 async function saveUserSettings() {
@@ -5277,7 +5302,7 @@ const MAINTENANCE_MODE = false;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.23', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.24', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -7342,13 +7367,20 @@ async function _renderProfileInMain(username) {
     .map(k => {
       const m = _SOCIAL_META[k];
       const handle = socials[k].trim();
-      const href = k === 'spotify'
-        ? (handle.startsWith('http') ? handle : m.url + handle)
-        : m.url + handle;
-      const displayHandle = handle.length > 18 ? handle.slice(0,16) + '…' : handle;
+      if (!handle) return '';
+      let href, displayText;
+      if (k === 'spotify') {
+        href = 'https://open.spotify.com/artist/' + handle;
+        // Show "Spotify" instead of the opaque ID
+        displayText = 'Spotify';
+      } else {
+        href = m.url + handle;
+        const disp = handle.length > 18 ? handle.slice(0, 16) + '…' : handle;
+        displayText = '@' + disp;
+      }
       return '<a class="prof-social-link" href="' + href + '" target="_blank" rel="noopener" style="color:' + m.color + ';border-color:' + m.color + '22">' +
         '<span style="color:' + m.color + ';display:flex;align-items:center">' + m.svg + '</span>' +
-        '<span style="color:var(--mid)">@' + displayHandle + '</span>' +
+        '<span style="color:var(--mid)">' + displayText + '</span>' +
         '</a>';
     }).join('');
 
