@@ -114,24 +114,26 @@ body.auth-loading #onboarding { opacity: 0; pointer-events: none; }
 
 .sb-user {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  padding: 9px 12px 9px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.12s; border-radius: 0;
 }
+.sb-user:hover { background: var(--surface2); }
+.sb-user:hover .sb-uname { color: var(--text); }
 .sb-avatar {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: var(--adim); border: 1px solid rgba(200,255,50,0.2);
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--adim); border: 1.5px solid rgba(200,255,50,0.3);
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; flex-shrink: 0; color: var(--accent); font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.02em; position: relative; overflow: hidden;
+  transition: border-color 0.12s;
 }
+.sb-user:hover .sb-avatar { border-color: var(--accent); }
 .sb-uname {
   font-size: 11px; font-weight: 400; color: var(--mid);
   letter-spacing: 0.05em; flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  cursor: text; border-radius: 3px; padding: 1px 3px; margin-left: -3px;
-  transition: background 0.12s, color 0.12s;
+  transition: color 0.12s;
 }
-.sb-uname:hover { background: var(--surface2); color: var(--text); }
-.sb-uname:focus { background: var(--surface2); color: var(--text); outline: 1px solid var(--border-h); }
 .sb-switch {
   width: 22px; height: 22px; border: none; background: none;
   cursor: pointer; color: var(--dim); border-radius: 4px; flex-shrink: 0;
@@ -1700,91 +1702,168 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 .wf-skip { font-size: 11px; color: var(--dim); cursor: pointer; letter-spacing: 0.06em; text-decoration: underline; opacity: 0.5; }
 .wf-skip:hover { opacity: 1; }
 
-/* ─── USER PROFILE (renders inside #main-content) ─── */
+/* ─── USER PROFILE — Instagram style ─── */
 .prof-wrap {
-  padding: 44px 40px 80px;
-  max-width: 720px;
+  padding: 0 0 80px;
+  max-width: 680px;
   margin: 0 auto;
   width: 100%;
+  animation: profFadeIn 0.28s ease;
 }
-.prof-identity {
-  display: flex; align-items: center; gap: 22px;
-  margin-bottom: 32px;
+@keyframes profFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
+
+/* ── HERO HEADER ── */
+.prof-hero {
+  display: flex; align-items: center; gap: 44px;
+  padding: 48px 40px 32px;
+}
+
+/* Avatar with animated accent ring */
+.prof-avatar-wrap { position: relative; flex-shrink: 0; cursor: pointer; }
+.prof-avatar-ring {
+  position: absolute; inset: -3px; border-radius: 50%;
+  background: conic-gradient(var(--accent) 0deg, rgba(200,255,50,0.15) 210deg, transparent 360deg);
+  animation: profRingSpin 10s linear infinite;
+}
+@keyframes profRingSpin { to { transform: rotate(360deg); } }
 .prof-avatar {
-  width: 72px; height: 72px; border-radius: 50%;
-  background: var(--surface2); border: 2px solid var(--border);
+  width: 90px; height: 90px; border-radius: 50%;
+  background: var(--surface2); border: 3px solid var(--bg);
   display: flex; align-items: center; justify-content: center;
-  font-size: 26px; font-weight: 500; color: var(--accent);
-  flex-shrink: 0; position: relative; overflow: hidden;
+  font-size: 34px; font-weight: 500; color: var(--accent);
+  position: relative; z-index: 1; overflow: hidden;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.prof-avatar-wrap:hover .prof-avatar {
+  transform: scale(1.05);
+  box-shadow: 0 0 24px rgba(200,255,50,0.18);
 }
 .prof-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.prof-meta { flex: 1; min-width: 0; }
-.prof-name {
-  font-size: 24px; font-weight: 500; color: var(--text);
-  letter-spacing: -0.02em; line-height: 1.15;
-}
-.prof-handle { font-size: 11px; color: var(--dim); letter-spacing: 0.08em; margin-top: 3px; }
-.prof-joined { font-size: 10px; color: var(--dim); letter-spacing: 0.06em; margin-top: 5px; opacity: 0.55; }
-.prof-stats {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 10px; margin-bottom: 36px;
-}
-.prof-stat {
-  padding: 14px 12px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 8px; text-align: center;
-}
-.prof-stat-n { font-size: 20px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; line-height: 1.1; }
-.prof-stat-l { font-size: 8.5px; color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 4px; }
-.prof-section-title {
-  font-size: 9px; font-weight: 500; letter-spacing: 0.2em;
-  color: var(--dim); text-transform: uppercase;
-  margin-bottom: 12px; padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-.prof-projects { display: flex; flex-direction: column; gap: 5px; }
-.prof-project-row {
+
+/* Right-side info */
+.prof-info { flex: 1; min-width: 0; }
+.prof-name-row {
   display: flex; align-items: center; gap: 12px;
-  padding: 10px 12px; border-radius: 7px;
-  background: var(--surface); border: 1px solid var(--border);
-  cursor: pointer; transition: background 0.12s, border-color 0.12s;
+  margin-bottom: 14px; flex-wrap: wrap;
 }
-.prof-project-row:hover { background: var(--surface2); border-color: var(--border-h); }
-.prof-proj-thumb {
-  width: 40px; height: 40px; border-radius: 4px;
-  background: var(--surface2); border: 1px solid var(--border);
-  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 16px; color: var(--dim); overflow: hidden; position: relative;
+.prof-name {
+  font-size: 19px; font-weight: 300; color: var(--text);
+  letter-spacing: 0.02em;
 }
-.prof-proj-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.prof-proj-info { flex: 1; min-width: 0; }
-.prof-proj-name {
-  font-size: 12.5px; font-weight: 400; color: var(--text);
+.prof-edit-btn {
+  padding: 5px 14px; border: 1px solid var(--border-h);
+  border-radius: 8px; background: var(--surface2);
+  color: var(--text); font-size: 11px; font-weight: 500;
+  font-family: inherit; cursor: pointer; letter-spacing: 0.04em;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.prof-edit-btn:hover { background: var(--surface3); border-color: var(--mid); }
+
+/* Stats inline — Instagram style */
+.prof-stats-row {
+  display: flex; align-items: center; gap: 28px;
+  margin-bottom: 16px;
+}
+.prof-stat-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+}
+.prof-stat-inline {
+  display: flex; align-items: baseline; gap: 4px;
+}
+.prof-stat-n {
+  font-size: 15px; font-weight: 600; color: var(--text);
+}
+.prof-stat-l {
+  font-size: 11.5px; color: var(--dim);
+}
+
+/* Bio area */
+.prof-handle {
+  font-size: 13px; font-weight: 500; color: var(--text);
+  margin-bottom: 2px;
+}
+.prof-joined {
+  font-size: 11px; color: var(--dim); letter-spacing: 0.01em;
+}
+
+/* ── GRID HEADER ── */
+.prof-grid-header {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ── PROJECTS GRID (3 per row like Instagram) ── */
+.prof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+.prof-grid-item {
+  aspect-ratio: 1;
+  background: var(--surface2);
+  position: relative; overflow: hidden; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; color: var(--dim);
+}
+.prof-grid-item img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.prof-grid-item:hover img { transform: scale(1.06); }
+.prof-grid-item-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 5px;
+  opacity: 0; transition: all 0.18s;
+}
+.prof-grid-item:hover .prof-grid-item-overlay {
+  opacity: 1; background: rgba(0,0,0,0.55);
+}
+.prof-grid-item-name {
+  font-size: 12px; font-weight: 500; color: #fff;
+  letter-spacing: 0.02em; text-align: center;
+  padding: 0 10px; max-width: 100%;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.prof-proj-meta { font-size: 9.5px; color: var(--dim); margin-top: 2px; letter-spacing: 0.04em; }
-.prof-proj-type {
-  font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--dim); padding: 2px 7px; border: 1px solid var(--border);
-  border-radius: 10px; flex-shrink: 0;
+.prof-grid-item-meta {
+  font-size: 9.5px; color: rgba(255,255,255,0.6); letter-spacing: 0.04em;
 }
-.prof-loading-txt {
-  display: flex; align-items: center; justify-content: center;
-  height: 200px; color: var(--dim); font-size: 11px; letter-spacing: 0.1em;
+.prof-grid-item-badge {
+  position: absolute; top: 7px; right: 7px;
+  font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(255,255,255,0.8); background: rgba(0,0,0,0.45);
+  padding: 2px 5px; border-radius: 4px;
+  backdrop-filter: blur(6px);
 }
+
 .prof-empty {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 40px 24px;
-  color: var(--dim); gap: 8px;
+  justify-content: center; padding: 60px 24px;
+  color: var(--dim); gap: 10px;
 }
-.prof-empty-icon { font-size: 24px; opacity: 0.2; }
-.prof-empty-txt { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+.prof-empty-icon { font-size: 30px; opacity: 0.15; }
+.prof-empty-txt { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+
+.prof-loading-txt {
+  display: flex; align-items: center; justify-content: center;
+  height: 220px; color: var(--dim); font-size: 11px; letter-spacing: 0.12em;
+}
+
 @media (max-width: 640px) {
-  .prof-wrap { padding: 24px 16px 80px; }
-  .prof-stats { grid-template-columns: repeat(2, 1fr); }
-  .prof-identity { gap: 14px; }
-  .prof-avatar { width: 54px; height: 54px; font-size: 20px; }
-  .prof-name { font-size: 18px; }
+  .prof-hero { flex-direction: column; align-items: center; text-align: center; gap: 18px; padding: 28px 20px 24px; }
+  .prof-stats-row { justify-content: center; }
+  .prof-name-row { justify-content: center; }
+  .prof-handle, .prof-joined { text-align: center; }
+  .prof-grid { gap: 2px; }
 }
 
 </style>
@@ -1893,10 +1972,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <div class="sb-logo">WIP</div>
       <div class="sb-sub">work in progress</div>
     </div>
-    <div class="sb-user">
-      <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
-      <span class="sb-uname" id="sb-uname" onclick="openOwnProfile()" title="view your profile" style="cursor:pointer">—</span>
-      <button id="sb-notif-btn" onclick="toggleDesktopNotif()" title="notifications" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color 0.12s,background 0.12s;position:relative" onmouseenter="this.style.color='var(--mid)';this.style.background='var(--surface2)'" onmouseleave="this.style.color='var(--dim)';this.style.background='none'">
+    <div class="sb-user" onclick="openOwnProfile()" title="view your profile">
+      <div class="sb-avatar" id="sb-avatar">?</div>
+      <span class="sb-uname" id="sb-uname">—</span>
+      <button id="sb-notif-btn" onclick="event.stopPropagation();toggleDesktopNotif()" title="notifications" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color 0.12s,background 0.12s;position:relative" onmouseenter="this.style.color='var(--mid)';this.style.background='var(--surface2)'" onmouseleave="this.style.color='var(--dim)';this.style.background='none'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -2307,7 +2386,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.19</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.20</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5092,7 +5171,7 @@ const MAINTENANCE_MODE = false;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.19', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.20', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -7147,64 +7226,75 @@ async function _renderProfileInMain(username) {
     ? '<img src="' + photo + '">'
     : (displayName || '?')[0].toUpperCase();
 
-  // 8) "is own profile" buttons
-  const settingsBtn = isOwnProfile
-    ? '<button onclick="openUserSettings()" style="margin-top:14px;padding:7px 16px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--dim);font-size:10px;font-family:inherit;cursor:pointer;letter-spacing:0.08em;transition:border-color 0.12s,color 0.12s" onmouseenter="this.style.borderColor=\'var(--border-h)\';this.style.color=\'var(--text)\'" onmouseleave="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--dim)\'">⚙ edit profile</button>'
+  // 8) edit/settings button for own profile
+  const editBtn = isOwnProfile
+    ? '<button class="prof-edit-btn" onclick="openUserSettings()">Edit profile</button>'
     : '';
 
-  // 9) project rows
-  let projectsHtml;
+  // 9) projects grid items
+  let gridHtml;
   if (projects.length === 0) {
-    projectsHtml = '<div class="prof-empty"><div class="prof-empty-icon">◈</div><div class="prof-empty-txt">no projects yet</div></div>';
+    gridHtml = '<div class="prof-empty"><div class="prof-empty-icon">◈</div><div class="prof-empty-txt">no projects yet</div></div>';
   } else {
-    projectsHtml = projects.map((p, i) => {
+    gridHtml = projects.map((p, i) => {
       const coverSrc = p.coverUrl || p.cover || null;
-      const thumbHtml = coverSrc ? '<img src="' + coverSrc + '">' : '◈';
+      const imgHtml = coverSrc ? '<img src="' + coverSrc + '">' : '';
       const trackCount = (p.tracks?.length || 0);
       const dur = totalDur(p.tracks || []);
+      const icon = coverSrc ? '' : '◈';
       return (
-        '<div class="prof-project-row" data-prof-proj-idx="' + i + '">' +
-          '<div class="prof-proj-thumb">' + thumbHtml + '</div>' +
-          '<div class="prof-proj-info">' +
-            '<div class="prof-proj-name">' + (p.name || 'untitled') + '</div>' +
-            '<div class="prof-proj-meta">' + trackCount + ' track' + (trackCount !== 1 ? 's' : '') + ' · ' + dur + '</div>' +
+        '<div class="prof-grid-item" data-prof-proj-idx="' + i + '">' +
+          imgHtml +
+          icon +
+          '<div class="prof-grid-item-badge">' + (p.type || 'project') + '</div>' +
+          '<div class="prof-grid-item-overlay">' +
+            '<div class="prof-grid-item-name">' + (p.name || 'untitled') + '</div>' +
+            '<div class="prof-grid-item-meta">' + trackCount + ' tracks · ' + dur + '</div>' +
           '</div>' +
-          '<span class="prof-proj-type">' + (p.type || 'project') + '</span>' +
         '</div>'
       );
     }).join('');
   }
 
-  // 10) render HTML
+  // 10) render Instagram-style layout
   c.innerHTML =
     '<div class="prof-wrap">' +
-      '<div class="prof-identity">' +
-        '<div class="prof-avatar">' + avatarInner + '</div>' +
-        '<div class="prof-meta">' +
-          '<div class="prof-name">' + displayName + '</div>' +
-          '<div class="prof-handle">@' + canonicalName + '</div>' +
+      // ── HERO ──
+      '<div class="prof-hero">' +
+        '<div class="prof-avatar-wrap" onclick="' + (isOwnProfile ? 'openUserSettings()' : '') + '">' +
+          '<div class="prof-avatar-ring"></div>' +
+          '<div class="prof-avatar">' + avatarInner + '</div>' +
+        '</div>' +
+        '<div class="prof-info">' +
+          '<div class="prof-name-row">' +
+            '<div class="prof-name">' + canonicalName + '</div>' +
+            editBtn +
+          '</div>' +
+          // Stats inline
+          '<div class="prof-stats-row">' +
+            '<div class="prof-stat-inline"><span class="prof-stat-n">' + projects.length + '</span><span class="prof-stat-l">projects</span></div>' +
+            '<div class="prof-stat-inline"><span class="prof-stat-n">' + totalTracks + '</span><span class="prof-stat-l">tracks</span></div>' +
+            '<div class="prof-stat-inline"><span class="prof-stat-n">' + _fmtBig(totalListens) + '</span><span class="prof-stat-l">listens</span></div>' +
+            '<div class="prof-stat-inline"><span class="prof-stat-n">' + _fmtBig(totalSaves) + '</span><span class="prof-stat-l">saves</span></div>' +
+          '</div>' +
+          // Display name (bio area)
+          '<div class="prof-handle">' + displayName + '</div>' +
           (joinedStr ? '<div class="prof-joined">' + joinedStr + '</div>' : '') +
-          settingsBtn +
         '</div>' +
       '</div>' +
-      '<div class="prof-stats">' +
-        '<div class="prof-stat"><div class="prof-stat-n">' + projects.length + '</div><div class="prof-stat-l">projects</div></div>' +
-        '<div class="prof-stat"><div class="prof-stat-n">' + totalTracks + '</div><div class="prof-stat-l">tracks</div></div>' +
-        '<div class="prof-stat"><div class="prof-stat-n">' + _fmtBig(totalListens) + '</div><div class="prof-stat-l">listens</div></div>' +
-        '<div class="prof-stat"><div class="prof-stat-n">' + _fmtBig(totalSaves) + '</div><div class="prof-stat-l">saves</div></div>' +
-      '</div>' +
-      '<div class="prof-section-title">projects</div>' +
-      '<div class="prof-projects">' + projectsHtml + '</div>' +
+      // ── GRID HEADER ──
+      (projects.length > 0 ? '<div class="prof-grid-header"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> projects</div>' : '') +
+      // ── GRID ──
+      '<div class="prof-grid">' + gridHtml + '</div>' +
     '</div>';
 
-  // 11) attach click handlers to project rows
+  // 11) attach click handlers to grid items
   c.querySelectorAll('[data-prof-proj-idx]').forEach(el => {
     const i = parseInt(el.getAttribute('data-prof-proj-idx'));
     const proj = projects[i];
     if (!proj?.id) return;
     el.onclick = () => {
       _curProfileUsername = null;
-      // If own project, just select it
       if (isOwnProfile) {
         selectProject(proj.id);
       } else {
