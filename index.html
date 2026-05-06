@@ -1858,12 +1858,30 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   height: 220px; color: var(--dim); font-size: 11px; letter-spacing: 0.12em;
 }
 
+/* ── SOCIALS ── */
+.prof-socials {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+}
+.prof-social-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--mid); font-size: 10px; letter-spacing: 0.04em;
+  text-decoration: none; transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.prof-social-link:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--adim);
+}
+.prof-social-link span { font-size: 10px; }
+
 @media (max-width: 640px) {
   .prof-hero { flex-direction: column; align-items: center; text-align: center; gap: 18px; padding: 28px 20px 24px; }
   .prof-stats-row { justify-content: center; }
   .prof-name-row { justify-content: center; }
   .prof-handle, .prof-joined { text-align: center; }
   .prof-grid { gap: 2px; }
+  .prof-socials { justify-content: center; }
 }
 
 </style>
@@ -2364,6 +2382,40 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <input class="m-input" id="us-name" maxlength="20" placeholder="3–20 chars, letters, numbers, _" oninput="checkNameAvailability(this.value)" onkeydown="if(event.key==='Enter')saveUserSettings()">
     </div>
     <div id="us-name-status" style="font-size:9px;letter-spacing:0.06em;margin-bottom:16px;min-height:14px"></div>
+
+    <!-- SOCIALS -->
+    <div class="m-label" style="margin-bottom:8px">socials</div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0">📷</span>
+        <div style="position:relative;flex:1">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim);pointer-events:none">instagram.com/</span>
+          <input class="m-input" id="us-ig" placeholder="username" style="padding-left:100px" maxlength="30">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0">🎵</span>
+        <div style="position:relative;flex:1">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim);pointer-events:none">tiktok.com/@</span>
+          <input class="m-input" id="us-tt" placeholder="username" style="padding-left:88px" maxlength="30">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0">🐦</span>
+        <div style="position:relative;flex:1">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim);pointer-events:none">x.com/</span>
+          <input class="m-input" id="us-tw" placeholder="username" style="padding-left:58px" maxlength="30">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0">🎧</span>
+        <div style="position:relative;flex:1">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim);pointer-events:none">open.spotify.com/artist/</span>
+          <input class="m-input" id="us-sp" placeholder="artist ID or link" style="padding-left:172px" maxlength="80">
+        </div>
+      </div>
+    </div>
+
     <div style="display:flex;gap:12px;margin-bottom:20px">
       <div style="flex:1;padding:10px 14px;background:var(--bg);border-radius:6px;border:1px solid var(--border);text-align:center">
         <div style="font-size:18px;font-weight:500;color:var(--text);margin-bottom:2px" id="us-project-count">0</div>
@@ -2386,7 +2438,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.20</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.21</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2769,6 +2821,13 @@ function openUserSettings() {
   if (pcEl) pcEl.textContent = projects.length;
   if (tcEl) tcEl.textContent = projects.reduce((a, p) => a + p.tracks.length, 0);
 
+  // Load socials
+  const socials = DB.socials || {};
+  const igEl = document.getElementById('us-ig'); if (igEl) igEl.value = socials.instagram || '';
+  const ttEl = document.getElementById('us-tt'); if (ttEl) ttEl.value = socials.tiktok || '';
+  const twEl = document.getElementById('us-tw'); if (twEl) twEl.value = socials.twitter || '';
+  const spEl = document.getElementById('us-sp'); if (spEl) spEl.value = socials.spotify || '';
+
   resetModalTransform('us-modal');
   document.getElementById('us-modal').classList.add('open');
   setTimeout(() => document.getElementById('us-name')?.focus(), 80);
@@ -2892,10 +2951,27 @@ async function saveUserSettings() {
   if (unEl) unEl.textContent = newName;
   const dnEl = document.getElementById('us-display-name');
   if (dnEl) dnEl.textContent = newName;
+
+  // Save socials
+  DB.socials = {
+    instagram: (document.getElementById('us-ig')?.value || '').trim().replace(/^@/, ''),
+    tiktok:    (document.getElementById('us-tt')?.value || '').trim().replace(/^@/, ''),
+    twitter:   (document.getElementById('us-tw')?.value || '').trim().replace(/^@/, ''),
+    spotify:   (document.getElementById('us-sp')?.value || '').trim(),
+  };
+  // Persist socials to Firestore directly
+  if (window._fbReady && DB.currentUser) {
+    window._fbSetDoc(
+      window._fbDoc(window._fbDb, 'users', DB.currentUser),
+      { socials: DB.socials },
+      { merge: true }
+    ).catch(e => console.warn('socials save failed', e));
+  }
+
   saveDB();
   renderSidebar();
   renderMain();
-  toast('display name updated ✓');
+  toast('profile updated ✓');
 }
 
 
@@ -5171,7 +5247,7 @@ const MAINTENANCE_MODE = false;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.20', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.21', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -5223,6 +5299,7 @@ const waitForFb = setInterval(() => {
           }
           if (cloudData.preferredName) DB.preferredName = cloudData.preferredName;
           if (cloudData.customAvatar) DB.customAvatar = cloudData.customAvatar;
+          if (cloudData.socials) DB.socials = cloudData.socials;
           restoreAudioUrls().then(() => {
             renderSidebar(); renderMobileDrawer(); updateSidebarUser(); updateMobileNav();
             if (S.curPid) { const p = curAlbums().find(x => x.id === S.curPid); if (p) renderMain(); }
@@ -6548,44 +6625,40 @@ async function buildArtistRow(p) {
   }
 
   const ownerAvatar = await getProfileAvatar(ownerUid);
-  const isSharedView = p._isShared || p._isCollab;
 
-  // Look up canonical username for click-to-profile (falls back to display name)
+  // Look up canonical username — always, for all views
   let ownerUsername = ownerName;
-  if (isSharedView && ownerUid && window._fbReady) {
+  if (ownerUid && window._fbReady) {
     try {
       const unSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
       if (unSnap.exists()) ownerUsername = unSnap.data().preferredName || ownerName;
     } catch(e) {}
   }
 
-  const ownerClick = isSharedView
-    ? `onclick="openUserProfile('${ownerUsername}')" style="margin-top:0;line-height:1;cursor:pointer" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''"`
-    : `style="margin-top:0;line-height:1"`;
+  const makeClick = (un) =>
+    `onclick="openUserProfile('${un}')" style="margin-top:0;line-height:1;cursor:pointer;transition:color 0.12s" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''"`;
+
   const ownerHtml = `<div style="display:flex;align-items:center;gap:6px">
     ${avatarCircle(ownerAvatar, ownerName, 22)}
-    <span class="album-artist" ${ownerClick}>${ownerName}</span>
+    <span class="album-artist" ${makeClick(ownerUsername)}>${ownerName}</span>
   </div>`;
 
   if (!collabUid) return ownerHtml;
 
   let collabUsername = collabName;
-  if (isSharedView && collabUid && window._fbReady) {
+  if (collabUid && window._fbReady) {
     try {
       const unSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', collabUid));
       if (unSnap.exists()) collabUsername = unSnap.data().preferredName || collabName;
     } catch(e) {}
   }
 
-  const collabClick = isSharedView
-    ? `onclick="openUserProfile('${collabUsername}')" style="margin-top:0;line-height:1;cursor:pointer" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''"`
-    : `style="margin-top:0;line-height:1"`;
   const collabAvatar = await getProfileAvatar(collabUid);
   return `${ownerHtml}
     <span style="color:var(--dim);font-size:11px;line-height:22px">,</span>
     <div style="display:flex;align-items:center;gap:6px">
       ${avatarCircle(collabAvatar, collabName, 22)}
-      <span class="album-artist" ${collabClick}>${collabName}</span>
+      <span class="album-artist" ${makeClick(collabUsername)}>${collabName}</span>
     </div>`;
 }
 
@@ -7226,6 +7299,26 @@ async function _renderProfileInMain(username) {
     ? '<img src="' + photo + '">'
     : (displayName || '?')[0].toUpperCase();
 
+  // 7b) socials from user doc
+  const socials = userDoc.socials || {};
+  const socialLinks = [
+    { key: 'instagram', icon: '📷', url: 'https://instagram.com/' },
+    { key: 'tiktok',    icon: '🎵', url: 'https://tiktok.com/@' },
+    { key: 'twitter',   icon: '🐦', url: 'https://x.com/' },
+    { key: 'spotify',   icon: '🎧', url: 'https://open.spotify.com/artist/' },
+  ];
+  const socialsHtml = socialLinks
+    .filter(s => socials[s.key] && socials[s.key].trim())
+    .map(s => {
+      const handle = socials[s.key].trim();
+      const href = s.key === 'spotify'
+        ? (handle.startsWith('http') ? handle : s.url + handle)
+        : s.url + handle;
+      return '<a class="prof-social-link" href="' + href + '" target="_blank" rel="noopener">' +
+        s.icon + ' <span>@' + handle + '</span>' +
+        '</a>';
+    }).join('');
+
   // 8) edit/settings button for own profile
   const editBtn = isOwnProfile
     ? '<button class="prof-edit-btn" onclick="openUserSettings()">Edit profile</button>'
@@ -7280,6 +7373,7 @@ async function _renderProfileInMain(username) {
           // Display name (bio area)
           '<div class="prof-handle">' + displayName + '</div>' +
           (joinedStr ? '<div class="prof-joined">' + joinedStr + '</div>' : '') +
+          (socialsHtml ? '<div class="prof-socials">' + socialsHtml + '</div>' : '') +
         '</div>' +
       '</div>' +
       // ── GRID HEADER ──
