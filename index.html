@@ -1700,152 +1700,93 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
 .wf-skip { font-size: 11px; color: var(--dim); cursor: pointer; letter-spacing: 0.06em; text-decoration: underline; opacity: 0.5; }
 .wf-skip:hover { opacity: 1; }
 
-/* ─── USER PROFILE PAGE ─── */
-#profile-view {
-  position: fixed; inset: 0; z-index: 350;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.25s ease;
-  overflow-y: auto;
+/* ─── USER PROFILE (renders inside #main-content) ─── */
+.prof-wrap {
+  padding: 44px 40px 80px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
 }
-#profile-view.open { opacity: 1; pointer-events: all; }
-
-.prof-header {
-  position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 24px;
-  background: rgba(10,10,11,0.92);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.prof-back {
-  width: 32px; height: 32px; border: none;
-  background: var(--surface2); border-radius: 50%;
-  color: var(--mid); cursor: pointer; font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.12s, color 0.12s; flex-shrink: 0;
-}
-.prof-back:hover { background: var(--surface3); color: var(--text); }
-.prof-header-logo { font-size: 10px; letter-spacing: 0.28em; color: var(--accent); flex: 1; text-align: center; }
-
-.prof-body {
-  max-width: 780px; margin: 0 auto; width: 100%;
-  padding: 48px 40px 80px;
-}
-
 .prof-identity {
-  display: flex; align-items: center; gap: 24px;
-  margin-bottom: 36px;
+  display: flex; align-items: center; gap: 22px;
+  margin-bottom: 32px;
 }
 .prof-avatar {
-  width: 80px; height: 80px; border-radius: 50%;
+  width: 72px; height: 72px; border-radius: 50%;
   background: var(--surface2); border: 2px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 28px; font-weight: 500; color: var(--accent);
+  font-size: 26px; font-weight: 500; color: var(--accent);
   flex-shrink: 0; position: relative; overflow: hidden;
 }
 .prof-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .prof-meta { flex: 1; min-width: 0; }
 .prof-name {
-  font-size: 26px; font-weight: 500; color: var(--text);
+  font-size: 24px; font-weight: 500; color: var(--text);
   letter-spacing: -0.02em; line-height: 1.15;
 }
-.prof-handle {
-  font-size: 11px; color: var(--dim); letter-spacing: 0.08em;
-  margin-top: 3px;
-}
-.prof-joined {
-  font-size: 10px; color: var(--dim); letter-spacing: 0.06em;
-  margin-top: 6px; opacity: 0.6;
-}
-
+.prof-handle { font-size: 11px; color: var(--dim); letter-spacing: 0.08em; margin-top: 3px; }
+.prof-joined { font-size: 10px; color: var(--dim); letter-spacing: 0.06em; margin-top: 5px; opacity: 0.55; }
 .prof-stats {
   display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 12px; margin-bottom: 40px;
+  gap: 10px; margin-bottom: 36px;
 }
 .prof-stat {
-  padding: 16px 14px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 10px;
-  text-align: center;
+  padding: 14px 12px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; text-align: center;
 }
-.prof-stat-n {
-  font-size: 22px; font-weight: 500; color: var(--text);
-  letter-spacing: -0.01em; line-height: 1.1;
-}
-.prof-stat-l {
-  font-size: 9px; color: var(--dim); letter-spacing: 0.14em;
-  text-transform: uppercase; margin-top: 5px;
-}
-
+.prof-stat-n { font-size: 20px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; line-height: 1.1; }
+.prof-stat-l { font-size: 8.5px; color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 4px; }
 .prof-section-title {
   font-size: 9px; font-weight: 500; letter-spacing: 0.2em;
   color: var(--dim); text-transform: uppercase;
-  margin-bottom: 14px; padding-bottom: 8px;
+  margin-bottom: 12px; padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
-
-.prof-projects { display: flex; flex-direction: column; gap: 6px; }
+.prof-projects { display: flex; flex-direction: column; gap: 5px; }
 .prof-project-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 12px 14px; border-radius: 8px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 7px;
   background: var(--surface); border: 1px solid var(--border);
   cursor: pointer; transition: background 0.12s, border-color 0.12s;
 }
 .prof-project-row:hover { background: var(--surface2); border-color: var(--border-h); }
 .prof-proj-thumb {
-  width: 44px; height: 44px; border-radius: 5px;
+  width: 40px; height: 40px; border-radius: 4px;
   background: var(--surface2); border: 1px solid var(--border);
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 18px; color: var(--dim); overflow: hidden; position: relative;
+  font-size: 16px; color: var(--dim); overflow: hidden; position: relative;
 }
 .prof-proj-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .prof-proj-info { flex: 1; min-width: 0; }
 .prof-proj-name {
-  font-size: 13px; font-weight: 400; color: var(--text);
+  font-size: 12.5px; font-weight: 400; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  letter-spacing: 0.02em;
 }
-.prof-proj-meta {
-  font-size: 10px; color: var(--dim); margin-top: 3px;
-  letter-spacing: 0.04em;
-}
+.prof-proj-meta { font-size: 9.5px; color: var(--dim); margin-top: 2px; letter-spacing: 0.04em; }
 .prof-proj-type {
-  font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
+  font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--dim); padding: 2px 7px; border: 1px solid var(--border);
   border-radius: 10px; flex-shrink: 0;
 }
-.prof-play-btn {
-  width: 32px; height: 32px; border: none;
-  background: var(--surface2); border-radius: 50%;
-  color: var(--mid); cursor: pointer; font-size: 11px;
+.prof-loading-txt {
   display: flex; align-items: center; justify-content: center;
-  padding-left: 2px; transition: background 0.12s, color 0.12s;
-  flex-shrink: 0;
+  height: 200px; color: var(--dim); font-size: 11px; letter-spacing: 0.1em;
 }
-.prof-play-btn:hover { background: var(--accent); color: var(--bg); }
-
 .prof-empty {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 48px 24px;
+  justify-content: center; padding: 40px 24px;
   color: var(--dim); gap: 8px;
 }
-.prof-empty-icon { font-size: 28px; opacity: 0.2; }
+.prof-empty-icon { font-size: 24px; opacity: 0.2; }
 .prof-empty-txt { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
-
-.prof-loading {
-  display: flex; align-items: center; justify-content: center;
-  padding: 80px; color: var(--dim); font-size: 11px; letter-spacing: 0.1em;
-}
-
 @media (max-width: 640px) {
-  .prof-body { padding: 28px 16px 80px; }
+  .prof-wrap { padding: 24px 16px 80px; }
   .prof-stats { grid-template-columns: repeat(2, 1fr); }
-  .prof-identity { gap: 16px; }
-  .prof-avatar { width: 60px; height: 60px; font-size: 22px; }
-  .prof-name { font-size: 20px; }
+  .prof-identity { gap: 14px; }
+  .prof-avatar { width: 54px; height: 54px; font-size: 20px; }
+  .prof-name { font-size: 18px; }
 }
+
 </style>
 </head>
 <body class="auth-loading">
@@ -2366,7 +2307,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.17</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.18</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -2491,48 +2432,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div class="beat-box" id="beat-2"></div>
     <div class="beat-box" id="beat-3"></div>
     <div class="lp-bpm-label" id="lp-bpm-label">— bpm</div>
-  </div>
-</div>
-
-<!-- ─── USER PROFILE PAGE ─── -->
-<div id="profile-view">
-  <div class="prof-header">
-    <button class="prof-back" onclick="closeProfileView()" title="back">←</button>
-    <div class="prof-header-logo">◈ WIP</div>
-    <div style="width:32px"></div>
-  </div>
-  <div class="prof-body">
-    <div id="prof-loading" class="prof-loading">loading profile...</div>
-    <div id="prof-content" style="display:none">
-      <div class="prof-identity">
-        <div class="prof-avatar" id="prof-avatar">?</div>
-        <div class="prof-meta">
-          <div class="prof-name" id="prof-name">—</div>
-          <div class="prof-handle" id="prof-handle"></div>
-          <div class="prof-joined" id="prof-joined"></div>
-        </div>
-      </div>
-      <div class="prof-stats">
-        <div class="prof-stat">
-          <div class="prof-stat-n" id="prof-stat-projects">—</div>
-          <div class="prof-stat-l">projects</div>
-        </div>
-        <div class="prof-stat">
-          <div class="prof-stat-n" id="prof-stat-tracks">—</div>
-          <div class="prof-stat-l">tracks</div>
-        </div>
-        <div class="prof-stat">
-          <div class="prof-stat-n" id="prof-stat-listens">—</div>
-          <div class="prof-stat-l">listens</div>
-        </div>
-        <div class="prof-stat">
-          <div class="prof-stat-n" id="prof-stat-saves">—</div>
-          <div class="prof-stat-l">saves</div>
-        </div>
-      </div>
-      <div class="prof-section-title">projects</div>
-      <div class="prof-projects" id="prof-projects-list"></div>
-    </div>
   </div>
 </div>
 
@@ -5190,7 +5089,7 @@ const MAINTENANCE_MODE = false;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.17', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.18', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -6568,20 +6467,43 @@ async function buildArtistRow(p) {
 
   const ownerAvatar = await getProfileAvatar(ownerUid);
   const isSharedView = p._isShared || p._isCollab;
-  const ownerNameForProfile = ownerName;
+
+  // Look up canonical username for click-to-profile (falls back to display name)
+  let ownerUsername = ownerName;
+  if (isSharedView && ownerUid && window._fbReady) {
+    try {
+      const unSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', ownerUid));
+      if (unSnap.exists()) ownerUsername = unSnap.data().preferredName || ownerName;
+    } catch(e) {}
+  }
+
+  const ownerClick = isSharedView
+    ? `onclick="openUserProfile('${ownerUsername}')" style="margin-top:0;line-height:1;cursor:pointer" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''"`
+    : `style="margin-top:0;line-height:1"`;
   const ownerHtml = `<div style="display:flex;align-items:center;gap:6px">
     ${avatarCircle(ownerAvatar, ownerName, 22)}
-    <span class="album-artist" style="margin-top:0;line-height:1;${isSharedView ? 'cursor:pointer' : ''}" ${isSharedView ? `onclick="openUserProfile('${ownerNameForProfile}')" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''"` : ''}>${ownerName}</span>
+    <span class="album-artist" ${ownerClick}>${ownerName}</span>
   </div>`;
 
   if (!collabUid) return ownerHtml;
 
+  let collabUsername = collabName;
+  if (isSharedView && collabUid && window._fbReady) {
+    try {
+      const unSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', collabUid));
+      if (unSnap.exists()) collabUsername = unSnap.data().preferredName || collabName;
+    } catch(e) {}
+  }
+
+  const collabClick = isSharedView
+    ? `onclick="openUserProfile('${collabUsername}')" style="margin-top:0;line-height:1;cursor:pointer" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=''"`
+    : `style="margin-top:0;line-height:1"`;
   const collabAvatar = await getProfileAvatar(collabUid);
   return `${ownerHtml}
     <span style="color:var(--dim);font-size:11px;line-height:22px">,</span>
     <div style="display:flex;align-items:center;gap:6px">
       ${avatarCircle(collabAvatar, collabName, 22)}
-      <span class="album-artist" style="margin-top:0;line-height:1">${collabName}</span>
+      <span class="album-artist" ${collabClick}>${collabName}</span>
     </div>`;
 }
 
@@ -7119,65 +7041,45 @@ async function _wfSaveAndClose() {
   if (_wfResolve) { _wfResolve(); _wfResolve = null; }
 }
 
-// ─── USER PROFILE PAGE ───
-let _profileCurrentUsername = null;
-let _profileBack = null; // fn to call when back button pressed
+// ─── USER PROFILE (renders inside #main-content) ───
+let _curProfileUsername = null;
 
-// Open profile by username (e.g. 'ATal')
-async function openUserProfile(username, backFn) {
+// Called from artist name click or share link ?u=
+async function openUserProfile(username) {
   if (!username) return;
-  _profileCurrentUsername = username;
-  _profileBack = backFn || null;
+  _curProfileUsername = username;
 
-  const view = document.getElementById('profile-view');
-  const loading = document.getElementById('prof-loading');
-  const content = document.getElementById('prof-content');
+  // Deselect any active project in sidebar
+  S.curPid = null;
+  _lastRenderedPid = null;
+  renderSidebar();
 
-  view.classList.add('open');
-  loading.style.display = 'flex';
-  content.style.display = 'none';
-
-  // Update URL
-  const url = new URL(location.href);
-  url.searchParams.delete('share');
-  url.searchParams.delete('s');
-  url.searchParams.set('u', username);
-  history.pushState(null, '', url.toString());
+  // Show loading state in main content
+  const c = document.getElementById('main-content');
+  c.innerHTML = '<div class="prof-wrap"><div class="prof-loading-txt">loading profile...</div></div>';
 
   try {
-    await _renderUserProfile(username);
+    await _renderProfileInMain(username);
   } catch(e) {
     console.warn('profile load failed', e);
-    loading.textContent = 'profile not found';
+    c.innerHTML = '<div class="prof-wrap"><div class="prof-loading-txt">profile not found</div></div>';
   }
 }
 
-function closeProfileView() {
-  const view = document.getElementById('profile-view');
-  view.classList.remove('open');
-  _profileCurrentUsername = null;
-
-  // Remove ?u= from URL
-  const url = new URL(location.href);
-  url.searchParams.delete('u');
-  history.pushState(null, '', url.toString());
-
-  if (_profileBack) { _profileBack(); _profileBack = null; }
-}
-
-async function _renderUserProfile(username) {
+async function _renderProfileInMain(username) {
   if (!window._fbReady) return;
+  const c = document.getElementById('main-content');
 
   // 1) look up uid from username
   const unSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'usernames', username.toLowerCase()));
   if (!unSnap.exists()) {
-    document.getElementById('prof-loading').textContent = 'user not found';
+    c.innerHTML = '<div class="prof-wrap"><div class="prof-loading-txt">user not found</div></div>';
     return;
   }
   const uid = unSnap.data().uid;
   const canonicalName = unSnap.data().name || username;
 
-  // 2) load user profile doc
+  // 2) load user profile from users/{uid}
   let userDoc = {};
   try {
     const uSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', uid));
@@ -7188,94 +7090,104 @@ async function _renderUserProfile(username) {
   const photo = userDoc.customAvatar || userDoc.photoURL || null;
   const joinedTs = userDoc.createdAt || null;
 
-  // 3) load user's projects from Firestore
+  // 3) load projects — stored in users/{uid} under albums key
   let projects = [];
   try {
-    const dbSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'userdata', uid));
-    if (dbSnap.exists()) {
-      const data = dbSnap.data();
-      const albums = data.albums || {};
-      const key = Object.keys(albums)[0];
-      if (key) projects = albums[key] || [];
-    }
+    const albums = userDoc.albums || {};
+    // albums is an object keyed by uid, take first key
+    const key = Object.keys(albums)[0];
+    if (key) projects = albums[key] || [];
   } catch(e) {}
 
-  // Only projects that have a shareId (are publicly shareable)
   const publicProjects = projects.filter(p => p.id);
-
-  // 4) compute stats
   const totalTracks = publicProjects.reduce((a, p) => a + (p.tracks?.length || 0), 0);
 
-  // listens — sum plays from all tracks across all projects
-  let totalListens = 0;
-  try {
-    const playsSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'plays'));
-    playsSnap.docs.forEach(d => {
-      const data = d.data();
-      if (data.ownerUid === uid) totalListens += (data.count || 1);
-    });
-  } catch(e) {}
-
-  // saves — how many people saved this user's projects
+  // 4) count saves (how many people saved this user's projects)
   let totalSaves = 0;
   try {
     const savesSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'savedProjects'));
     savesSnap.docs.forEach(d => {
-      const data = d.data();
-      if (data.ownerUid === uid && d.data().listenerUid !== uid) totalSaves++;
+      if (d.data().ownerUid === uid && d.data().viewerUid !== uid) totalSaves++;
     });
   } catch(e) {}
 
-  // 5) fill UI
-  const avatarEl = document.getElementById('prof-avatar');
-  if (photo) {
-    avatarEl.innerHTML = '<img src="' + photo + '">';
-  } else {
-    avatarEl.innerHTML = '';
-    avatarEl.textContent = (displayName || '?')[0].toUpperCase();
-  }
+  // 5) count listens — from 'shared' docs that track plays
+  // We use saves count as proxy for now; actual listen tracking depends on app internals
+  let totalListens = 0;
+  try {
+    const sharedSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'shared'));
+    sharedSnap.docs.forEach(d => {
+      if (d.data().ownerUid === uid) totalListens += (d.data().plays || 0);
+    });
+  } catch(e) {}
 
-  document.getElementById('prof-name').textContent = displayName;
-  document.getElementById('prof-handle').textContent = '@' + canonicalName;
+  // 6) format joined date
+  let joinedStr = '';
   if (joinedTs) {
     const d = new Date(joinedTs);
-    document.getElementById('prof-joined').textContent = 'joined ' + d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-  } else {
-    document.getElementById('prof-joined').textContent = '';
+    joinedStr = 'joined ' + d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
   }
 
-  document.getElementById('prof-stat-projects').textContent = publicProjects.length;
-  document.getElementById('prof-stat-tracks').textContent = totalTracks;
-  document.getElementById('prof-stat-listens').textContent = _fmtBig(totalListens);
-  document.getElementById('prof-stat-saves').textContent = _fmtBig(totalSaves);
+  // 7) avatar HTML
+  const avatarInner = photo
+    ? '<img src="' + photo + '">'
+    : '<span style="font-size:26px;font-weight:500;color:var(--accent)">' + (displayName || '?')[0].toUpperCase() + '</span>';
 
-  // 6) render project list
-  const list = document.getElementById('prof-projects-list');
+  // 8) projects list HTML
+  let projectsHtml;
   if (publicProjects.length === 0) {
-    list.innerHTML = '<div class="prof-empty"><div class="prof-empty-icon">◈</div><div class="prof-empty-txt">no public projects yet</div></div>';
+    projectsHtml = '<div class="prof-empty"><div class="prof-empty-icon">◈</div><div class="prof-empty-txt">no projects yet</div></div>';
   } else {
-    list.innerHTML = publicProjects.map(p => {
+    projectsHtml = publicProjects.map((p, i) => {
       const coverSrc = p.coverUrl || p.cover || null;
-      const thumbHtml = coverSrc
-        ? '<img src="' + coverSrc + '">'
-        : '◈';
+      const thumbHtml = coverSrc ? '<img src="' + coverSrc + '">' : '◈';
       const trackCount = (p.tracks?.length || 0);
       const dur = totalDur(p.tracks || []);
-      const safeJson = JSON.stringify(JSON.stringify(p)).replace(/'/g, "\\'");
-      const safeOwner = canonicalName.replace(/'/g, "\\'");
-      return '<div class="prof-project-row" onclick="_openProfileProject(' + safeJson + ',\'' + uid + '\',\'' + safeOwner + '\')">' +
-        '<div class="prof-proj-thumb">' + thumbHtml + '</div>' +
-        '<div class="prof-proj-info">' +
-          '<div class="prof-proj-name">' + (p.name || 'untitled') + '</div>' +
-          '<div class="prof-proj-meta">' + trackCount + ' track' + (trackCount !== 1 ? 's' : '') + ' · ' + dur + '</div>' +
-        '</div>' +
-        '<span class="prof-proj-type">' + (p.type || 'project') + '</span>' +
-      '</div>';
+      const projType = (p.type || 'project');
+      return (
+        '<div class="prof-project-row" data-prof-proj-idx="' + i + '">' +
+          '<div class="prof-proj-thumb">' + thumbHtml + '</div>' +
+          '<div class="prof-proj-info">' +
+            '<div class="prof-proj-name">' + (p.name || 'untitled') + '</div>' +
+            '<div class="prof-proj-meta">' + trackCount + ' track' + (trackCount !== 1 ? 's' : '') + ' · ' + dur + '</div>' +
+          '</div>' +
+          '<span class="prof-proj-type">' + projType + '</span>' +
+        '</div>'
+      );
     }).join('');
   }
 
-  document.getElementById('prof-loading').style.display = 'none';
-  document.getElementById('prof-content').style.display = 'block';
+  // 9) render
+  c.innerHTML =
+    '<div class="prof-wrap">' +
+      '<div class="prof-identity">' +
+        '<div class="prof-avatar">' + avatarInner + '</div>' +
+        '<div class="prof-meta">' +
+          '<div class="prof-name">' + displayName + '</div>' +
+          '<div class="prof-handle">@' + canonicalName + '</div>' +
+          (joinedStr ? '<div class="prof-joined">' + joinedStr + '</div>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="prof-stats">' +
+        '<div class="prof-stat"><div class="prof-stat-n">' + publicProjects.length + '</div><div class="prof-stat-l">projects</div></div>' +
+        '<div class="prof-stat"><div class="prof-stat-n">' + totalTracks + '</div><div class="prof-stat-l">tracks</div></div>' +
+        '<div class="prof-stat"><div class="prof-stat-n">' + _fmtBig(totalListens) + '</div><div class="prof-stat-l">listens</div></div>' +
+        '<div class="prof-stat"><div class="prof-stat-n">' + _fmtBig(totalSaves) + '</div><div class="prof-stat-l">saves</div></div>' +
+      '</div>' +
+      '<div class="prof-section-title">projects</div>' +
+      '<div class="prof-projects">' + projectsHtml + '</div>' +
+    '</div>';
+
+  // 10) attach click handlers to project rows
+  c.querySelectorAll('[data-prof-proj-idx]').forEach(el => {
+    const idx = parseInt(el.getAttribute('data-prof-proj-idx'));
+    const proj = publicProjects[idx];
+    if (!proj?.id) return;
+    el.onclick = () => {
+      _curProfileUsername = null;
+      loadAndShowSharedProject(proj.id, currentGoogleUser);
+    };
+  });
 }
 
 function _fmtBig(n) {
@@ -7285,25 +7197,15 @@ function _fmtBig(n) {
   return String(n);
 }
 
-function _openProfileProject(projectJson, ownerUid, ownerName) {
-  let p;
-  try { p = JSON.parse(projectJson); } catch(e) { return; }
-  if (!p.id) return;
-  closeProfileView();
-  loadAndShowSharedProject(p.id, currentGoogleUser, { ownerUid, ownerName });
-}
-
-// Check URL for ?u= on load
+// Unused but kept for compat
+function closeProfileView() { _curProfileUsername = null; }
 function checkProfileParam() {
-  const uParam = new URLSearchParams(location.search).get('u');
-  if (uParam) openUserProfile(uParam);
+  const u = new URLSearchParams(location.search).get('u');
+  if (u) openUserProfile(u);
 }
-
-// Make artist name clickable in shared project views
 function _makeArtistClickable(artistName) {
   if (!artistName) return artistName;
-  const safe = artistName.replace(/'/g, "\\'");
-  return '<span style="cursor:pointer;transition:color 0.12s" onmouseenter="this.style.color=\'var(--accent)\'" onmouseleave="this.style.color=\'\';" onclick="openUserProfile(\'' + safe + '\')">@' + artistName + '</span>';
+  return artistName;
 }
 
 </script>
