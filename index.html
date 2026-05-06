@@ -1895,7 +1895,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     </div>
     <div class="sb-user">
       <div class="sb-avatar" id="sb-avatar" onclick="openUserSettings()" title="account settings" style="cursor:pointer">?</div>
-      <span class="sb-uname" id="sb-uname">—</span>
+      <span class="sb-uname" id="sb-uname" onclick="openOwnProfile()" title="view your profile" style="cursor:pointer">—</span>
       <button id="sb-notif-btn" onclick="toggleDesktopNotif()" title="notifications" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--dim);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color 0.12s,background 0.12s;position:relative" onmouseenter="this.style.color='var(--mid)';this.style.background='var(--surface2)'" onmouseleave="this.style.color='var(--dim)';this.style.background='none'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -1954,7 +1954,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
       <div class="pl-thumb" id="pl-thumb">♩</div>
       <div class="pl-info">
         <div class="pl-name" id="pl-name">—</div>
-        <div class="pl-artist" id="pl-artist">no track playing</div>
+        <div class="pl-artist" id="pl-artist" onclick="openArtistFromPlayer()" style="cursor:pointer;transition:color 0.12s" onmouseenter="if(this.dataset.un)this.style.color='var(--accent)'" onmouseleave="this.style.color=''">no track playing</div>
       </div>
     </div>
     <div class="pl-center">
@@ -2307,7 +2307,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.18</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.19</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -4101,14 +4101,17 @@ function syncAlbumPlayBtn() {
 function updatePlayerUI(t, p) {
   if (!t) {
     document.getElementById('pl-name').textContent = '—';
-    document.getElementById('pl-artist').textContent = 'no track playing';
+    const _elPA = document.getElementById('pl-artist'); _elPA.textContent = 'no track playing'; _elPA.dataset.un = '';
     document.getElementById('pl-thumb').innerHTML = '♩';
     document.getElementById('pl-thumb').classList.remove('pa');
     clearWaveform();
     return;
   }
   document.getElementById('pl-name').textContent = t.name;
-  document.getElementById('pl-artist').textContent = p ? (p.artist || p.name) : '';
+  const plArtistEl = document.getElementById('pl-artist');
+  plArtistEl.textContent = p ? (p.artist || p.name) : '';
+  // Store username so click-to-profile works
+  plArtistEl.dataset.un = p?._ownerName || p?.artist || '';
   const thumb = document.getElementById('pl-thumb');
   thumb.innerHTML = p && getCover(p) ? `<img src="${getCover(p)}">` : '♪';
   updBtn();
@@ -5089,7 +5092,7 @@ const MAINTENANCE_MODE = false;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.18', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.19', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -7044,17 +7047,29 @@ async function _wfSaveAndClose() {
 // ─── USER PROFILE (renders inside #main-content) ───
 let _curProfileUsername = null;
 
-// Called from artist name click or share link ?u=
+// Open own profile (from sidebar name click)
+function openOwnProfile() {
+  const name = DB.preferredName || currentGoogleUser?.displayName;
+  if (name) openUserProfile(name);
+}
+
+// Open profile of artist currently playing
+function openArtistFromPlayer() {
+  const el = document.getElementById('pl-artist');
+  const un = el?.dataset?.un;
+  if (un) openUserProfile(un);
+}
+
+// Called from: artist name click, ?u= param, sidebar username
 async function openUserProfile(username) {
   if (!username) return;
   _curProfileUsername = username;
 
-  // Deselect any active project in sidebar
+  // Deselect project in sidebar
   S.curPid = null;
   _lastRenderedPid = null;
   renderSidebar();
 
-  // Show loading state in main content
   const c = document.getElementById('main-content');
   c.innerHTML = '<div class="prof-wrap"><div class="prof-loading-txt">loading profile...</div></div>';
 
@@ -7070,7 +7085,7 @@ async function _renderProfileInMain(username) {
   if (!window._fbReady) return;
   const c = document.getElementById('main-content');
 
-  // 1) look up uid from username
+  // 1) look up uid from usernames collection
   const unSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'usernames', username.toLowerCase()));
   if (!unSnap.exists()) {
     c.innerHTML = '<div class="prof-wrap"><div class="prof-loading-txt">user not found</div></div>';
@@ -7079,7 +7094,7 @@ async function _renderProfileInMain(username) {
   const uid = unSnap.data().uid;
   const canonicalName = unSnap.data().name || username;
 
-  // 2) load user profile from users/{uid}
+  // 2) load full user doc from users/{uid}
   let userDoc = {};
   try {
     const uSnap = await window._fbGetDoc(window._fbDoc(window._fbDb, 'users', uid));
@@ -7088,31 +7103,30 @@ async function _renderProfileInMain(username) {
 
   const displayName = userDoc.preferredName || userDoc.displayName || canonicalName;
   const photo = userDoc.customAvatar || userDoc.photoURL || null;
-  const joinedTs = userDoc.createdAt || null;
+  const joinedTs = userDoc.createdAt || userDoc.updatedAt || null;
+  const isOwnProfile = currentGoogleUser && currentGoogleUser.uid === uid;
 
-  // 3) load projects — stored in users/{uid} under albums key
+  // 3) projects — stored as albums: { "<uid>": [...] } inside users/{uid}
   let projects = [];
-  try {
-    const albums = userDoc.albums || {};
-    // albums is an object keyed by uid, take first key
-    const key = Object.keys(albums)[0];
-    if (key) projects = albums[key] || [];
-  } catch(e) {}
+  const albumsObj = userDoc.albums || {};
+  // The key is the Firebase UID (same as the document uid)
+  const projKey = albumsObj[uid] ? uid : Object.keys(albumsObj)[0];
+  if (projKey) projects = albumsObj[projKey] || [];
 
-  const publicProjects = projects.filter(p => p.id);
-  const totalTracks = publicProjects.reduce((a, p) => a + (p.tracks?.length || 0), 0);
+  // Filter out internal keys
+  projects = projects.filter(p => p && p.id && !p._isShared && !p._isCollab);
+  const totalTracks = projects.reduce((a, p) => a + (p.tracks?.length || 0), 0);
 
-  // 4) count saves (how many people saved this user's projects)
+  // 4) count saves from savedProjects collection
   let totalSaves = 0;
   try {
     const savesSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'savedProjects'));
     savesSnap.docs.forEach(d => {
-      if (d.data().ownerUid === uid && d.data().viewerUid !== uid) totalSaves++;
+      if (d.data().ownerUid === uid) totalSaves++;
     });
   } catch(e) {}
 
-  // 5) count listens — from 'shared' docs that track plays
-  // We use saves count as proxy for now; actual listen tracking depends on app internals
+  // 5) count listens from shared collection (plays field)
   let totalListens = 0;
   try {
     const sharedSnap = await window._fbGetDocs(window._fbCollection(window._fbDb, 'shared'));
@@ -7121,29 +7135,33 @@ async function _renderProfileInMain(username) {
     });
   } catch(e) {}
 
-  // 6) format joined date
+  // 6) joined date
   let joinedStr = '';
   if (joinedTs) {
     const d = new Date(joinedTs);
     joinedStr = 'joined ' + d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
   }
 
-  // 7) avatar HTML
+  // 7) avatar
   const avatarInner = photo
     ? '<img src="' + photo + '">'
-    : '<span style="font-size:26px;font-weight:500;color:var(--accent)">' + (displayName || '?')[0].toUpperCase() + '</span>';
+    : (displayName || '?')[0].toUpperCase();
 
-  // 8) projects list HTML
+  // 8) "is own profile" buttons
+  const settingsBtn = isOwnProfile
+    ? '<button onclick="openUserSettings()" style="margin-top:14px;padding:7px 16px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--dim);font-size:10px;font-family:inherit;cursor:pointer;letter-spacing:0.08em;transition:border-color 0.12s,color 0.12s" onmouseenter="this.style.borderColor=\'var(--border-h)\';this.style.color=\'var(--text)\'" onmouseleave="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--dim)\'">⚙ edit profile</button>'
+    : '';
+
+  // 9) project rows
   let projectsHtml;
-  if (publicProjects.length === 0) {
+  if (projects.length === 0) {
     projectsHtml = '<div class="prof-empty"><div class="prof-empty-icon">◈</div><div class="prof-empty-txt">no projects yet</div></div>';
   } else {
-    projectsHtml = publicProjects.map((p, i) => {
+    projectsHtml = projects.map((p, i) => {
       const coverSrc = p.coverUrl || p.cover || null;
       const thumbHtml = coverSrc ? '<img src="' + coverSrc + '">' : '◈';
       const trackCount = (p.tracks?.length || 0);
       const dur = totalDur(p.tracks || []);
-      const projType = (p.type || 'project');
       return (
         '<div class="prof-project-row" data-prof-proj-idx="' + i + '">' +
           '<div class="prof-proj-thumb">' + thumbHtml + '</div>' +
@@ -7151,13 +7169,13 @@ async function _renderProfileInMain(username) {
             '<div class="prof-proj-name">' + (p.name || 'untitled') + '</div>' +
             '<div class="prof-proj-meta">' + trackCount + ' track' + (trackCount !== 1 ? 's' : '') + ' · ' + dur + '</div>' +
           '</div>' +
-          '<span class="prof-proj-type">' + projType + '</span>' +
+          '<span class="prof-proj-type">' + (p.type || 'project') + '</span>' +
         '</div>'
       );
     }).join('');
   }
 
-  // 9) render
+  // 10) render HTML
   c.innerHTML =
     '<div class="prof-wrap">' +
       '<div class="prof-identity">' +
@@ -7166,10 +7184,11 @@ async function _renderProfileInMain(username) {
           '<div class="prof-name">' + displayName + '</div>' +
           '<div class="prof-handle">@' + canonicalName + '</div>' +
           (joinedStr ? '<div class="prof-joined">' + joinedStr + '</div>' : '') +
+          settingsBtn +
         '</div>' +
       '</div>' +
       '<div class="prof-stats">' +
-        '<div class="prof-stat"><div class="prof-stat-n">' + publicProjects.length + '</div><div class="prof-stat-l">projects</div></div>' +
+        '<div class="prof-stat"><div class="prof-stat-n">' + projects.length + '</div><div class="prof-stat-l">projects</div></div>' +
         '<div class="prof-stat"><div class="prof-stat-n">' + totalTracks + '</div><div class="prof-stat-l">tracks</div></div>' +
         '<div class="prof-stat"><div class="prof-stat-n">' + _fmtBig(totalListens) + '</div><div class="prof-stat-l">listens</div></div>' +
         '<div class="prof-stat"><div class="prof-stat-n">' + _fmtBig(totalSaves) + '</div><div class="prof-stat-l">saves</div></div>' +
@@ -7178,14 +7197,20 @@ async function _renderProfileInMain(username) {
       '<div class="prof-projects">' + projectsHtml + '</div>' +
     '</div>';
 
-  // 10) attach click handlers to project rows
+  // 11) attach click handlers to project rows
   c.querySelectorAll('[data-prof-proj-idx]').forEach(el => {
-    const idx = parseInt(el.getAttribute('data-prof-proj-idx'));
-    const proj = publicProjects[idx];
+    const i = parseInt(el.getAttribute('data-prof-proj-idx'));
+    const proj = projects[i];
     if (!proj?.id) return;
     el.onclick = () => {
       _curProfileUsername = null;
-      loadAndShowSharedProject(proj.id, currentGoogleUser);
+      // If own project, just select it
+      if (isOwnProfile) {
+        selectProject(proj.id);
+      } else {
+        // Find share id for this project
+        loadAndShowSharedProject(proj.id, currentGoogleUser);
+      }
     };
   });
 }
@@ -7197,15 +7222,12 @@ function _fmtBig(n) {
   return String(n);
 }
 
-// Unused but kept for compat
+// Expose for artist row clicks and track player
 function closeProfileView() { _curProfileUsername = null; }
+
 function checkProfileParam() {
   const u = new URLSearchParams(location.search).get('u');
   if (u) openUserProfile(u);
-}
-function _makeArtistClickable(artistName) {
-  if (!artistName) return artistName;
-  return artistName;
 }
 
 </script>
