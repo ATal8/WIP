@@ -1858,22 +1858,42 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
   height: 220px; color: var(--dim); font-size: 11px; letter-spacing: 0.12em;
 }
 
-/* ── SOCIALS ── */
+/* ── SOCIALS INPUTS in settings modal ── */
+.soc-row {
+  display: grid;
+  grid-template-columns: 28px 90px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.soc-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; flex-shrink: 0;
+}
+.soc-label {
+  font-size: 10px; color: var(--dim); letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.soc-input {
+  min-width: 0;
+}
+
+/* ── SOCIALS on profile page ── */
 .prof-socials {
   display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
 }
 .prof-social-link {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border-radius: 20px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 20px;
   background: var(--surface2); border: 1px solid var(--border);
-  color: var(--mid); font-size: 10px; letter-spacing: 0.04em;
-  text-decoration: none; transition: border-color 0.12s, color 0.12s, background 0.12s;
+  color: var(--mid); font-size: 11px; letter-spacing: 0.02em;
+  text-decoration: none; transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .prof-social-link:hover {
-  border-color: var(--accent); color: var(--accent);
+  border-color: var(--accent); color: var(--text);
   background: var(--adim);
 }
-.prof-social-link span { font-size: 10px; }
+.prof-social-link svg { flex-shrink: 0; }
+.prof-social-link span { font-size: 11px; }
 
 @media (max-width: 640px) {
   .prof-hero { flex-direction: column; align-items: center; text-align: center; gap: 18px; padding: 28px 20px 24px; }
@@ -2384,35 +2404,27 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div id="us-name-status" style="font-size:9px;letter-spacing:0.06em;margin-bottom:16px;min-height:14px"></div>
 
     <!-- SOCIALS -->
-    <div class="m-label" style="margin-bottom:8px">socials</div>
-    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0">📷</span>
-        <div style="position:relative;flex:1">
-          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim);pointer-events:none">instagram.com/</span>
-          <input class="m-input" id="us-ig" placeholder="username" style="padding-left:100px" maxlength="30">
-        </div>
+    <div class="m-label" style="margin-bottom:10px">socials</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <div class="soc-row">
+        <div class="soc-icon" style="color:#e1306c"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></div>
+        <div class="soc-label">Instagram</div>
+        <input class="m-input soc-input" id="us-ig" placeholder="your username" maxlength="30">
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0">🎵</span>
-        <div style="position:relative;flex:1">
-          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim);pointer-events:none">tiktok.com/@</span>
-          <input class="m-input" id="us-tt" placeholder="username" style="padding-left:88px" maxlength="30">
-        </div>
+      <div class="soc-row">
+        <div class="soc-icon" style="color:#fff"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z"/></svg></div>
+        <div class="soc-label">TikTok</div>
+        <input class="m-input soc-input" id="us-tt" placeholder="your username" maxlength="30">
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0">🐦</span>
-        <div style="position:relative;flex:1">
-          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim);pointer-events:none">x.com/</span>
-          <input class="m-input" id="us-tw" placeholder="username" style="padding-left:58px" maxlength="30">
-        </div>
+      <div class="soc-row">
+        <div class="soc-icon" style="color:#e7e7e7"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></div>
+        <div class="soc-label">X / Twitter</div>
+        <input class="m-input soc-input" id="us-tw" placeholder="your username" maxlength="30">
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0">🎧</span>
-        <div style="position:relative;flex:1">
-          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--dim);pointer-events:none">open.spotify.com/artist/</span>
-          <input class="m-input" id="us-sp" placeholder="artist ID or link" style="padding-left:172px" maxlength="80">
-        </div>
+      <div class="soc-row">
+        <div class="soc-icon" style="color:#1db954"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg></div>
+        <div class="soc-label">Spotify</div>
+        <input class="m-input soc-input" id="us-sp" placeholder="artist link or ID" maxlength="120">
       </div>
     </div>
 
@@ -2438,7 +2450,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin-bottom: 10px;
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)">version</span>
-        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.21</span>
+        <span style="font-size:9px;color:var(--mid);letter-spacing:0.06em">v3.10.22</span>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:0.03em;line-height:1.6;text-align:center">
         Found a bug? Send a message on Instagram
@@ -5247,7 +5259,7 @@ const MAINTENANCE_MODE = false;
 const ALLOWED_UIDS = ['AhjvP2Pyt5SjDBJkJQgMQhsJzZF3', '7H3Ee4Y7iOTEY7E7hwQerjBJS9F3'];
 const OWNER_UID = 'AhjvP2Pyt5SjDBJkJQgMQhsJzZF3';
 
-console.log('%c◈ WIP — Work In Progress %cv3.10.21', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
+console.log('%c◈ WIP — Work In Progress %cv3.10.22', 'color:#c8ff32;font-weight:bold;font-size:14px', 'color:#888;font-size:12px');
 
 const waitForFb = setInterval(() => {
   if (!window._fbReady) return;
@@ -7301,21 +7313,24 @@ async function _renderProfileInMain(username) {
 
   // 7b) socials from user doc
   const socials = userDoc.socials || {};
-  const socialLinks = [
-    { key: 'instagram', icon: '📷', url: 'https://instagram.com/' },
-    { key: 'tiktok',    icon: '🎵', url: 'https://tiktok.com/@' },
-    { key: 'twitter',   icon: '🐦', url: 'https://x.com/' },
-    { key: 'spotify',   icon: '🎧', url: 'https://open.spotify.com/artist/' },
-  ];
-  const socialsHtml = socialLinks
-    .filter(s => socials[s.key] && socials[s.key].trim())
-    .map(s => {
-      const handle = socials[s.key].trim();
-      const href = s.key === 'spotify'
-        ? (handle.startsWith('http') ? handle : s.url + handle)
-        : s.url + handle;
-      return '<a class="prof-social-link" href="' + href + '" target="_blank" rel="noopener">' +
-        s.icon + ' <span>@' + handle + '</span>' +
+  const _SOCIAL_META = {
+    instagram: { svg: '<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z\"/></svg>', color: '#e1306c', label: 'Instagram', url: 'https://instagram.com/' },
+    tiktok:    { svg: '<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z\"/></svg>', color: '#ffffff', label: 'TikTok', url: 'https://tiktok.com/@' },
+    twitter:   { svg: '<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z\"/></svg>', color: '#e7e7e7', label: 'X', url: 'https://x.com/' },
+    spotify:   { svg: '<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z\"/></svg>', color: '#1db954', label: 'Spotify', url: 'https://open.spotify.com/artist/' },
+  };
+  const socialsHtml = ['instagram','tiktok','twitter','spotify']
+    .filter(k => socials[k] && socials[k].trim())
+    .map(k => {
+      const m = _SOCIAL_META[k];
+      const handle = socials[k].trim();
+      const href = k === 'spotify'
+        ? (handle.startsWith('http') ? handle : m.url + handle)
+        : m.url + handle;
+      const displayHandle = handle.length > 18 ? handle.slice(0,16) + '…' : handle;
+      return '<a class="prof-social-link" href="' + href + '" target="_blank" rel="noopener" style="color:' + m.color + ';border-color:' + m.color + '22">' +
+        '<span style="color:' + m.color + ';display:flex;align-items:center">' + m.svg + '</span>' +
+        '<span style="color:var(--mid)">@' + displayHandle + '</span>' +
         '</a>';
     }).join('');
 
